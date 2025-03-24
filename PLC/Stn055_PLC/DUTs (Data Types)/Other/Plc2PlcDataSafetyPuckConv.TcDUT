@@ -1,0 +1,60 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="Plc2PlcDataSafetyPuckConv" Id="{3f83fa5b-abb0-4dfa-a2c8-026ff587a612}">
+    <Declaration><![CDATA[TYPE Plc2PlcDataSafetyPuckConv :
+STRUCT
+
+HeartbeatMain: DINT;
+HeartbeatStn: DINT;
+
+//This is information being published from safety
+
+Enc051: CmpSafetyInterfaceConv;
+Enc052: CmpSafetyInterfaceConv;
+Enc053: CmpSafetyInterfaceConv;
+Enc054: CmpSafetyInterfaceConv;
+Enc055: CmpSafetyInterfaceConv;
+Enc056: CmpSafetyInterfaceConv;	
+Enc057: CmpSafetyInterfaceConv;
+Enc058: CmpSafetyInterfaceConv;
+Enc059: CmpSafetyInterfaceConv;
+Enc060: CmpSafetyInterfaceConv;	
+Enc061: CmpSafetyInterfaceConv;
+Enc062: CmpSafetyInterfaceConv;
+
+MtrRunning : ConvMtrRunningPuck;		//conv motor running states
+
+//This bidirectional data published by specific stations and broadcast by safety to all stations
+
+Stn051PLCData: ARRAY [0..5] OF DINT;
+Stn052PLCData: ARRAY [0..5] OF DINT;
+Stn053PLCData: ARRAY [0..5] OF DINT;
+Stn054PLCData: ARRAY [0..5] OF DINT;
+Stn055PLCData: ARRAY [0..5] OF DINT;
+
+//For Motor Control - Bitwise motor running status for each motor controlled by PLC, 
+//  shared by Stn05x_PLC, updated by ConvSafety_PLC
+
+//This is published by specific stations for use by safety
+
+CycleAuto: BOOL;
+CycleReset: BOOL;
+OkForManual: BOOL;
+Enc051MastLight: MastLightReq;
+Enc052MastLight: MastLightReq;
+Enc053MastLight: MastLightReq;
+Enc054MastLight: MastLightReq;
+Enc055MastLight: MastLightReq;
+Enc056MastLight: MastLightReq;
+Enc057MastLight: MastLightReq;
+Enc058MastLight: MastLightReq;
+Enc059MastLight: MastLightReq;
+Enc060MastLight: MastLightReq;
+Enc061MastLight: MastLightReq;
+Enc062MastLight: MastLightReq;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

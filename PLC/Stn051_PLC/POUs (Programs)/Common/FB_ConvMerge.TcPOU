@@ -1,0 +1,473 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_ConvMerge" Id="{f2cd1249-62cf-4b3a-a103-c1932cdee042}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ConvMerge
+VAR_INPUT
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpConvMerge;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFIFO: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+	pMain: POINTER TO CmpConvStop;
+	pSpur: POINTER TO CmpConvStop;
+END_VAR
+
+VAR
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+
+	tmrMainOKforNextRelease: TON;
+	tmrSpurOKforNextRelease: TON;
+	ResetReleaseTimingMain : BOOL;
+	ResetReleaseTimingSpur: BOOL;
+	NextMainDelay: TIME;
+	NextSpurDelay: TIME;
+	tmrMainBlocked: TON;
+	MainBlocked: BOOL;
+	tmrSpurBlocked: TON;
+	SpurBlocked: BOOL;
+	MainConvOK: BOOL;
+	SpurConvOK: BOOL;
+	senBufferFull: FB_SensorHyst;
+	RatioReleaseMain : BOOL;
+	CountMain : REAL;
+	CountSpur: REAL;
+
+	iBufferFull AT %I*: BOOL;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Local.pStateTraceBuffer := pStateTraceBuffer;
+Local.pStateTraceFifo := pStateTraceFifo;
+Local.pStats := pStats;
+
+IF gFirstScan THEN
+	// Version 02 - 06/17/2022
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000ms;
+	
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+
+
+//
+MainConvOK := 
+	pCmp^.MainHeartbeatOK AND
+	pCmp^.MainConvRunning AND
+	pCmp^.MainInAuto AND
+	NOT MainBlocked;
+
+SpurConvOK := 
+	pCmp^.SpurHeartbeatOK AND 
+	pCmp^.SpurConvRunning AND
+	pCmp^.SpurInAuto AND
+	NOT SpurBlocked;
+
+tmrMainBlocked(IN := MainBlocked,PT := T#20S);
+MainBlocked := MainBlocked AND NOT tmrMainBlocked.Q;
+
+tmrSpurBlocked(IN := SpurBlocked,PT := T#20S);
+SpurBlocked := SpurBlocked AND NOT tmrSpurBlocked.Q;
+
+
+IF ResetReleaseTimingMain THEN
+	NextMainDelay := pCmp^.Config.MergeTimeSpacing;
+	NextSpurDelay :=  pCmp^.Config.MergeTimeSpacing +pCmp^.Config.MergeTimeMainTravel  - pCmp^.Config.MergeTimeSpurTravel ;
+END_IF 
+IF ResetReleaseTimingSpur  THEN
+	NextMainDelay :=  pCmp^.Config.MergeTimeSpacing +  pCmp^.Config.MergeTimeSpurTravel - pCmp^.Config.MergeTimeMainTravel ;
+	NextSpurDelay :=  pCmp^.Config.MergeTimeSpacing;
+END_IF 
+tmrMainOKforNextRelease(IN := NOT ResetReleaseTimingMain AND NOT ResetReleaseTimingSpur, PT:= NextMainDelay );
+tmrSpurOKforNextRelease(IN := NOT ResetReleaseTimingMain AND NOT ResetReleaseTimingSpur, PT:= NextSpurDelay );
+
+senBufferFull(Input := iBufferFull,
+		OnTime := pCmp^.Config.BufferSensorOnTime,
+	OffTime := pCmp^.Config.BufferSensorOffTime);
+
+// publish iBufferFull
+pCmp^.BufferFull := iBufferFull;
+
+//Priority Method maintenance - reset counters when one of them gets to 0 or at least one stop is not available
+IF (CountMain <=0 OR CountSpur <=0)  THEN
+	CountMain := 10000;
+	CountSpur := CountMain + 0.5;
+END_IF;
+
+
+RatioReleaseMain := CountMain > CountSpur;
+
+// Populate various status bits use for external traffic control puposes
+pCmp^.StatusInCycleAuto := Local.CycleAuto AND (NOT pStn^.StopRequest OR pCmp^.Framework.EnableFreeRun);
+
+// Pass through external free run stop request to local then clear it
+Local.hiFreeRunCycleStop := pCmp^.FreeRunCycleStop;
+pCmp^.FreeRunCycleStop := FALSE;
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for either Prestop available*)
+		
+		IF Local.FirstEntry THEN
+			ResetReleaseTimingMain := FALSE;
+			ResetReleaseTimingSpur := FALSE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF pMain^.Available AND
+				MainConvOK AND
+				(NOT pSpur^.Available OR
+				NOT SpurConvOK) THEN
+			Local.NextState := 100;
+		ELSIF pSpur^.Available AND
+				SpurConvOK AND
+				(NOT pMain^.Available OR
+				NOT MainConvOK) THEN
+			Local.NextState := 200;
+		ELSIF pMain^.Available AND
+				MainConvOK AND
+				pSpur^.Available AND
+				SpurConvOK THEN
+			Local.NextState := 300;
+		END_IF
+	
+	100: (*Main Available - wait for TC/spacing*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.TrafficControlMainAvailable := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF (pSpur^.Available AND
+				SpurConvOK) OR
+				NOT pMain^.Available OR
+				NOT MainConvOK THEN
+			Local.NextState := 0;
+		ELSIF senBufferFull.Off AND
+				tmrMainOKforNextRelease.Q AND
+				(pCmp^.TrafficControlMainRelease OR
+				pCmp^.Config.UseReleaseRatio) THEN
+			Local.NextState := 110;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pCmp^.TrafficControlMainAvailable := FALSE;
+		END_IF
+	
+	110: (*Ask Main to release*)
+		
+		IF Local.FirstEntry THEN
+			pMain^.Release := TRUE;
+			Local.StateTimePreset := T#2S;
+		END_IF
+		
+		IF NOT pMain^.Available THEN
+			Local.NextState := 0;
+		ELSIF Local.tmrState.Q THEN
+			Local.NextState := 120;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pMain^.Release := FALSE;
+			ResetReleaseTimingMain := TRUE;
+		END_IF
+	
+	120: (*Main block for no response*)
+		
+		IF Local.FirstEntry THEN
+			MainBlocked := TRUE;
+			ResetReleaseTimingMain := FALSE;
+		END_IF
+		
+		Local.NextState := 0;
+	
+	200: (*Spur Available - wait for TC/ spacing*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.TrafficControlSpurAvailable := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF (pMain^.Available AND
+				MainConvOK) OR
+				NOT pSpur^.Available OR
+				NOT SpurConvOK THEN
+			Local.NextState := 0;
+		ELSIF senBufferFull.Off AND
+				tmrSpurOKforNextRelease.Q AND
+				(pCmp^.TrafficControlSpurRelease OR
+				pCmp^.Config.UseReleaseRatio) THEN
+			Local.NextState := 210;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pCmp^.TrafficControlSpurAvailable := FALSE;
+		END_IF
+	
+	210: (*Ask Spur to release*)
+		
+		IF Local.FirstEntry THEN
+			pSpur^.Release := TRUE;
+			Local.StateTimePreset := T#2S;
+		END_IF
+		
+		IF NOT pSpur^.Available THEN
+			Local.NextState := 0;
+		ELSIF Local.tmrState.Q THEN
+			Local.NextState := 220;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pSpur^.Release := FALSE;
+			ResetReleaseTimingSpur := TRUE;
+		END_IF
+	
+	220: (*Spur block for no response*)
+		
+		IF Local.FirstEntry THEN
+			SpurBlocked :=TRUE;
+			ResetReleaseTimingSpur := FALSE;
+		END_IF
+		
+		Local.NextState := 0;
+	
+	300: (*Both Main and Spur Available - w for TC/space*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.TrafficControlMainAvailable := TRUE;
+			pCmp^.TrafficControlSpurAvailable := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT pMain^.Available OR
+				NOT MainConvOK OR
+				NOT pSpur^.Available OR
+				NOT SpurConvOK THEN
+			Local.NextState := 0;
+		ELSIF senBufferFull.Off AND
+				tmrMainOKforNextRelease.Q AND
+				(pCmp^.TrafficControlMainRelease OR
+				(pCmp^.Config.UseReleaseRatio AND
+				RatioReleaseMain)) THEN
+			Local.NextState := 310;
+		ELSIF senBufferFull.Off AND
+				tmrSpurOKforNextRelease.Q AND
+				(pCmp^.TrafficControlSpurRelease OR
+				(pCmp^.Config.UseReleaseRatio AND
+				NOT RatioReleaseMain)) THEN
+			Local.NextState := 320;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pCmp^.TrafficControlMainAvailable := FALSE;
+			pCmp^.TrafficControlSpurAvailable := FALSE;
+		END_IF
+	
+	310: (*Update Main Merge priority count*)
+		
+		IF Local.FirstEntry THEN
+			CountMain := CountMain - pCmp^.Config.RatioSpur;
+		END_IF
+		
+		Local.NextState := 110;
+	
+	320: (*Update Spur Merge priority count*)
+		
+		IF Local.FirstEntry THEN
+			CountSpur := CountSpur - pCmp^.Config.RatioMain;
+		END_IF
+		
+		Local.NextState := 210;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			pSpur^.Release := FALSE;
+			pMain^.Release := FALSE;
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			pSpur^.Release := FALSE;
+			pMain^.Release := FALSE;
+			pCmp^.TrafficControlMainRelease := FALSE;
+			pCmp^.TrafficControlSpurRelease := FALSE;
+			Local.ReEntryState := 0;
+			ResetReleaseTimingMain := FALSE;
+			ResetReleaseTimingSpur := FALSE;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - simply do full init*)
+		
+		Local.NextState := 5010;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 6000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset*)
+		
+		Local.NextState := 9998;
+	
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+    ;
+END_IF
+
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*#### Always turn off hi requests ####*)
+
+
+;
+
+
+(*### Simulation Logic ###*)
+
+
+;
+
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{5f4e828c-5b4a-48ff-85b3-8c74cfba18f4}">
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_ConvMerge">
+      <LineId Id="3" Count="416" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ConvMerge.DfnMessages">
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

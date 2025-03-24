@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvMerge" Id="{493bb9e2-29c7-4b4c-8198-8aa522654fe2}">
+    <Declaration><![CDATA[TYPE CmpConvMerge :		//Version 02 - 06/17/2022
+STRUCT
+	Framework: Framework;
+	MainHeartbeatOK: BOOL;
+	MainConvRunning: BOOL;
+	MainInAuto: BOOL;
+	SpurHeartbeatOK: BOOL;
+	SpurConvRunning: BOOL;
+	SpurInAuto: BOOL;
+	BufferFull: BOOL;
+	StatusInCycleAuto: BOOL;
+	FreeRunCycleStop: BOOL;
+	TrafficControlMainAvailable: BOOL;
+	TrafficControlMainRelease: BOOL;
+	TrafficControlSpurAvailable: BOOL;
+	TrafficControlSpurRelease: BOOL;
+	Config: CmpConvMergeConfig;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

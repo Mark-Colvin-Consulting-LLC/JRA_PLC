@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_MastLight" Id="{af5f2efe-6f9d-458d-8ee1-d8d2697f5dbc}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_MastLight
+VAR_INPUT
+	GreenLight: BOOL;
+	YellowLight: BOOL;
+	RedLight: BOOL;
+	Horn: BOOL;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	oRawArray AT %Q*: ARRAY[0..7] OF USINT;
+	
+	LightSettings: MastLight;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[LightSettings.Light1Color := cMastLightColor.TurnOff;
+LightSettings.Light2Color := cMastLightColor.TurnOff;
+LightSettings.Light3Color := cMastLightColor.TurnOff;
+LightSettings.Light4Color := cMastLightColor.TurnOff;
+LightSettings.Light5Color := cMastLightColor.TurnOff;
+LightSettings.MastBuzzerSW := FALSE;
+
+
+IF GreenLight THEN
+	LightSettings.Light1Color := cMastLightColor.Green;
+	LightSettings.Light1Appearance := cMastLightAppearance.Continuous;
+END_IF
+
+IF YellowLight THEN
+	LightSettings.Light2Color := cMastLightColor.LemonYellow;
+	LightSettings.Light2Appearance := cMastLightAppearance.Continuous;
+	LightSettings.Light3Color := cMastLightColor.LemonYellow;
+	LightSettings.Light3Appearance := cMastLightAppearance.Continuous;
+END_IF
+
+IF RedLight THEN
+	LightSettings.Light4Color := cMastLightColor.Red;
+	LightSettings.Light4Appearance := cMastLightAppearance.Continuous;
+	LightSettings.Light5Color := cMastLightColor.Red;
+	LightSettings.Light5Appearance := cMastLightAppearance.Continuous;
+END_IF
+
+IF Horn THEN
+	LightSettings.MastBuzzerSW := TRUE;
+	LightSettings.MastBuzzerSound := cMastLightBuzzerStyle.ContinuousBeepWithCycleOnOff;
+END_IF
+
+oRawArray[0] := INT_TO_USINT(LightSettings.MastBuzzerSound) * 16 + BOOL_TO_USINT(LightSettings.MastBuzzerSW);
+oRawArray[1] := INT_TO_USINT(LightSettings.Light1Appearance) * 16 + INT_TO_USINT(LightSettings.Light1Color);
+oRawArray[2] := INT_TO_USINT(LightSettings.Light2Appearance) * 16 + INT_TO_USINT(LightSettings.Light2Color);
+oRawArray[3] := INT_TO_USINT(LightSettings.Light3Appearance) * 16 + INT_TO_USINT(LightSettings.Light3Color);
+oRawArray[4] := INT_TO_USINT(LightSettings.Light4Appearance) * 16 + INT_TO_USINT(LightSettings.Light4Color);
+oRawArray[5] := INT_TO_USINT(LightSettings.Light5Appearance) * 16 + INT_TO_USINT(LightSettings.Light5Color);
+oRawArray[6] := 0;
+oRawArray[7] := 0; ]]></ST>
+    </Implementation>
+    <LineIds Name="FB_MastLight">
+      <LineId Id="3" Count="38" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="c3LnSwFaultCodes" Id="{61c8c459-a4ba-4e74-9fdf-3e9c7ffd3336}">
+    <Declaration><![CDATA[{attribute 'qualified_only' := ''}
+{attribute 'strict' := ''}
+{attribute 'to_string' := ''}
+TYPE c3LnSwFaultCodes :
+(
+	InvalidTrafficControl := 0,
+	InvalidOutputLane := 1
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

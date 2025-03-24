@@ -1,0 +1,692 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn052_05_StnMain" Id="{98f307c5-0e75-459f-9ab3-88693c953c32}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn052_05_StnMain
+VAR
+	
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpCore;
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+
+//Receiving
+	pReceivingLnSw: POINTER TO Cmp3LaneSwitchMain;
+	pReceivingLnSwPrestopMainGrn: POINTER TO CmpWorkStopMainLnSw;
+	pReceivingLnSwPrestopMainRed: POINTER TO CmpWorkStopMainLnSw;
+	pReceivingLnSwPrestopMainBlu: POINTER TO CmpWorkStopMainLnSw;
+	pReceivingBreakStopsGrn	: POINTER TO CmpConvBreakStopGroup;
+	pReceivingBreakStopsRed	: POINTER TO CmpConvBreakStopGroup;
+	pReceivingBreakStopsBlu 	: POINTER TO CmpConvBreakStopGroup;
+	pStn121Divert			: POINTER TO CmpConvDivert;
+	pStn121MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn121Merge 			: POINTER TO CmpConvMerge;
+	pStn122Divert			: POINTER TO CmpConvDivert;
+	pStn122MainMergePrestop : POINTER TO CmpConvStop;
+	pStn122Merge			: POINTER TO CmpConvMerge;
+	pStn123Divert			: POINTER TO CmpConvDivert;
+	pStn123MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn123Merge			: POINTER TO CmpConvMerge;
+	pStn124Divert			: POINTER TO CmpConvDivert;
+	pStn124MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn124Merge			: POINTER TO CmpConvMerge;
+	pStn125Divert			: POINTER TO CmpConvDivert;
+	pStn125MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn125Merge			: POINTER TO CmpConvMerge;
+	pStn126Divert			: POINTER TO CmpConvDivert;
+	pStn126MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn126Merge			: POINTER TO CmpConvMerge;
+	
+	onsNotFirstScan: R_TRIG;
+(*
+	hiStopCartonConv: BOOL;
+	hiStartCartonConv: BOOL;
+	hiStopAllComponents: BOOL;
+*)	
+	
+	{attribute 'TcLinkToOSO' := '<0,1,0>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 0'}
+	oStopLowerBreakStopReturnGrn19 AT %Q*: BOOL;        
+	{attribute 'TcLinkToOSO' := '<0,1,1>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 0'}
+	oStopLowerBreakStopReturnGrn20 AT %Q*: BOOL;
+	{attribute 'TcLinkToOSO' := '<0,1,0>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 1'}
+	oStopLowerBreakStopReturnRed19 AT %Q*: BOOL;
+	{attribute 'TcLinkToOSO' := '<0,1,1>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 1'}
+	oStopLowerBreakStopReturnRed20 AT %Q*: BOOL;
+	{attribute 'TcLinkToOSO' := '<0,1,0>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 2'}
+	oStopLowerBreakStopReturnBlu26 AT %Q*: BOOL;
+	{attribute 'TcLinkToOSO' := '<0,1,1>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 2'}
+	oStopLowerBreakStopReturnBlu27 AT %Q*: BOOL;
+	
+	ForceBootUpdate: BOOL;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// This is a "do nothing" main but does respond to reset start from station mode control.
+//  Will allow station to be reset and put into cycle until real statoin main is integrated.
+
+pStn := ADR(gStn052);
+pCmp := ADR(gStn052_05_StnMain);
+pReceivingLnSwPrestopMainGrn:= ADR(gStn052_11_ReceivingLnSwPrestopMainGrn);
+pReceivingLnSwPrestopMainRed:= ADR(gStn052_13_ReceivingLnSwPrestopMainRed);
+pReceivingLnSwPrestopMainBlu:= ADR(gStn052_15_ReceivingLnSwPrestopMainBlu);
+pReceivingLnSw := ADR(gStn052_16_ReceivingLnSw);
+
+Local.pStateTraceBuffer := ADR(gStn052_StateTraceBuffer);
+Local.pStateTraceFifo := ADR(gStn052_StateTraceFifo);
+Local.pStats := ADR(gStn052_02_Stats);
+
+pReceivingLnSw :=  ADR(gStn052_16_ReceivingLnSw);
+pReceivingBreakStopsGrn := ADR(gStn052_20_ReceivingBreakStopsGrn);
+pReceivingBreakStopsRed := ADR(gStn052_21_ReceivingBreakStopsRed);
+pReceivingBreakStopsBlu := ADR(gStn052_22_ReceivingBreakStopsBlu);
+pStn121Divert := ADR(gStn052_25_Stn121Divert);
+pStn121MainMergePrestop := ADR(gStn052_26_Stn121MainMergePrestop);
+pStn121Merge := ADR(gStn052_27_Stn121Merge);
+pStn122Divert := ADR(gStn052_30_Stn122Divert);
+pStn122MainMergePrestop := ADR(gStn052_31_Stn122MainMergePrestop);
+pStn122Merge := ADR(gStn052_32_Stn122Merge);
+pStn123Divert := ADR(gStn052_35_Stn123Divert);
+pStn123MainMergePrestop := ADR(gStn052_36_Stn123MainMergePrestop);
+pStn123Merge := ADR(gStn052_37_Stn123Merge);
+pStn124Divert := ADR(gStn052_40_Stn124Divert);
+pStn124MainMergePrestop := ADR(gStn052_41_Stn124MainMergePrestop);
+pStn124Merge := ADR(gStn052_42_Stn124Merge);
+pStn125Divert := ADR(gStn052_45_Stn125Divert);
+pStn125MainMergePrestop := ADR(gStn052_46_Stn125MainMergePrestop);
+pStn125Merge := ADR(gStn052_47_Stn125Merge);
+pStn126Divert := ADR(gStn052_50_Stn126Divert);
+pStn126MainMergePrestop := ADR(gStn052_51_Stn126MainMergePrestop);
+pStn126Merge := ADR(gStn052_52_Stn126Merge);
+
+IF gFirstScan THEN
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000MS;
+
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+
+//Remote Breakstop control
+RemoteBreakStop();
+		
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for action*)
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			pReceivingLnSw^.Framework.ResetStart := FALSE;		
+			pReceivingBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsRed^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsBlu^.Framework.ResetStart := FALSE;
+			pStn121Divert^.Framework.ResetStart := FALSE;
+			pStn121MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn121Merge^.Framework.ResetStart := FALSE;
+			pStn122Divert^.Framework.ResetStart := FALSE;
+			pStn122MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn122Merge^.Framework.ResetStart := FALSE;
+			pStn123Divert^.Framework.ResetStart := FALSE;
+			pStn123MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn123Merge^.Framework.ResetStart := FALSE;
+			pStn124Divert^.Framework.ResetStart := FALSE;
+			pStn124MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn124Merge^.Framework.ResetStart := FALSE;
+			pStn125Divert^.Framework.ResetStart := FALSE;
+			pStn125MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn125Merge^.Framework.ResetStart := FALSE;
+			pStn126Divert^.Framework.ResetStart := FALSE;
+			pStn126MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn126Merge^.Framework.ResetStart := FALSE;
+			
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 0;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - check LastAutoState*)
+		
+		Local.NextState := 9000;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 6000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset robot first*)
+		
+		IF Local.FirstEntry THEN
+			pReceivingLnSw^.Framework.ResetStart := TRUE;
+			IF gDebug_ComponentCalls.CallStn052_20_ReceivingBreakStopsGrn THEN	
+				pReceivingBreakStopsGrn^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_21_ReceivingBreakStopsRed THEN
+				pReceivingBreakStopsRed^.Framework.ResetStart := TRUE;
+			END_IF
+			pReceivingBreakStopsBlu^.Framework.ResetStart := TRUE;
+			pStn121Divert^.Framework.ResetStart := TRUE;
+			pStn121MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn121Merge^.Framework.ResetStart := TRUE;
+			pStn122Divert^.Framework.ResetStart := TRUE;
+			pStn122MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn122Merge^.Framework.ResetStart := TRUE;
+			IF gDebug_ComponentCalls.CallStn052_35_Stn123Divert THEN
+				pStn123Divert^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_36_Stn123MainMergePrestop THEN
+				pStn123MainMergePrestop^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_37_Stn123Merge THEN
+				pStn123Merge^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_40_Stn124Divert THEN
+				pStn124Divert^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_41_Stn124MainMergePrestop THEN
+				pStn124MainMergePrestop^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_42_Stn124Merge THEN
+				pStn124Merge^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_45_Stn125Divert THEN
+				pStn125Divert^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_46_Stn125MainMergePrestop THEN
+				pStn125MainMergePrestop^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_47_Stn125Merge THEN
+				pStn125Merge^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_50_Stn126Divert THEN
+				pStn126Divert^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_51_Stn126MainMergePrestop THEN
+				pStn126MainMergePrestop^.Framework.ResetStart := TRUE;
+			END_IF
+			IF gDebug_ComponentCalls.CallStn052_52_Stn126Merge THEN
+				pStn126Merge^.Framework.ResetStart := TRUE;
+			END_IF
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF 	pReceivingLnSw^.Framework.ResetDone AND
+				(pReceivingBreakStopsGrn^.Framework.ResetDone OR 
+				NOT gDebug_ComponentCalls.CallStn052_20_ReceivingBreakStopsGrn) AND			
+                (pReceivingBreakStopsRed^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_21_ReceivingBreakStopsRed) AND	
+                pReceivingBreakStopsBlu^.Framework.ResetDone AND 
+                pStn121Divert^.Framework.ResetDone AND			
+                pStn121MainMergePrestop^.Framework.ResetDone AND	
+                pStn121Merge^.Framework.ResetDone AND 			
+                pStn122Divert^.Framework.ResetDone AND			
+                pStn122MainMergePrestop^.Framework.ResetDone AND 
+                pStn122Merge^.Framework.ResetDone AND
+                (pStn123Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_35_Stn123Divert) AND			
+                (pStn123MainMergePrestop^.Framework.ResetDone OR 
+				NOT gDebug_ComponentCalls.CallStn052_36_Stn123MainMergePrestop) AND	
+                (pStn123Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_37_Stn123Merge) AND			
+                (pStn124Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_40_Stn124Divert) AND			
+                (pStn124MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_41_Stn124MainMergePrestop) AND	
+                (pStn124Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_42_Stn124Merge) AND			
+                (pStn125Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_45_Stn125Divert) AND			
+                (pStn125MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_46_Stn125MainMergePrestop) AND	
+                (pStn125Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_47_Stn125Merge) AND			
+                (pStn126Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_50_Stn126Divert) AND			
+                (pStn126MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_51_Stn126MainMergePrestop) AND	
+                (pStn126Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn052_52_Stn126Merge) THEN
+			Local.NextState := 9998;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pReceivingLnSw^.Framework.ResetStart := FALSE;		
+			pReceivingBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsRed^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsBlu^.Framework.ResetStart := FALSE;
+			pStn121Divert^.Framework.ResetStart := FALSE;
+			pStn121MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn121Merge^.Framework.ResetStart := FALSE;
+			pStn122Divert^.Framework.ResetStart := FALSE;
+			pStn122MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn122Merge^.Framework.ResetStart := FALSE;
+			pStn123Divert^.Framework.ResetStart := FALSE;
+			pStn123MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn123Merge^.Framework.ResetStart := FALSE;
+			pStn124Divert^.Framework.ResetStart := FALSE;
+			pStn124MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn124Merge^.Framework.ResetStart := FALSE;
+			pStn125Divert^.Framework.ResetStart := FALSE;
+			pStn125MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn125Merge^.Framework.ResetStart := FALSE;
+			pStn126Divert^.Framework.ResetStart := FALSE;
+			pStn126MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn126Merge^.Framework.ResetStart := FALSE;
+		END_IF
+		
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+    ;
+END_IF
+
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*
+//HMI control to stop the conveyor motors
+IF hiStopCartonConv AND NOT Local.CycleAuto THEN
+	gProduced_Stn052ToSafetyInterface.Stn052PLCData[2].3 := TRUE;
+END_IF
+//HMI control to start the conveyor motors
+IF hiStartCartonConv AND NOT Local.CycleAuto THEN
+	gProduced_Stn052ToSafetyInterface.Stn052PLCData[2].3 := FALSE;
+END_IF
+*)
+
+(*
+IF hiStopAllComponents THEN	
+//			pReceivingLnSw^.FreeRunCycleStop := TRUE;		
+//			pReceivingBreakStopsGrn^.FreeRunCycleStop := TRUE;
+//			pReceivingBreakStopsRed^.FreeRunCycleStop := TRUE;
+//			pReceivingBreakStopsBlu^.FreeRunCycleStop := TRUE;
+			pStn121Divert^.FreeRunCycleStop := TRUE;
+			pStn121MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn121Merge^.FreeRunCycleStop := TRUE;
+			pStn122Divert^.FreeRunCycleStop := TRUE;
+			pStn122MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn122Merge^.FreeRunCycleStop := TRUE;
+			pStn123Divert^.FreeRunCycleStop := TRUE;
+			pStn123MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn123Merge^.FreeRunCycleStop := TRUE;
+			pStn124Divert^.FreeRunCycleStop := TRUE;
+			pStn124MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn124Merge^.FreeRunCycleStop := TRUE;
+			pStn125Divert^.FreeRunCycleStop := TRUE;
+			pStn125MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn125Merge^.FreeRunCycleStop := TRUE;
+			pStn126Divert^.FreeRunCycleStop := TRUE;
+			pStn126MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn126Merge^.FreeRunCycleStop := TRUE;
+
+	pStn^.hiCycleStop := TRUE;	//comment the prgs NOT with FreeRun
+	pStn^.FullInitRequired := TRUE;
+	
+END_IF
+*)
+
+(*#### Always turn off hi requests ####*)
+(*
+	hiStopCartonConv := FALSE;
+	hiStartCartonConv := FALSE;
+	hiStopAllComponents := FALSE;
+	;
+*)
+
+(*### Simulation Logic ###*)
+
+IF NOT gSimulateActive THEN
+	pReceivingLnSw^.Sim.SimMode := 0;
+END_IF
+
+CASE pReceivingLnSw^.Sim.SimMode OF
+	0:
+		NoSim();
+	1:
+		Sim_01();
+	2:
+		Sim_02();
+	3:
+		Sim_03();
+	ELSE
+		NoSim();
+END_CASE
+
+ForceBootUpdate := TRUE;
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{7541713c-ebee-498f-acf9-df5d8148f5bf}">
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="NoSim" Id="{1d76ef0e-0f7a-40c5-b64e-10ee1f90305e}">
+      <Implementation>
+        <ST><![CDATA[pReceivingLnSw^.Sim.TC_VersionToCall := 0;
+
+onsNotFirstScan(CLK:=NOT gFirstScan);
+IF onsNotFirstScan.Q THEN
+	pReceivingLnSw^.LaneEnabled[cLaneSel.Green] := TRUE;
+	pReceivingLnSw^.LaneEnabled[cLaneSel.Red] := TRUE;
+	pReceivingLnSw^.LaneEnabled[cLaneSel.Blue] := TRUE;
+END_IF
+
+MEMSET(ADR(pReceivingLnSwPrestopMainGrn^.Sim),0,SIZEOF(pReceivingLnSwPrestopMainGrn^.Sim));
+MEMSET(ADR(pReceivingLnSwPrestopMainRed^.Sim),0,SIZEOF(pReceivingLnSwPrestopMainRed^.Sim));
+MEMSET(ADR(pReceivingLnSwPrestopMainBlu^.Sim),0,SIZEOF(pReceivingLnSwPrestopMainBlu^.Sim));
+MEMSET(ADR(pReceivingLnSw^.Sim),0,SIZEOF(pReceivingLnSw^.Sim));]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="RemoteBreakStop" Id="{b26330a2-e1f8-4c4d-9453-78bb42175cb5}">
+      <Implementation>
+        <ST><![CDATA[//oReturnBreakStopGrn23 := gConsumedSafetyInterface.data51[0].0 AND gConsumedSafetyInterface_OK;
+
+	oStopLowerBreakStopReturnGrn19 := gConsumed_SafetyInterfaceConv.Stn051PLCData[0].0 AND gConsumed_SafetyInterfaceTo052_OK;        
+	oStopLowerBreakStopReturnGrn20 := gConsumed_SafetyInterfaceConv.Stn051PLCData[0].1 AND gConsumed_SafetyInterfaceTo052_OK;
+	oStopLowerBreakStopReturnRed19 := gConsumed_SafetyInterfaceConv.Stn051PLCData[0].3 AND gConsumed_SafetyInterfaceTo052_OK;
+	oStopLowerBreakStopReturnRed20 := gConsumed_SafetyInterfaceConv.Stn051PLCData[0].4 AND gConsumed_SafetyInterfaceTo052_OK;
+	oStopLowerBreakStopReturnBlu26 := gConsumed_SafetyInterfaceConv.Stn051PLCData[0].6 AND gConsumed_SafetyInterfaceTo052_OK;
+	oStopLowerBreakStopReturnBlu27 := gConsumed_SafetyInterfaceConv.Stn051PLCData[0].7 AND gConsumed_SafetyInterfaceTo052_OK;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="Sim_01" Id="{123e1f4f-4a0f-44e6-b239-bcd7d7eb4e50}">
+      <Implementation>
+        <ST><![CDATA[//Select which traffic control to use
+pReceivingLnSw^.Sim.TC_VersionToCall := 1;
+
+
+pReceivingLnSwPrestopMainGrn^.Sim.TestRFIDData := 404;
+pReceivingLnSwPrestopMainRed^.Sim.TestRFIDData := 404;
+pReceivingLnSwPrestopMainBlu^.Sim.TestRFIDData := 404;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="Sim_02" Id="{ae5950f6-7fc6-4764-a9ea-d84e09811b3c}">
+      <Implementation>
+        <ST><![CDATA[//Select which traffic control to use
+pReceivingLnSw^.Sim.TC_VersionToCall := 2;
+
+
+pReceivingLnSwPrestopMainGrn^.Sim.TestRFIDData := 404;
+pReceivingLnSwPrestopMainRed^.Sim.TestRFIDData := 404;
+pReceivingLnSwPrestopMainBlu^.Sim.TestRFIDData := 404;]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="Sim_03" Id="{6b5423a3-4629-4d5f-a399-bfd37833175e}">
+      <Implementation>
+        <ST><![CDATA[//Select which traffic control to use
+pReceivingLnSw^.Sim.TC_VersionToCall := 3;
+
+
+pReceivingLnSwPrestopMainGrn^.Sim.TestRFIDData := 404;
+pReceivingLnSwPrestopMainRed^.Sim.TestRFIDData := 404;
+pReceivingLnSwPrestopMainBlu^.Sim.TestRFIDData := 404;]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="Stn052_05_StnMain">
+      <LineId Id="3" Count="5" />
+      <LineId Id="1292" Count="1" />
+      <LineId Id="1291" Count="0" />
+      <LineId Id="495" Count="0" />
+      <LineId Id="350" Count="0" />
+      <LineId Id="10" Count="2" />
+      <LineId Id="1089" Count="0" />
+      <LineId Id="1093" Count="20" />
+      <LineId Id="1088" Count="0" />
+      <LineId Id="13" Count="13" />
+      <LineId Id="1472" Count="0" />
+      <LineId Id="1471" Count="0" />
+      <LineId Id="1473" Count="0" />
+      <LineId Id="30" Count="20" />
+      <LineId Id="778" Count="6" />
+      <LineId Id="685" Count="14" />
+      <LineId Id="51" Count="39" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="92" Count="27" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="703" Count="0" />
+      <LineId Id="1634" Count="0" />
+      <LineId Id="704" Count="0" />
+      <LineId Id="1635" Count="0" />
+      <LineId Id="705" Count="0" />
+      <LineId Id="1636" Count="1" />
+      <LineId Id="706" Count="6" />
+      <LineId Id="1638" Count="0" />
+      <LineId Id="713" Count="0" />
+      <LineId Id="1639" Count="1" />
+      <LineId Id="714" Count="0" />
+      <LineId Id="1641" Count="1" />
+      <LineId Id="715" Count="0" />
+      <LineId Id="1643" Count="1" />
+      <LineId Id="716" Count="0" />
+      <LineId Id="1645" Count="0" />
+      <LineId Id="1648" Count="0" />
+      <LineId Id="1646" Count="0" />
+      <LineId Id="1649" Count="1" />
+      <LineId Id="718" Count="0" />
+      <LineId Id="1651" Count="1" />
+      <LineId Id="719" Count="0" />
+      <LineId Id="1653" Count="1" />
+      <LineId Id="720" Count="0" />
+      <LineId Id="1655" Count="1" />
+      <LineId Id="721" Count="0" />
+      <LineId Id="1657" Count="0" />
+      <LineId Id="722" Count="0" />
+      <LineId Id="1658" Count="2" />
+      <LineId Id="723" Count="0" />
+      <LineId Id="1661" Count="1" />
+      <LineId Id="724" Count="0" />
+      <LineId Id="1663" Count="0" />
+      <LineId Id="213" Count="1" />
+      <LineId Id="223" Count="1" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="1664" Count="1" />
+      <LineId Id="1141" Count="0" />
+      <LineId Id="1666" Count="0" />
+      <LineId Id="1117" Count="7" />
+      <LineId Id="1668" Count="0" />
+      <LineId Id="1125" Count="0" />
+      <LineId Id="1669" Count="0" />
+      <LineId Id="1126" Count="0" />
+      <LineId Id="1670" Count="0" />
+      <LineId Id="1127" Count="0" />
+      <LineId Id="1671" Count="0" />
+      <LineId Id="1128" Count="0" />
+      <LineId Id="1672" Count="0" />
+      <LineId Id="1129" Count="0" />
+      <LineId Id="1673" Count="0" />
+      <LineId Id="1130" Count="0" />
+      <LineId Id="1674" Count="0" />
+      <LineId Id="1131" Count="0" />
+      <LineId Id="1675" Count="0" />
+      <LineId Id="1132" Count="0" />
+      <LineId Id="1676" Count="0" />
+      <LineId Id="1133" Count="0" />
+      <LineId Id="1677" Count="0" />
+      <LineId Id="1134" Count="0" />
+      <LineId Id="1678" Count="0" />
+      <LineId Id="1115" Count="0" />
+      <LineId Id="1679" Count="0" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="216" Count="1" />
+      <LineId Id="728" Count="21" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="122" Count="62" />
+      <LineId Id="1910" Count="13" />
+      <LineId Id="1960" Count="21" />
+      <LineId Id="1946" Count="13" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="1295" Count="11" />
+      <LineId Id="1851" Count="0" />
+      <LineId Id="1850" Count="0" />
+      <LineId Id="1307" Count="3" />
+      <LineId Id="466" Count="0" />
+      <LineId Id="190" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_05_StnMain.DfnMessages">
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_05_StnMain.NoSim">
+      <LineId Id="2" Count="0" />
+      <LineId Id="31" Count="5" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="4" Count="2" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_05_StnMain.RemoteBreakStop">
+      <LineId Id="1" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="11" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_05_StnMain.Sim_01">
+      <LineId Id="2" Count="5" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_05_StnMain.Sim_02">
+      <LineId Id="2" Count="5" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_05_StnMain.Sim_03">
+      <LineId Id="2" Count="5" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

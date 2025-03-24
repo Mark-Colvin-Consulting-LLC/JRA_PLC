@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="Cmp3LaneSwitchMain" Id="{c2613dc1-d81a-46c8-822d-417f11bd108a}">
+    <Declaration><![CDATA[TYPE Cmp3LaneSwitchMain :
+STRUCT
+	
+	Framework: Framework;
+	Sim: Cmp3LaneSwitchMainSim;
+	Config: Cmp3LaneSwitchMainConfig;
+	
+	PreSwitchBuffer: ARRAY[0..cPreSwitchBufferSize] OF PuckLnSw;
+	PostSwitchBuffer: ARRAY[0..3] OF ARRAY[0..cPostSwitchBufferSize] OF PuckLnSw;
+	PreSwitchPuckCount: DINT;
+	PostSwitchPuckCount: ARRAY[0..3] OF DINT;
+	FinalStagePuckCount: ARRAY[0..3] OF DINT;
+	PrestopFIFO: ARRAY[0..2] OF cLaneSel;
+	LaneEnabled: ARRAY[1..3] OF BOOL;
+	PurgeActive: ARRAY[0..3] OF BOOL;
+	BoschInfeedConvRunning: BOOL;
+	
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

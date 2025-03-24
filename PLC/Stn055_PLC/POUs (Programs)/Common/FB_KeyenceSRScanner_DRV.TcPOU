@@ -1,0 +1,598 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_KeyenceSRScanner_DRV" Id="{780e192f-abda-4a3e-97f6-d0d53823b61b}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_KeyenceSRScanner_DRV
+VAR_INPUT
+	PLCFirstScan: BOOL;
+	Start: BOOL;
+	///How many time the sensor is allowed to fine a code
+	TryCountLimit: UINT;
+	ResetStart: BOOL;
+	ErrorClear: BOOL;
+	///Time the sensor is allowed to process the code
+	ReadTimeOut: TIME;
+	///Used for a debouncing
+	ProfinetScanRate: TIME;
+END_VAR
+VAR_IN_OUT
+	Data: STRING(MAX_STRING_LENGTH);
+END_VAR
+VAR
+	State: DINT;
+	NextState: DINT;
+	OnEntry: BOOL;
+	onsResetStart: R_TRIG;
+	onsErrorClear: R_TRIG;
+	///How many times the sensor has tried to read a code
+	TryCount: UINT;
+	///How many times the sensor was reset to read a code
+	ResetCount: UINT;
+	///Reset count limit from a sensor read command
+	ResetCountLimit: UINT;
+	///This is the length of the code read by the sensor
+	ReadDataLength: UINT;
+	ReadDataBytes: ARRAY[0..MAX_STRING_LENGTH] OF BYTE;
+	///Bit indicates that sensor can receive a read request
+	SensorReady: BOOL;
+	///Bit indicates if errors are present on sensor
+	SensorErrorPresent: BOOL;
+	tmrStatePreset: TIME;
+	tmrState: TON;
+	memErrorNumLocal: DINT;
+	LastErrorNumberLocal: DINT;
+	senReadComplete: FB_SENSOR;
+	iCommState AT %I*: UINT;
+	iDataIn AT %I*: KeyenceSRScannerIn;
+	oDataOut AT %Q*: KeyenceSRScannerOut;
+END_VAR
+VAR_OUTPUT
+	Done: BOOL;
+	Fail: BOOL;
+	ResetDone: BOOL;
+	Error: BOOL;
+	ErrorNumLocal: DINT;
+	ErrorNumSensorRead: DINT;
+	ErrorNumSensorGeneral: DINT;
+END_VAR
+VAR CONSTANT
+	///First PLC scan
+	cError_FirstPLCScan: DINT := 1;
+	///Sensor read complete bit did not reset
+	cError_Read_CompleteReset: DINT := 2;
+	///Sensor reset limit reached
+	cError_Read_ResetCount: DINT := 3;
+	///Code length exceeds communication capability
+	cError_Read_Datalength: DINT := 4;
+	///Sensor general error bit still high
+	cError_Reset_GeneralError: DINT := 5;
+	///Sensor error bit still high
+	cError_Reset_Error: DINT := 6;
+	///Sensor error busy bit still high
+	cError_Reset_ErrorBusy: DINT := 7;
+	///Sensor read complete bit still high
+	cError_Reset_ReadComplete: DINT := 8;
+	///Sensor read failure bit still high
+	cError_Reset_ReadFailure: DINT := 9;
+	///Sensor trigger busy bit still high
+	cError_Reset_TriggerBusy: DINT := 10;
+	///Sensor busy bit still high
+	cError_Reset_Busy: DINT := 11;
+	///Sensor is not communicating
+	cError_Reset_Communication: DINT := 12;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// This component was written for:  Keyence SR-750 and SR-1000 series scanners
+//
+// This component was written to service up to the max Profinet data of up to 246 bytes in 
+// and 246 bytes out. Size is determined by Profinet term type and matching linked # of bytes
+//  
+// The Keyence scanner must be set to custom byte size of incoming and outgoing
+//   data via the AutoID Network scanner configuration software to match the numbers above. 
+//
+// Using:
+//	- Level Trigger method
+//	- Data sent immediately after read
+//	- Single read
+//	- Data handshakes OFF
+//
+// The code is written to return the result read by the code scanner.
+// Data parsing to take place in upper level code.
+
+IF PLCFirstScan THEN
+	NextState := 999;
+	Done := FALSE;
+	Fail := FALSE;
+	ResetDone := FALSE;
+	Error := TRUE;
+	ErrorNumLocal := cError_FirstPLCScan;
+END_IF
+
+(* #################
+    Housekeeping
+   #################*)
+
+// Update the SensorReady bit
+SensorReady := 
+NOT iDataIn.Error AND 
+NOT iDataIn.GeneralError AND 
+NOT iDataIn.ErrorBusy AND 
+NOT iDataIn.Busy AND 
+NOT iDataIn.TriggerBusy AND 
+NOT iDataIn.ReadFailure AND 
+NOT iDataIn.ReadComplete AND
+iCommState = 0; 
+
+// Update the SensorErrorPresent bit
+SensorErrorPresent := iDataIn.Error OR 
+		iDataIn.GeneralError OR 
+		iDataIn.ErrorBusy OR 
+		iCommState <> 0;
+
+// Record general error code
+ErrorNumSensorGeneral := iDataIn.GeneralErrorCode;
+
+// Record read error code
+ErrorNumSensorRead := iDataIn.ReadResultCode;
+
+// Handle request from calling component to reset
+//   Which consists entirely of just setting state to 999 and letting code resume from there.
+onsResetStart(CLK:=ResetStart);
+IF onsResetStart.Q THEN
+	NextState := 999;
+END_IF
+
+IF ResetDone AND ErrorClear THEN
+	ResetDone := FALSE;
+END_IF
+
+// Repsond to clear error from calling component
+onsErrorClear(CLK:=ErrorClear);
+IF onsErrorClear.Q THEN
+	Error := FALSE;
+	ErrorNumLocal := 0;
+END_IF
+
+// Create on entry and state timer
+OnEntry := NextState <> State;
+tmrState(IN:=NOT OnEntry,PT:=tmrStatePreset);
+State := NextState;
+
+ResetCountLimit := TryCountLimit + 2;
+
+senReadComplete(Input:=iDataIn.ReadComplete, OnTime:=ProfinetScanRate*3, OffTime:=T#0ms);
+
+(* #################
+    Sequence
+   #################*)
+   
+CASE State OF
+	0:	(*Wait for start command to start reading code*)
+		IF Start THEN
+			TryCount := 1;
+			ResetCount := 1;
+			NextState := 100;
+		END_IF
+		
+	100: (*Initialize data results*)
+		IF OnEntry THEN 			
+			Data := '';
+			ReadDataLength := 0;
+		END_IF
+		
+		IF SensorReady THEN
+			NextState := 130;
+		ELSE
+			NextState := 110;
+		END_IF
+		
+	110: (*Try asserting read complete clear*)
+		IF OnEntry THEN
+			oDataOut.ReadCompleteClear := TRUE;
+			tmrStatePreset := T#250ms;
+		END_IF
+		
+		IF SensorReady THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 118;
+		ELSIF tmrState.Q THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 111;
+		END_IF
+		
+	111: (*Failed signal reset, check try limit*)
+		IF (ResetCount < ResetCountLimit) AND
+				(ResetCountLimit >= 0) THEN	
+			NextState := 114;
+		ELSE
+			NextState := 112;
+		END_IF
+		
+	112: (*Fault: Scanner read complete signals did not reset*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Read_CompleteReset;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	114: (*Try error reset to scanner*)
+		IF OnEntry THEN
+			oDataOut.ErrorClear := TRUE;
+			tmrStatePreset := T#450ms;
+		END_IF
+		
+		IF tmrState.Q THEN
+			oDataOut.ErrorClear := FALSE;
+			NextState := 116;
+		END_IF
+	
+	116: (*Increment try count, delay efore reset retry*)
+		IF OnEntry THEN
+			ResetCount := ResetCount + 1;
+			tmrStatePreset := T#500ms;
+			oDataOut.ReadRequest := FALSE;
+		END_IF
+		
+		IF tmrState.Q THEN
+			IF (ResetCount < ResetCountLimit) AND
+					(ResetCountLimit >= 0) THEN
+				NextState := 110;
+			ELSE
+				NextState := 117;
+			END_IF
+		END_IF
+		
+	117: (*Fault: Scanner reset count exceeded*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Read_ResetCount;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	118: (*Delay slightly before trying read again*)
+		IF OnEntry THEN
+			tmrStatePreset := T#100ms;
+		END_IF
+		
+		IF tmrState.Q THEN
+			NextState := 100;
+		END_IF
+		
+	130: (*Trigger read, confirm trigger busy reply*)
+		IF OnEntry THEN
+			oDataOut.ReadRequest := TRUE;
+			tmrStatePreset := T#1500ms;
+		END_IF
+		
+		IF iDataIn.TriggerBusy THEN
+			NextState := 140;
+		ELSIF tmrState.Q THEN
+			NextState := 116;
+		END_IF
+		
+	140: (*Wait for good read; Give up if takes too long*)
+		IF OnEntry THEN
+			tmrStatePreset := ReadTimeOut;
+		END_IF
+		
+		IF senReadComplete.On AND
+				NOT iDataIn.Error AND
+				NOT iDataIn.GeneralError AND
+				NOT iDataIn.ReadFailure AND
+				NOT iDataIn.TriggerBusy THEN
+			oDataOut.ReadRequest := FALSE;
+			NextState := 150;
+		ELSIF tmrState.Q OR
+				iDataIn.Error OR 
+				iDataIn.GeneralError OR
+				iDataIn.ReadFailure THEN
+			oDataOut.ReadRequest := FALSE;
+			NextState := 200;
+		END_IF
+		
+	150: (*Verify that reported data size is reasonable*)
+		IF OnEntry THEN
+			ReadDataLength := iDataIn.ResultDataSize;
+		END_IF
+		
+		// Check that the reported data length is not bigger than the 
+		//   bytes reserved for data in the IO channel and not bigger
+		//   than the string that will be used to do the parsing.
+		IF ReadDataLength > 0 AND 
+				ReadDataLength <= SIZEOF(iDataIn.ResultData) THEN
+			NextState := 160;
+		ELSE
+			NextState := 151;
+		END_IF
+		
+	151: (*Fault:  Scanner returned invaid read data length*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Read_DataLength;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	160: (*Record the read code value*)
+		IF OnEntry THEN
+			//Still needs testing, remove later - TAW
+			MEMSET(ADR(ReadDataBytes),0,SIZEOF(ReadDataBytes));
+			MEMCPY(ADR(ReadDataBytes),ADR(iDataIn.ResultData),ReadDataLength);
+			Data := BYTEARR_TO_MAXSTRING(ReadDataBytes);
+		END_IF
+		
+		NextState := 500;
+		
+	200: (*Failed read or parsing, retry until limit*)
+		IF (TryCount < TryCountLimit) and 
+				(TryCountLimit >= 0) THEN
+			NextState := 210;
+		ELSE
+			NextState := 220;
+		END_IF
+		
+	210: (*Increment try count*)
+		IF OnEntry THEN
+			TryCount := TryCount + 1;
+		END_IF
+		
+		NextState := 110; 
+	
+	220: (*Report fail to calling component*)
+		IF OnEntry THEN
+			Fail := TRUE;
+		END_IF
+		
+		IF NOT Start THEN
+			Fail := FALSE;
+			NextState := 230;
+		END_IF
+		
+	230: (*Delay before issuing read clear*)
+		IF OnEntry THEN
+			tmrStatePreset := T#250ms;
+		END_IF
+		
+		IF tmrState.Q THEN
+			NextState := 240;
+		END_IF
+		
+	240: (*Try asserting read complete clear*)
+		IF OnEntry THEN
+			oDataOut.ReadCompleteClear := TRUE;
+			tmrStatePreset := T#200ms;
+		END_IF
+		
+		IF tmrState.Q THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 0;
+		END_IF
+		
+	500: (*Report done to calling component*)
+		IF OnEntry THEN
+			Done := TRUE;
+		END_IF
+		
+		IF NOT Start THEN
+			Done := FALSE;
+			NextState := 510;
+		END_IF
+		
+	510: (* Delay before issuing read clear*)
+		IF OnEntry THEN
+			tmrStatePreset := T#500ms;
+		END_IF
+		
+		IF tmrState.Q THEN
+			NextState := 520;
+		END_IF
+		
+	520: (*Try asserting read complete clear*)
+		IF OnEntry THEN
+			oDataOut.ReadCompleteClear := TRUE;
+			tmrStatePreset := T#200ms;
+		END_IF
+		
+		IF tmrState.Q THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 0;
+		END_IF
+		
+	999: (*Fault reset required - driver idling*)
+		IF OnEntry THEN
+			oDataOut.ReadRequest := FALSE;
+			oDataOut.ReadCompleteClear := FALSE;
+			ResetDone := FALSE;
+		END_IF
+		
+		IF ResetStart AND ErrorNumLocal = 0 THEN
+			NextState := 5010;
+		END_IF
+		
+	5010: (*Full initialization, clear commands, 
+			check if head ready / job clear*)
+		IF OnEntry THEN
+			Data := '';
+			ReadDataLength := 0;
+			oDataOut.ErrorClear := FALSE;
+			Done := FALSE;
+			Fail := FALSE;
+			TryCount := 0;
+			ResetCount := 0;
+			tmrStatePreset := T#1500ms;
+		END_IF
+		
+		IF SensorReady THEN
+			NextState := 5100;
+		ELSIF tmrState.Q THEN
+			IF NOT SensorErrorPresent THEN
+				NextState := 5020;
+			ELSE
+				NextState := 5030;
+			END_IF
+		END_IF
+		
+	5020: (*Not a general error. Try read
+			complete clear bit*)
+		IF OnEntry THEN
+			oDataOut.ReadCompleteClear := TRUE;
+			tmrStatePreset := T#1500ms;
+		END_IF
+		
+		IF SensorReady THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 5100;
+		ELSIF tmrState.Q THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 5030;
+		END_IF
+		
+	5030: (*Try error reset to scanner*)
+		IF OnEntry THEN
+			oDataOut.ErrorClear := TRUE;
+			tmrStatePreset := T#1500ms;
+		END_IF
+		
+		IF NOT SensorErrorPresent THEN
+			oDataOut.ErrorClear := FALSE;
+			NextState := 5040;
+		ELSIF tmrState.Q THEN
+			oDataOut.ErrorClear := FALSE;
+			IF iCommState <> 0 THEN
+				NextState := 5031;
+			ELSIF iDataIn.GeneralError THEN
+				NextState := 5032;
+			ELSIF iDataIn.Error THEN
+				NextState := 5033;
+			ELSE
+				NextState := 5034;
+			END_IF
+		END_IF
+
+5031: (*Fault: Communication error with sensor*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_Communication;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;		
+	
+5032: (*Fault: Scanner general error signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_GeneralError;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	5033: (*Fault: Scanner error signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_Error;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	5034: (*Fault: Scanner error busy signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_ErrorBusy;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	5040: (*Not a general error. Try read complete clear bit*)
+		IF OnEntry THEN
+			oDataOut.ReadCompleteClear := TRUE;
+			tmrStatePreset := T#1500ms;
+		END_IF
+			
+		IF SensorReady THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			NextState := 5100;
+		ELSIF tmrState.Q THEN
+			oDataOut.ReadCompleteClear := FALSE;
+			IF iDataIn.ReadComplete THEN
+				NextState := 5041;
+			ELSIF iDataIn.ReadFailure THEN
+				NextState := 5042;
+			ELSIF iDataIn.TriggerBusy THEN
+				NextState := 5043;
+			ELSIF iDataIn.Busy THEN
+				NextState := 5044;
+			ELSE
+				NextState := 5045;
+			END_IF
+		END_IF
+		
+	5041: (*Fault: Scanner read complete signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_ReadComplete;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+
+	5042: (*Fault: Scanner read failure signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_ReadFailure;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	5043: (*Fault: Scanner trigger busy signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_TriggerBusy;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;
+		
+	5044: (*Fault: Scanner busy signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_Busy;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;	
+		
+	5045: (*Fault: Scanner error signal still on*)
+		IF OnEntry THEN
+			ErrorNumLocal := cError_Reset_Error;
+			Error := TRUE;
+		END_IF
+		
+		NextState := 999;	
+		
+	5100: (*Report reset done*)
+		IF OnEntry THEN
+			ResetDone := TRUE;
+		END_IF
+		
+		IF NOT ResetStart THEN
+			ResetDone := FALSE;
+			NextState := 0;
+		END_IF
+		
+END_CASE
+		
+(* #################
+Post Housekeeping
+#################*)
+
+// Capture, rising edge of, last local error number for later debug purposes
+IF ErrorNumLocal <> 0 AND memErrorNumLocal = 0 THEN
+	LastErrorNumberLocal := ErrorNumLocal;
+END_IF
+
+memErrorNumLocal := ErrorNumLocal;]]></ST>
+    </Implementation>
+    <LineIds Name="FB_KeyenceSRScanner_DRV">
+      <LineId Id="3" Count="505" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

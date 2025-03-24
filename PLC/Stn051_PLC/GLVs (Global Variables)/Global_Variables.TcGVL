@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="Global_Variables" Id="{c5156ec8-be9f-4605-9956-6d1da4594690}">
+    <Declaration><![CDATA[VAR_GLOBAL
+
+	gStn051 : Station;
+	gStn051_01_HMI : CmpHMI;
+	gStn051_02_Stats : Component_Stats;
+	
+	gStn051_05_StnMain : CmpCore;
+	
+	gStn051_10_ReturnLnSwPrestopGrn		: CmpConvStop;
+	gStn051_11_ReturnLnSwPrestopMainGrn	: CmpWorkStopMainLnSw;
+	gStn051_12_ReturnLnSwPrestopRed		: CmpConvStop;
+	gStn051_13_ReturnLnSwPrestopMainRed	: CmpWorkStopMainLnSw;
+	gStn051_14_ReturnLnSwPrestopBlu		: CmpConvStop;
+	gStn051_15_ReturnLnSwPrestopMainBlu	: CmpWorkStopMainLnSw;
+	gStn051_16_ReturnLnSw			: Cmp3LaneSwitchMain;
+	gStn051_20_ReturnBreakStopsGrn	: CmpConvBreakStopGroup;
+	gStn051_21_ReturnBreakStopsRed	: CmpConvBreakStopGroup;
+	gStn051_22_ReturnBreakStopsBlu 	: CmpConvBreakStopGroup;
+	gStn051_25_Stn090Divert			: CmpConvDivert;
+	gStn051_26_Stn090MainMergePrestop	: CmpConvStop;
+	gStn051_27_Stn090Merge 			: CmpConvMerge;
+
+	gStn051_35_Stn112Divert			: CmpConvDivert;
+	gStn051_36_Stn112MainMergePrestop 	: CmpConvStop;
+	gStn051_37_Stn112Merge			: CmpConvMerge;
+	gStn051_40_Stn113Divert			: CmpConvDivert;
+	gStn051_41_Stn113MainMergePrestop	: CmpConvStop;
+	gStn051_42_Stn113Merge			: CmpConvMerge;
+	gStn051_45_Stn114Divert			: CmpConvDivert;
+	gStn051_46_Stn114MainMergePrestop	: CmpConvStop;
+	gStn051_47_Stn114Merge			: CmpConvMerge;
+	gStn051_50_Stn115Divert			: CmpConvDivert;
+	gStn051_51_Stn115MainMergePrestop	: CmpConvStop;
+	gStn051_52_Stn115Merge			: CmpConvMerge;
+	gStn051_55_ReceivingBypassDivertBlu			 : CmpConvDivert;
+	gStn051_56_ReceivingBypassBreakStopsBlu		 : CmpConvBreakStopGroup;
+	gStn051_57_ReceivingBypassMergeSpurPrestopBlu : CmpConvStop;
+	
+	gStn051_StateTraceBuffer : TraceFIFOBuffer;
+	gStn051_StateTraceFifo : FIFO_StateTrace := (Overwrite := TRUE);
+	gStn051_HMIMessageBuffer : HMIMessageBuffer;
+	gStn051_HMIMessageFIFO : FIFO_HMIMessage := (Overwrite := TRUE);
+	
+	gStn090_30_MergeSpurPreStop : CmpConvStop;
+	gStn112_30_MergeSpurPreStop : CmpConvStop;
+	gStn113_30_MergeSpurPreStop : CmpConvStop;
+	gStn114_30_MergeSpurPreStop : CmpConvStop;
+	gStn115_30_MergeSpurPreStop : CmpConvStop;
+	
+	gDBLocation_Station: STRING(30);
+	gDBLocation_Workstop: STRING(30);
+	gDBStationNumber: DINT;
+	gDBRouteToWork: STRING(30);
+	
+	gSimulate : BOOL := 0;
+	gInitialScanForce : BOOL := 0;
+
+	// PLC to PLC comms		
+	gConsumed_Stn090To051 : Plc2PlcData_V3; //TODO MAC 20221110 - do these really need to be pointers to work cell components???
+	gProduced_Stn051To090 : Plc2PlcData_V3;
+	gConsumed_Stn112To051 : Plc2PlcData_V3;
+	gProduced_Stn051To112 : Plc2PlcData_V3;
+	
+	gConsumed_Stn113To051 : Plc2PlcData_V3;
+	gProduced_Stn051To113 : Plc2PlcData_V3;
+	gConsumed_Stn114To051 : Plc2PlcData_V3;
+	gProduced_Stn051To114 : Plc2PlcData_V3;	
+	gConsumed_Stn115To051 : Plc2PlcData_V3;
+	gProduced_Stn051To115 : Plc2PlcData_V3;
+	gProduced_Stn051ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_SafetyInterfaceConv : Plc2PlcDataSafetyPuckConv;
+
+// Heartbeats from Stations OK
+	gConsumed_Stn090To051_OK : BOOL;
+	gConsumed_Stn112To051_OK : BOOL;
+	gConsumed_Stn113To051_OK : BOOL;
+	gConsumed_Stn114To051_OK : BOOL;
+	gConsumed_Stn115To051_OK : BOOL;
+	gConsumed_SafetyInterfaceTo051_OK : BOOL;
+	
+	gDatabaseBypass : BOOL;
+	gSimulateActive: BOOL;
+	
+	gDebug_ComponentCall: Debug_ComponentCalls;
+	
+	gProjectDBDefs : FB_DBDefs_CRTC();
+	gDBServer: FB_DBServer();
+	
+END_VAR
+
+VAR_GLOBAL CONSTANT
+	
+	cBreakStopGroupMaxInstance: INT := 50;
+	cPreSwitchBufferSize: UINT := 3;
+	cPostSwitchBufferSize: UINT := 15; // NOTE: This is zero based maximum buffer size for data/trackikng puposes but can be further restricted per lane via config variable.
+	
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

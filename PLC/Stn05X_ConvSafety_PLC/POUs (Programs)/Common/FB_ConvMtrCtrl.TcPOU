@@ -1,0 +1,109 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_ConvMtrCtrl" Id="{e3ecf5c4-4d14-4a3c-98ea-9186d9b746b9}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ConvMtrCtrl
+VAR_INPUT
+	
+	CycleAuto: BOOL;
+	CycleReset: BOOL;
+	NOKtoRun: BOOL;
+	StartIndexThisMotor: DINT;
+	StartIndexCurrent: DINT;
+	hoMtrName: STRING;
+	
+END_VAR
+VAR_OUTPUT
+	
+	MtrRunning: BOOL;
+	
+END_VAR
+VAR
+	
+	onsStartIndexMatch: R_TRIG;
+	tmrConvDelayBeoreReportingRunning: TON;
+	
+	iRunning AT %I*: BOOL;
+	iDisconnectOk AT %I*: BOOL;
+	iOverloadTripped AT %I*: BOOL;
+	oRun AT %Q*: BOOL;
+
+	hiStart : BOOL;
+	hiStop	: BOOL;
+
+END_VAR
+
+FUNCTION_BLOCK FB_ConvMtrCtrl
+VAR_INPUT
+	
+	CycleAuto: BOOL;
+	CycleReset: BOOL;
+	NOKtoRun: BOOL;
+	StartIndexThisMotor: DINT;
+	StartIndexCurrent: DINT;
+	hoMtrName: STRING;
+	
+END_VAR
+VAR_OUTPUT
+	
+	MtrRunning: BOOL;
+	
+END_VAR
+VAR
+	
+	onsStartIndexMatch: R_TRIG;
+	tmrConvDelayBeoreReportingRunning: TON;
+	
+	iRunning AT %I*: BOOL;
+	iDisconnectOk AT %I*: BOOL;
+	iOverloadTripped AT %I*: BOOL;
+	oRun AT %Q*: BOOL;
+
+	hiStart : BOOL;
+	hiStop	: BOOL;
+
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// Generate rising edge trigger of this motor start index matching the current start index
+onsStartIndexMatch(CLK:=StartIndexThisMotor = StartIndexCurrent);
+
+// Turned off (only) viA Estop, MSP tripped, or local disconnect turned off, or manual control below
+// Turn on conveyor when we go into cycle and on sequenced motor start index matching.
+//  (Note use of ELSIF so only run it not stop conditions)
+IF NOKtoRun OR iOverloadTripped OR NOT iDisconnectOK THEN
+	oRun := FALSE;
+ELSIF (CycleAuto OR CycleReset) AND onsStartIndexMatch.Q THEN
+	oRun := TRUE;
+END_IF
+
+// Report motor running after a delay for items on conveyor to settle
+tmrConvDelayBeoreReportingRunning(IN:=oRun AND iRunning, PT:=T#6s);
+MtrRunning  := tmrConvDelayBeoreReportingRunning.Q ;
+
+(*#### Manual operation ####*)
+//IF pStn^.OKForManual THEN
+    IF hiStart AND
+			NOT NOKtoRun AND
+			iDisconnectOK AND
+			NOT iOverloadTripped THEN
+		oRun := TRUE;
+	END_IF
+	
+	IF hiStop THEN
+		oRun := FALSE;
+	END_IF
+//END_IF
+
+(*#### Always turn off hi requests ####*)
+hiStart := FALSE;
+hiStop := FALSE;
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_ConvMtrCtrl">
+      <LineId Id="67" Count="33" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

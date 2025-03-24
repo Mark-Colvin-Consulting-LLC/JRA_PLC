@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cMastLightAppearance" Id="{80fffd65-6552-4852-b73a-d54fbae6cc23}">
+    <Declaration><![CDATA[TYPE cMastLightAppearance :
+(
+		Continuous := 16#0,
+		BlinkingSlow := 16#1,
+		BlinkingMedium := 16#2,
+		BlinkingFast := 16#3,
+		FlashingSlow := 16#4,
+		FlashingMedium := 16#5,
+		FlashingFast := 16#6
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cDeviceHeading" Id="{ab47163e-f1ed-4ff3-91bf-1d532e563dfd}">
+    <Declaration><![CDATA[{attribute 'qualified_only' := ''}
+{attribute 'strict' := ''}
+TYPE cDeviceHeading :
+(
+	Empty := 0,
+	Puck := 1,
+	Tray := 2,
+	Carrier := 3,
+	Tote := 4,
+	Carton := 5,
+	Box := 6,
+	Buffer := 20,
+	VisionStand := 10,
+	ExceptionConv := 11,
+	Flipper := 30,
+	EvalToolType1 := 31,
+	EvalToolType2 := 32,
+	JustifyNest1 := 101,
+	JustifyNest2 := 102,
+	Reject := 998,
+	Recovery := 999
+) DINT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

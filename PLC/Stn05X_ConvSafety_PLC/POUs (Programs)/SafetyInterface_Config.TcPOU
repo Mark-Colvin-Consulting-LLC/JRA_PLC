@@ -1,0 +1,211 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="SafetyInterface_Config" Id="{6458bde6-e318-4da6-a29f-eb442264b44f}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM SafetyInterface_Config
+VAR
+	FirstScan: R_TRIG;
+	tmrStnHeartbeat051ToSafetyInterfaceOK : TON;
+	tmrStnHeartbeat052ToSafetyInterfaceOK : TON;
+	tmrStnHeartbeat053ToSafetyInterfaceOK : TON;
+	tmrStnHeartbeat054ToSafetyInterfaceOK : TON;	
+	tmrStnHeartbeat055ToSafetyInterfaceOK : TON;
+	
+	cntLastStnHeartbeat051ToSafetyInterface : DINT;
+	cntLastStnHeartbeat052ToSafetyInterface : DINT;
+	cntLastStnHeartbeat053ToSafetyInterface : DINT;
+	cntLastStnHeartbeat054ToSafetyInterface : DINT;
+	cntLastStnHeartbeat055ToSafetyInterface : DINT;
+	
+	HeartbeatMain: DINT;
+	fbReadAdsSybByName_Stn051ToSafetyInterface : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn052ToSafetyInterface : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn053ToSafetyInterface : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn054ToSafetyInterface : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn055ToSafetyInterface : FB_ReadAdsSymByName;
+
+	tmrReadSafetyAds : TON;
+	
+	ForceBootUpdate: BOOL;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FirstScan(CLK:=TRUE);
+gFirstScan := FirstScan.Q OR gInitialScanForce;
+gInitialScanForce := FALSE;
+
+// setup parameters and call the ADS read function to grab produced data from other PLC 
+tmrReadSafetyAds(in := NOT tmrReadSafetyAds.Q, PT := T#50MS); // use this line once per station - comment out or delete
+
+//Stn051 - In same PC
+fbReadAdsSybByName_Stn051ToSafetyInterface.bRead := tmrReadSafetyAds.Q AND NOT fbReadAdsSybByName_Stn051ToSafetyInterface.bBusy;
+fbReadAdsSybByName_Stn051ToSafetyInterface.sNetID := '';  // Empty ID assumes local device
+fbReadAdsSybByName_Stn051ToSafetyInterface.nPort := 851;  // Stn051 PLC port
+fbReadAdsSybByName_Stn051ToSafetyInterface.sVarName := 'Global_Variables.gProduced_Stn051ToSafetyInterface';
+fbReadAdsSybByName_Stn051ToSafetyInterface.nDestAddr := ADR(gConsumed_Stn051ToSafetyInterface);
+fbReadAdsSybByName_Stn051ToSafetyInterface.nLen := SIZEOF(gConsumed_Stn051ToSafetyInterface);
+fbReadAdsSybByName_Stn051ToSafetyInterface.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn051ToSafetyInterface.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn051ToSafetyInterface();
+
+//Stn052 - In same PC
+fbReadAdsSybByName_Stn052ToSafetyInterface.bRead := tmrReadSafetyAds.Q AND NOT fbReadAdsSybByName_Stn052ToSafetyInterface.bBusy;
+fbReadAdsSybByName_Stn052ToSafetyInterface.sNetID := '';  // Empty ID assumes local device
+fbReadAdsSybByName_Stn052ToSafetyInterface.nPort := 852;  // Stn052 PLC port
+fbReadAdsSybByName_Stn052ToSafetyInterface.sVarName := 'Global_Variables.gProduced_Stn052ToSafetyInterface';
+fbReadAdsSybByName_Stn052ToSafetyInterface.nDestAddr := ADR(gConsumed_Stn052ToSafetyInterface);
+fbReadAdsSybByName_Stn052ToSafetyInterface.nLen := SIZEOF(gConsumed_Stn052ToSafetyInterface);
+fbReadAdsSybByName_Stn052ToSafetyInterface.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn052ToSafetyInterface.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn052ToSafetyInterface();
+
+//Stn053 - In same PC
+fbReadAdsSybByName_Stn053ToSafetyInterface.bRead := tmrReadSafetyAds.Q AND NOT fbReadAdsSybByName_Stn053ToSafetyInterface.bBusy;
+fbReadAdsSybByName_Stn053ToSafetyInterface.sNetID := '';  // Empty ID assumes local device
+fbReadAdsSybByName_Stn053ToSafetyInterface.nPort := 853;  // Stn053 PLC port
+fbReadAdsSybByName_Stn053ToSafetyInterface.sVarName := 'Global_Variables.gProduced_Stn053ToSafetyInterface';
+fbReadAdsSybByName_Stn053ToSafetyInterface.nDestAddr := ADR(gConsumed_Stn053ToSafetyInterface);
+fbReadAdsSybByName_Stn053ToSafetyInterface.nLen := SIZEOF(gConsumed_Stn053ToSafetyInterface);
+fbReadAdsSybByName_Stn053ToSafetyInterface.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn053ToSafetyInterface.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn053ToSafetyInterface();
+
+//Stn054 - In same PC
+fbReadAdsSybByName_Stn054ToSafetyInterface.bRead := tmrReadSafetyAds.Q AND NOT fbReadAdsSybByName_Stn054ToSafetyInterface.bBusy;
+fbReadAdsSybByName_Stn054ToSafetyInterface.sNetID := '';  // Empty ID assumes local device
+fbReadAdsSybByName_Stn054ToSafetyInterface.nPort := 854;  // Stn054 PLC port
+fbReadAdsSybByName_Stn054ToSafetyInterface.sVarName := 'Global_Variables.gProduced_Stn054ToSafetyInterface';
+fbReadAdsSybByName_Stn054ToSafetyInterface.nDestAddr := ADR(gConsumed_Stn054ToSafetyInterface);
+fbReadAdsSybByName_Stn054ToSafetyInterface.nLen := SIZEOF(gConsumed_Stn054ToSafetyInterface);
+fbReadAdsSybByName_Stn054ToSafetyInterface.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn054ToSafetyInterface.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn054ToSafetyInterface();
+
+//Stn055 - In same PC
+fbReadAdsSybByName_Stn055ToSafetyInterface.bRead := tmrReadSafetyAds.Q AND NOT fbReadAdsSybByName_Stn055ToSafetyInterface.bBusy;
+fbReadAdsSybByName_Stn055ToSafetyInterface.sNetID := '';  // Empty ID assumes local device
+fbReadAdsSybByName_Stn055ToSafetyInterface.nPort := 855;  // Stn055 PLC port
+fbReadAdsSybByName_Stn055ToSafetyInterface.sVarName := 'Global_Variables.gProduced_Stn055ToSafetyInterface';
+fbReadAdsSybByName_Stn055ToSafetyInterface.nDestAddr := ADR(gConsumed_Stn055ToSafetyInterface);
+fbReadAdsSybByName_Stn055ToSafetyInterface.nLen := SIZEOF(gConsumed_Stn055ToSafetyInterface);
+fbReadAdsSybByName_Stn055ToSafetyInterface.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn055ToSafetyInterface.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn055ToSafetyInterface();
+
+// set global var HeartbeatOK
+//Stn051ToSafetyInterface
+tmrStnHeartbeat051ToSafetyInterfaceOK(IN:= cntLastStnHeartbeat051ToSafetyInterface = gConsumed_Stn051ToSafetyInterface.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat051ToSafetyInterfaceOK.Q AND (cntLastStnHeartbeat051ToSafetyInterface = gConsumed_Stn051ToSafetyInterface.HeartbeatStn) THEN
+	gConsumed_Stn051ToSafetyInterface_OK := FALSE;
+ELSE
+	gConsumed_Stn051ToSafetyInterface_OK := TRUE;
+END_IF
+cntLastStnHeartbeat051ToSafetyInterface := gConsumed_Stn051ToSafetyInterface.HeartbeatStn;
+
+IF NOT gConsumed_Stn051ToSafetyInterface_OK THEN
+	MEMSET(ADR(gConsumed_Stn051ToSafetyInterface),0,SIZEOF(gConsumed_Stn051ToSafetyInterface));
+	gConsumed_Stn051ToSafetyInterface.HeartbeatStn := cntLastStnHeartbeat051ToSafetyInterface;
+END_IF
+
+//Stn052ToSafetyInterface
+tmrStnHeartbeat052ToSafetyInterfaceOK(IN:= cntLastStnHeartbeat052ToSafetyInterface = gConsumed_Stn052ToSafetyInterface.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat052ToSafetyInterfaceOK.Q AND (cntLastStnHeartbeat052ToSafetyInterface = gConsumed_Stn052ToSafetyInterface.HeartbeatStn) THEN
+	gConsumed_Stn052ToSafetyInterface_OK := FALSE;
+ELSE
+	gConsumed_Stn052ToSafetyInterface_OK := TRUE;
+END_IF
+cntLastStnHeartbeat052ToSafetyInterface := gConsumed_Stn052ToSafetyInterface.HeartbeatStn;
+
+IF NOT gConsumed_Stn052ToSafetyInterface_OK THEN
+	MEMSET(ADR(gConsumed_Stn052ToSafetyInterface),0,SIZEOF(gConsumed_Stn052ToSafetyInterface));
+	gConsumed_Stn052ToSafetyInterface.HeartbeatStn := cntLastStnHeartbeat052ToSafetyInterface;
+END_IF
+
+//Stn053ToSafetyInterface
+tmrStnHeartbeat053ToSafetyInterfaceOK(IN:= cntLastStnHeartbeat053ToSafetyInterface = gConsumed_Stn053ToSafetyInterface.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat053ToSafetyInterfaceOK.Q AND (cntLastStnHeartbeat053ToSafetyInterface = gConsumed_Stn053ToSafetyInterface.HeartbeatStn) THEN
+	gConsumed_Stn053ToSafetyInterface_OK := FALSE;
+ELSE
+	gConsumed_Stn053ToSafetyInterface_OK := TRUE;
+END_IF
+cntLastStnHeartbeat053ToSafetyInterface := gConsumed_Stn053ToSafetyInterface.HeartbeatStn;
+
+IF NOT gConsumed_Stn053ToSafetyInterface_OK THEN
+	MEMSET(ADR(gConsumed_Stn053ToSafetyInterface),0,SIZEOF(gConsumed_Stn053ToSafetyInterface));
+	gConsumed_Stn053ToSafetyInterface.HeartbeatStn := cntLastStnHeartbeat053ToSafetyInterface;
+END_IF
+
+//Stn054ToSafetyInterface
+tmrStnHeartbeat054ToSafetyInterfaceOK(IN:= cntLastStnHeartbeat054ToSafetyInterface = gConsumed_Stn054ToSafetyInterface.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat054ToSafetyInterfaceOK.Q AND (cntLastStnHeartbeat054ToSafetyInterface = gConsumed_Stn054ToSafetyInterface.HeartbeatStn) THEN
+	gConsumed_Stn054ToSafetyInterface_OK := FALSE;
+ELSE
+	gConsumed_Stn054ToSafetyInterface_OK := TRUE;
+END_IF
+cntLastStnHeartbeat054ToSafetyInterface := gConsumed_Stn054ToSafetyInterface.HeartbeatStn;
+
+IF NOT gConsumed_Stn054ToSafetyInterface_OK THEN
+	MEMSET(ADR(gConsumed_Stn054ToSafetyInterface),0,SIZEOF(gConsumed_Stn054ToSafetyInterface));
+	gConsumed_Stn054ToSafetyInterface.HeartbeatStn := cntLastStnHeartbeat054ToSafetyInterface;
+END_IF
+
+//Stn055ToSafetyInterface
+tmrStnHeartbeat055ToSafetyInterfaceOK(IN:= cntLastStnHeartbeat055ToSafetyInterface = gConsumed_Stn055ToSafetyInterface.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat055ToSafetyInterfaceOK.Q AND (cntLastStnHeartbeat055ToSafetyInterface = gConsumed_Stn055ToSafetyInterface.HeartbeatStn) THEN
+	gConsumed_Stn055ToSafetyInterface_OK := FALSE;
+ELSE
+	gConsumed_Stn055ToSafetyInterface_OK := TRUE;
+END_IF
+cntLastStnHeartbeat055ToSafetyInterface := gConsumed_Stn055ToSafetyInterface.HeartbeatStn;
+
+IF NOT gConsumed_Stn055ToSafetyInterface_OK THEN
+	MEMSET(ADR(gConsumed_Stn055ToSafetyInterface),0,SIZEOF(gConsumed_Stn055ToSafetyInterface));
+	gConsumed_Stn055ToSafetyInterface.HeartbeatStn := cntLastStnHeartbeat055ToSafetyInterface;
+END_IF
+
+// Generate a heartbeat for produced data
+IF tmrReadSafetyAds.Q THEN
+	HeartbeatMain := HeartbeatMain + 1;
+	IF HeartbeatMain > 20000 THEN
+		HeartbeatMain := 0;
+	END_IF
+	
+	gProduced_SafetyInterfaceConv.HeartbeatMain := HeartbeatMain;
+	
+END_IF
+
+//distibute the incoming stn data (consumed data from stn) to single produced outgoing to all stns
+MEMCPY(ADR(gProduced_SafetyInterfaceConv.Stn051PLCData), ADR(gConsumed_Stn051ToSafetyInterface.Stn051PLCData), SIZEOF(gProduced_SafetyInterfaceConv.Stn051PLCData));
+MEMCPY(ADR(gProduced_SafetyInterfaceConv.Stn052PLCData), ADR(gConsumed_Stn052ToSafetyInterface.Stn052PLCData), SIZEOF(gProduced_SafetyInterfaceConv.Stn052PLCData));
+MEMCPY(ADR(gProduced_SafetyInterfaceConv.Stn053PLCData), ADR(gConsumed_Stn053ToSafetyInterface.Stn053PLCData), SIZEOF(gProduced_SafetyInterfaceConv.Stn053PLCData));
+MEMCPY(ADR(gProduced_SafetyInterfaceConv.Stn054PLCData), ADR(gConsumed_Stn054ToSafetyInterface.Stn054PLCData), SIZEOF(gProduced_SafetyInterfaceConv.Stn054PLCData));
+MEMCPY(ADR(gProduced_SafetyInterfaceConv.Stn055PLCData), ADR(gConsumed_Stn055ToSafetyInterface.Stn055PLCData), SIZEOF(gProduced_SafetyInterfaceConv.Stn055PLCData));
+
+ForceBootUpdate := TRUE;
+]]></ST>
+    </Implementation>
+    <LineIds Name="SafetyInterface_Config">
+      <LineId Id="7878" Count="70" />
+      <LineId Id="8045" Count="2" />
+      <LineId Id="8049" Count="0" />
+      <LineId Id="8048" Count="0" />
+      <LineId Id="7949" Count="8" />
+      <LineId Id="8051" Count="0" />
+      <LineId Id="8057" Count="2" />
+      <LineId Id="8050" Count="0" />
+      <LineId Id="7958" Count="8" />
+      <LineId Id="8061" Count="0" />
+      <LineId Id="8063" Count="2" />
+      <LineId Id="8060" Count="0" />
+      <LineId Id="7967" Count="8" />
+      <LineId Id="8067" Count="0" />
+      <LineId Id="8069" Count="2" />
+      <LineId Id="8066" Count="0" />
+      <LineId Id="7976" Count="8" />
+      <LineId Id="8073" Count="0" />
+      <LineId Id="8075" Count="2" />
+      <LineId Id="8072" Count="0" />
+      <LineId Id="7985" Count="19" />
+      <LineId Id="336" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

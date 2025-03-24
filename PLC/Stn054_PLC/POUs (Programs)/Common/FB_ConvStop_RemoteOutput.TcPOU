@@ -1,0 +1,754 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_ConvStop_RemoteOutput" Id="{80d4d529-6624-4fac-bd5e-6e2d9eebb3e3}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ConvStop_RemoteOutput
+VAR_INPUT
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpConvStop_RemoteOutput;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFIFO: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+	pUpstreamStop: POINTER TO CmpConvStop;
+END_VAR
+
+VAR
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+
+	DummyUpstreamStop: CmpConvStop; (*Used if no UpstreamStop*)
+	PuckInTransit_ToBuffer: BOOL;
+	PuckInTransit_TimeSpacing: BOOL;
+	tmrPuckInTransit_ToBuffer: TON;
+	tmrPuckInTransit_TimeSpacing: TON;
+	senPuckPresent: FB_Sensor;
+	senLocateOpened: FB_Sensor;
+	senLocateClosed: FB_Sensor;
+	senBufferFull: FB_SensorHyst;
+
+	iPuckPresent AT %I*: BOOL; (*On/Off can be config based*)
+	iLocateOpened AT %I*: BOOL; (*On can be config based*)
+	iLocateClosed AT %I*: BOOL; (*On can be config based*)
+	iBufferFull AT %I*: BOOL; (*On/Off can be config based*)
+
+	oLocateClose AT %Q*: BOOL;
+	oLocateOpen AT %Q*: BOOL;
+	oStopLower AT %Q*: BOOL;
+
+	hiLocateOpen: BOOL := FALSE;
+	hiLocateClose: BOOL := FALSE;
+	hiStopLower: BOOL := FALSE;
+	hiStopRaise: BOOL := FALSE;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Local.pStateTraceBuffer := pStateTraceBuffer;
+Local.pStateTraceFifo := pStateTraceFifo;
+Local.pStats := pStats;
+
+IF gFirstScan THEN
+	// Based on FB_ConvStop Version 15 - 06/17/2022
+	// Just add remote stop lower to interface and publish.
+	
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := pCmp^.Config.DepartStopFaultTime + T#5000ms;
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+	
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+
+// Assign external buffer to iBufferFull if config bit says to
+IF pCmp^.Config.RemoteBufferSensor THEN
+	iBufferFull := pCmp^.RemoteBufferFull;
+END_IF
+
+//Publish iBufferFull to interface
+pCmp^.StatusBufferFull := iBufferFull;
+
+// UpstreamStop may not exist.  Avoid referencing null pointer through use of a dummy local tag of the same type.
+IF NOT pCmp^.Config.HandshakeUpstream THEN
+	pUpstreamStop := ADR(DummyUpstreamStop);
+END_IF
+
+// PuckInTransit_TimeSpacing gets latched on when a puck is released.
+//   It is then cleared when the timer expires thus giving desired spacing before next puck is eligible for release.
+//   Time spacing is only used if both config bits for "downstream handshake" and "only allow one puck in transit" are both false.
+IF tmrPuckInTransit_TimeSpacing.Q OR 
+		pCmp^.Config.HandshakeDownstream OR
+		pCmp^.Config.BufferOnlyOneInMotion THEN
+	PuckInTransit_TimeSpacing := FALSE;
+END_IF
+tmrPuckInTransit_TimeSpacing(IN := PuckInTransit_TimeSpacing, PT := pCmp^.Config.TimeSpacingMinimum);
+
+// PuckInTransit_ToBuffer gets latched on when a puck is released.
+//   It is then cleared when puck arrives at the buffer full sensor or if not using one of the arrival at buffer config modes.
+//   Note that full init or fault reset state 6040 clears PuckInTransit_ToBuffer after notifying operator of failure to arrive via fault in state 101 or 121.
+IF iBufferFull OR
+		NOT pCmp^.Config.BufferArrivalFault OR
+		(pCmp^.Framework.EnableFreeRun AND
+		NOT pCmp^.ConvRunning) THEN
+	PuckInTransit_ToBuffer := FALSE;
+END_IF
+tmrPuckInTransit_ToBuffer(IN := PuckInTransit_ToBuffer, PT := pCmp^.Config.BufferArrivalFaultTime);
+
+// Set the sensor on and off times based on config populated times where appropriate
+senPuckPresent(
+	Input := iPuckPresent, 
+	OnTime := pCmp^.Config.PuckSensorOnTime, 
+	OffTime := pCmp^.Config.PuckSensorOffTime);
+senLocateOpened(
+	Input := iLocateOpened,
+	OnTime := pCmp^.Config.LocateOpenedSensorOnTime,
+	OffTime := T#0s);
+senLocateClosed(
+	Input := iLocateClosed,
+	OnTime := pCmp^.Config.LocateClosedSensorOnTime,
+	OffTime := T#0s);
+senBufferFull(
+	Input := iBufferFull,
+	OnTime := pCmp^.Config.BufferSensorOnTime,
+	OffTime := pCmp^.Config.BufferSensorOffTime);
+
+// Populate various status bits use for external traffic control puposes
+pCmp^.StatusInCycleAuto := Local.CycleAuto AND (NOT pStn^.StopRequest OR pCmp^.Framework.EnableFreeRun);
+pCmp^.StatusPuckPresent := senPuckPresent.On;
+pCmp^.StatusBufferFull := NOT senBufferFull.OFF;
+
+// Pass through external free run stop request to local then clear it
+Local.hiFreeRunCycleStop := pCmp^.FreeRunCycleStop;
+pCmp^.FreeRunCycleStop := FALSE;
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Check for puck or upstream handshake*)
+		
+		(*If there is an compentnt over this stop then allow the upper level code to
+		   be in charge of determining cycle stop criteria.*);
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT pStn^.StopRequest OR
+				pCmp^.Framework.EnableFreeRun OR
+				pCmp^.Config.DoesWorkRequest THEN
+			IF pCmp^.Config.HandshakeUpstream THEN
+				IF iPuckPresent THEN
+					Local.NextState := 1;
+				ELSIF NOT iPuckPresent
+						AND pUpstreamStop^.Available AND
+						pUpstreamStop^.StatusInCycleAuto THEN
+					Local.NextState := 10;
+				END_IF
+			ELSIF NOT pCmp^.Config.HandshakeUpstream
+					AND senPuckPresent.On THEN
+				Local.NextState := 30;
+			END_IF
+		END_IF
+	
+	1: (*FAULT: Unexpected puck*)
+		
+		(*Force a full init so that the associated Main component will re-evaluate the next action based on current data and sensor states.*);
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+			pStn^.FullInitRequired := TRUE;
+		END_IF
+		
+		;
+	
+	10: (*Request carrier from upstream*)
+		
+		(*Local timer state is used to force the upstream stop to fault first*);
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#200ms;
+			pUpstreamStop^.Release := TRUE;
+		END_IF
+		
+		IF NOT Local.tmrState.Q THEN
+			Local.OKToStop := TRUE;
+		ELSE
+			Local.OKToStop := FALSE;
+		END_IF
+		
+		IF senPuckPresent.On THEN
+			Local.NextState := 20;
+		END_IF
+	
+	20: (*Complete upstream handshake*)
+		
+		IF Local.FirstEntry THEN
+			pUpstreamStop^.Release := FALSE;
+		END_IF
+		
+		IF NOT pUpstreamStop^.Available THEN
+			Local.NextState := 30;
+		END_IF
+	
+	30: (*Check for existence of lift/locate*)
+		
+		IF pCmp^.Config.HasLocate THEN
+			Local.NextState := 40;
+		ELSE
+			Local.NextState := 50;
+		END_IF
+	
+	40: (*Close locate*)
+		
+		IF Local.FirstEntry THEN
+			oLocateClose := TRUE;
+			oLocateOpen := FALSE;
+		END_IF
+		
+		IF NOT Local.SingleStepInhibit THEN
+			IF senLocateClosed.On AND
+					NOT iLocateOpened THEN
+				Local.NextState := 50;
+			END_IF
+		END_IF
+	
+	50: (*Evaluate DoesWorkRequest*)
+		
+		(*Note that if the stop doesn't do a work request then it can be assumed not to have a lift/locate.*);
+		
+		IF pCmp^.Config.DoesWorkRequest THEN
+			Local.NextState := 60;
+		ELSE
+			Local.NextState := 100;
+		END_IF
+	
+	60: (*Verify Work Complete handshake is clear*)
+		
+		IF NOT pCmp^.WorkCmp THEN
+			Local.NextState := 70;
+		END_IF
+	
+	70: (*Request work from upper level component*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.WorkReq := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF pCmp^.WorkCmp THEN
+			IF pCmp^.Config.HasLocate THEN
+				Local.NextState := 80;
+			ELSE
+				Local.NextState := 100;
+			END_IF
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pCmp^.WorkReq := FALSE;
+		END_IF
+	
+	80: (*Open locate*)
+		
+		IF Local.FirstEntry THEN
+			oLocateOpen := TRUE;
+			oLocateClose := FALSE;
+		END_IF
+		
+		IF NOT Local.SingleStepInhibit THEN
+			IF senLocateOpened.On AND
+					NOT iLocateClosed THEN
+				Local.NextState := 100;
+			END_IF
+		END_IF
+	
+	100: (*Wait for release condition*)
+		
+		(*If conditions are right to fault for puck not arring at downstream then fault for that.
+		If config to handshake with downstream then go down that banch to ask permission.
+		Otherwise wait for downstream buffer to be clear AND for desired (only one puck in motion condition OR multiple pucks in motion with minimum time spacing).
+		To support free running concept don't try to release if estopped or control air not ok.  No need to fault for these since it is assumed that station level will fault
+		
+		*);
+		
+		Local.OKToStop := TRUE;
+		
+		IF tmrPuckInTransit_ToBuffer.Q AND
+				(pCmp^.Config.BufferArrivalFault OR
+				pCmp^.Config.BufferOnlyOneInMotion) THEN
+			Local.NextState := 101;
+		ELSIF pCmp^.Config.HandshakeDownstream AND
+				(NOT pCmp^.Framework.EnableFreeRun OR
+				(pStn^.ControlAirOk AND
+				NOT pStn^.EmergencyStop AND
+				pCmp^.ConvRunning)) THEN
+			Local.NextState := 110;
+		ELSIF NOT pCmp^.Config.HandshakeDownstream AND
+				senBufferFull.Off AND
+				((pCmp^.Config.BufferOnlyOneInMotion AND
+				NOT PuckInTransit_ToBuffer AND NOT iBufferFull) OR
+				(NOT pCmp^.Config.BufferOnlyOneInMotion AND
+				NOT PuckInTransit_TimeSpacing)) AND
+				(NOT pCmp^.Framework.EnableFreeRun OR
+				(pStn^.ControlAirOk AND
+				NOT pStn^.EmergencyStop AND
+				pCmp^.ConvRunning)) THEN
+			Local.NextState := 130;
+		END_IF
+	
+	101: (*FAULT: Last puck did not arrive at buffer*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	110: (*Verify downstream handshake is clear*)
+		
+		IF NOT pCmp^.Release THEN
+			Local.NextState := 120;
+		END_IF
+	
+	120: (*Set Available handshake to downstream stop*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Available := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF tmrPuckInTransit_ToBuffer.Q AND
+				pCmp^.Config.BufferArrivalFault THEN
+			Local.NextState := 121;
+		ELSIF pCmp^.Framework.EnableFreeRun AND
+				(NOT pStn^.ControlAirOk OR
+				 pStn^.EmergencyStop OR
+				NOT pCmp^.ConvRunning) THEN
+			Local.NextState := 122;
+		ELSIF pCmp^.Release THEN
+			Local.NextState := 130;
+		END_IF
+	
+	121: (*FAULT: Last puck did not arrive at buffer*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Available := FALSE;
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	122: (*Drop available due to loss of air or estop*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Available := FALSE;
+		END_IF
+		
+		Local.NextState := 100;
+	
+	130: (*Release puck*)
+		
+		IF Local.FirstEntry THEN
+			oStopLower := TRUE;
+			Local.StateTimePreset := pCmp^.Config.DepartStopFaultTime;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 131;
+		ELSIF senPuckPresent.OFF THEN
+			Local.NextState := 140;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oStopLower := FALSE;
+		END_IF
+	
+	131: (*Fault: Puck did not leave stop*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Available := FALSE;
+			Local.FaultNumber := 1;
+			pStn^.FullInitRequired := TRUE;
+		END_IF
+		
+		;
+	
+	140: (*Puck Away*)
+		
+		(*These are set true here, run timers in housekeeeping, and have rules based reset in housekeeping base on buffer full sensor or timer.*);
+		
+		IF Local.FirstEntry THEN
+			PuckInTransit_ToBuffer := TRUE;
+			PuckInTransit_TimeSpacing := TRUE;
+		END_IF
+		
+		IF pCmp^.Config.HandshakeDownstream THEN
+			Local.NextState := 150;
+		ELSE
+			Local.NextState := 0;
+		END_IF
+	
+	150: (*Complete handshake with downstream stop*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Available := FALSE;
+		END_IF
+		
+		Local.NextState := 0;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			oStopLower := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			oStopLower := FALSE;
+			//Clear handshakes
+			pCmp^.Available := FALSE;
+			pCmp^.WorkReq := FALSE;
+			pUpstreamStop^.Release := FALSE;
+			PuckInTransit_ToBuffer := FALSE;
+		END_IF
+		
+		IF pCmp^.Config.HasLocate THEN
+			Local.NextState := 5020;
+		ELSE
+			Local.NextState := 5030;
+		END_IF
+	
+	5020: (*Open locate*)
+		
+		IF Local.FirstEntry THEN
+			oLocateOpen := TRUE;
+			oLocateClose := FALSE;
+		END_IF
+		
+		IF NOT Local.SingleStepInhibit THEN
+			IF senLocateOpened.On AND
+					NOT iLocateClosed THEN
+				Local.NextState := 5030;
+			END_IF
+		END_IF
+	
+	5030: (*Decide on ReEntry state*)
+		
+		IF iPuckPresent THEN
+			Local.NextState := 5040;
+		ELSE
+			Local.NextState := 5050;
+		END_IF
+	
+	5040: (*Puck already present*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 30;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	5050: (*No puck present*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 0;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - check LastAutoState*)
+		
+		IF Local.LastAutoState=10 THEN
+			Local.NextState := 6010;
+		ELSIF Local.LastAutoState=40 THEN
+			Local.NextState := 6020;
+		ELSIF Local.LastAutoState=80 THEN
+			Local.NextState := 6030;
+		ELSIF Local.LastAutoState = 101 OR
+				Local.LastAutoState = 121 THEN
+			Local.NextState := 6040;
+		ELSE
+			Local.NextState := 9000;
+		END_IF
+	
+	6010: (*Timeout waiting for puck*)
+		
+		IF Local.FirstEntry THEN
+			//If puck arrived, then continue.  Otherwise, clear the Request.
+			IF senPuckPresent.ON THEN
+			  Local.ReEntryState := 10;
+			ELSE
+			  pUpstreamStop^.Release := FALSE;
+			  Local.ReEntryState := 0;
+			END_IF
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6020: (*Open locate so we can retry closing*)
+		
+		IF Local.FirstEntry THEN
+			oLocateOpen := TRUE;
+			oLocateClose := FALSE;
+		END_IF
+		
+		IF senLocateOpened.On AND
+				NOT iLocateClosed THEN
+			Local.NextState := 9000;
+		END_IF
+	
+	6030: (*Close locate so we can retry opening*)
+		
+		IF Local.FirstEntry THEN
+			oLocateClose := TRUE;
+			oLocateOpen := FALSE;
+		END_IF
+		
+		IF senLocateClosed.On AND
+				NOT iLocateOpened THEN
+			Local.NextState := 9000;
+		END_IF
+	
+	6040: (*Timed out waiting for puck to arrive at buffer*)
+		
+		IF Local.FirstEntry THEN
+			//Clear memory of last puck to allow release of current puck.
+			PuckInTransit_ToBuffer := FALSE;
+			Local.ReEntryState := 100;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 9000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset*)
+		
+		Local.NextState := 9998;
+	
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Post Housekeeping
+
+// Publish stop lower output for controling stop via remote station valve bank
+pCmp^.RemoteStopLower := oStopLower;
+
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+
+    IF hiLocateOpen THEN
+        oLocateOpen := TRUE;
+        oLocateClose := FALSE;
+    END_IF    
+    IF hiLocateClose THEN
+        oLocateClose := TRUE;
+        oLocateOpen := FALSE;
+    END_IF
+
+    IF hiStopLower THEN
+        oStopLower := TRUE;
+    END_IF
+    IF hiStopRaise THEN
+        oStopLower := FALSE;
+    END_IF
+
+END_IF
+
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*#### Always turn off hi requests ####*)
+hiLocateOpen := FALSE;
+hiLocateClose := FALSE;
+hiStopLower := FALSE;
+hiStopRaise := FALSE;
+
+(*### Simulation Logic ###*)
+
+
+;
+
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{5e1fc4a1-9038-4e0d-abf4-f45a43123db6}">
+      <Implementation>
+        <ST><![CDATA[Local.MsgArray[0].Id := 11;
+Local.MsgArray[0].Text := 'Unexpected puck/carrier/tote sensed at stop.';
+Local.MsgArray[0].AltText := 'No Alt Text';
+Local.MsgArray[1].Id := 101;
+Local.MsgArray[1].Text := 'Timed out waiting for puck/carrier/tote from upstream stop.';
+Local.MsgArray[1].AltText := 'No Alt Text';
+Local.MsgArray[2].Id := 201;
+Local.MsgArray[2].Text := 'Upstream stop failed to clear handshake.';
+Local.MsgArray[2].AltText := 'No Alt Text';
+Local.MsgArray[3].Id := 401;
+Local.MsgArray[3].Text := 'Locate did not close.';
+Local.MsgArray[3].AltText := 'No Alt Text';
+Local.MsgArray[4].Id := 601;
+Local.MsgArray[4].Text := 'WorkComplete handshake not cleared.';
+Local.MsgArray[4].AltText := 'No Alt Text';
+Local.MsgArray[5].Id := 801;
+Local.MsgArray[5].Text := 'Locate did not open.';
+Local.MsgArray[5].AltText := 'No Alt Text';
+Local.MsgArray[6].Id := 1011;
+Local.MsgArray[6].Text := 'Previous puck/carrier/tote did not arrive at buffer sensor.';
+Local.MsgArray[6].AltText := 'No Alt Text';
+Local.MsgArray[7].Id := 1101;
+Local.MsgArray[7].Text := 'Release handshake not cleared by downstream stop.';
+Local.MsgArray[7].AltText := 'No Alt Text';
+Local.MsgArray[8].Id := 1211;
+Local.MsgArray[8].Text := 'Previous puck/carrier/tote did not arrive at buffer sensor.';
+Local.MsgArray[8].AltText := 'No Alt Text';
+Local.MsgArray[9].Id := 1301;
+Local.MsgArray[9].Text := 'Puck/carrier/tote still sensed at stop on release.';
+Local.MsgArray[9].AltText := 'No Alt Text';
+Local.MsgArray[10].Id := 1311;
+Local.MsgArray[10].Text := 'Puck/carrier/tote still sensed at stop on release.';
+Local.MsgArray[10].AltText := 'No Alt Text';
+Local.MsgArray[11].Id := 50201;
+Local.MsgArray[11].Text := 'Locate did not open during reset.';
+Local.MsgArray[11].AltText := 'No Alt Text';
+Local.MsgArray[12].Id := 60201;
+Local.MsgArray[12].Text := 'Locate did not cose during reset.';
+Local.MsgArray[12].AltText := 'No Alt Text';
+Local.MsgArray[13].Id := 60301;
+Local.MsgArray[13].Text := 'Locate did not open during reset.';
+Local.MsgArray[13].AltText := 'No Alt Text';
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_ConvStop_RemoteOutput">
+      <LineId Id="3" Count="6" />
+      <LineId Id="686" Count="0" />
+      <LineId Id="10" Count="559" />
+      <LineId Id="678" Count="1" />
+      <LineId Id="683" Count="0" />
+      <LineId Id="682" Count="0" />
+      <LineId Id="684" Count="0" />
+      <LineId Id="680" Count="0" />
+      <LineId Id="570" Count="68" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ConvStop_RemoteOutput.DfnMessages">
+      <LineId Id="2" Count="41" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

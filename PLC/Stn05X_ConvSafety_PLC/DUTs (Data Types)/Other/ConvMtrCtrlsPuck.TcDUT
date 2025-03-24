@@ -1,0 +1,148 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="ConvMtrCtrlsPuck" Id="{9b716265-df41-404b-ae77-c18c66a19184}">
+    <Declaration><![CDATA[TYPE ConvMtrCtrlsPuck :
+STRUCT
+
+// Conv Motor Running state - all
+
+// Stn051_05_StnMain.MotorCtrl
+// Call to motor control function block for each main line motor	
+// Blue Return - Enc52:  5,6  Enc53: 3,4,5,6
+// Red Return  - Enc52:  3,4   Enc53:2
+// Grn Return  - Enc52: 1,2   Enc53: 1
+//  Blu receive bypass - Enc52: 7
+
+	Enc052Mtr01 : FB_ConvMtrCtrl;
+	Enc052Mtr02 : FB_ConvMtrCtrl;
+	Enc052Mtr03 : FB_ConvMtrCtrl;
+	Enc052Mtr04 : FB_ConvMtrCtrl;
+	Enc052Mtr05 : FB_ConvMtrCtrl;
+	Enc052Mtr06 : FB_ConvMtrCtrl;
+	Enc052Mtr07 : FB_ConvMtrCtrl;
+
+	Enc053Mtr01 : FB_ConvMtrCtrl;
+	Enc053Mtr02 : FB_ConvMtrCtrl;
+	Enc053Mtr03 : FB_ConvMtrCtrl;
+	Enc053Mtr04 : FB_ConvMtrCtrl;
+	Enc053Mtr05 : FB_ConvMtrCtrl;
+	Enc053Mtr06 : FB_ConvMtrCtrl;
+
+// Stn052_05_StnMain.MotorCtrl
+// Call to motor control function block for each main line motor
+// Blue Recv - Enc54: 7, 8, 9  Enc55: 5,6
+// Red Recv  - Enc54: 4, 5, 6  Enc55: 3, 4
+// Grn Recv  - Enc54: 1, 2, 3  Enc55: 1, 2
+	Enc055Mtr01 : FB_ConvMtrCtrl;
+	Enc055Mtr02 : FB_ConvMtrCtrl;
+	Enc055Mtr03 : FB_ConvMtrCtrl;
+	Enc055Mtr04 : FB_ConvMtrCtrl;
+	Enc055Mtr05 : FB_ConvMtrCtrl;
+	Enc055Mtr06 : FB_ConvMtrCtrl;
+
+	Enc054Mtr01 : FB_ConvMtrCtrl;
+	Enc054Mtr02 : FB_ConvMtrCtrl;
+	Enc054Mtr03 : FB_ConvMtrCtrl;
+	Enc054Mtr04 : FB_ConvMtrCtrl;
+	Enc054Mtr05 : FB_ConvMtrCtrl;
+	Enc054Mtr06 : FB_ConvMtrCtrl;
+	Enc054Mtr07 : FB_ConvMtrCtrl;
+	Enc054Mtr08 : FB_ConvMtrCtrl;
+	Enc054Mtr09 : FB_ConvMtrCtrl;
+
+// Stn053_05_StnMain.MotorCtrl
+// Call to motor control function block for each main line motor	
+// Blue eval - Enc56:11   		Enc57: 7,8,9,10   		Enc60: 5,6
+// Red Eval -  Enc56: 5,6,7,8,9,10  Enc57: 1,2,3,4,5,6  Enc60: 3,4
+// Grn Eval - none
+
+	Enc056Mtr05 : FB_ConvMtrCtrl;
+	Enc056Mtr06 : FB_ConvMtrCtrl;
+	Enc056Mtr07 : FB_ConvMtrCtrl;
+	Enc056Mtr08 : FB_ConvMtrCtrl;
+	Enc056Mtr09 : FB_ConvMtrCtrl;
+	Enc056Mtr10 : FB_ConvMtrCtrl;
+	Enc056Mtr11 : FB_ConvMtrCtrl;
+
+	Enc057Mtr01 : FB_ConvMtrCtrl;
+	Enc057Mtr02 : FB_ConvMtrCtrl;
+	Enc057Mtr03 : FB_ConvMtrCtrl;
+	Enc057Mtr04 : FB_ConvMtrCtrl;
+	Enc057Mtr05 : FB_ConvMtrCtrl;
+	Enc057Mtr06 : FB_ConvMtrCtrl;
+	Enc057Mtr07 : FB_ConvMtrCtrl;
+	Enc057Mtr08 : FB_ConvMtrCtrl;
+	Enc057Mtr09 : FB_ConvMtrCtrl;
+	Enc057Mtr10 : FB_ConvMtrCtrl;	
+
+	Enc060Mtr03 : FB_ConvMtrCtrl;
+	Enc060Mtr04 : FB_ConvMtrCtrl;
+	Enc060Mtr05 : FB_ConvMtrCtrl;
+	Enc060Mtr06 : FB_ConvMtrCtrl;
+	
+// Stn054_05_StnMain.MotorCtrl
+// Call to motor control function block for each main line motor	
+// Blu  - none
+// Red - none
+// Grn Eval  -  Enc56: 1,2,3,4  Enc58: 1-8  Enc59:  1-6 Enc60: 1,2
+
+	Enc056Mtr01 : FB_ConvMtrCtrl;
+	Enc056Mtr02 : FB_ConvMtrCtrl;
+	Enc056Mtr03 : FB_ConvMtrCtrl;
+	Enc056Mtr04 : FB_ConvMtrCtrl;
+
+	Enc058Mtr01 : FB_ConvMtrCtrl;
+	Enc058Mtr02 : FB_ConvMtrCtrl;
+	Enc058Mtr03 : FB_ConvMtrCtrl;
+	Enc058Mtr04 : FB_ConvMtrCtrl;
+	Enc058Mtr05 : FB_ConvMtrCtrl;
+	Enc058Mtr06 : FB_ConvMtrCtrl;
+	Enc058Mtr07 : FB_ConvMtrCtrl;
+	Enc058Mtr08 : FB_ConvMtrCtrl;
+
+	Enc059Mtr01 : FB_ConvMtrCtrl;
+	Enc059Mtr02 : FB_ConvMtrCtrl;
+	Enc059Mtr03 : FB_ConvMtrCtrl;
+	Enc059Mtr04 : FB_ConvMtrCtrl;
+	Enc059Mtr05 : FB_ConvMtrCtrl;
+	Enc059Mtr06 : FB_ConvMtrCtrl;
+
+	Enc060Mtr01 : FB_ConvMtrCtrl;
+	Enc060Mtr02 : FB_ConvMtrCtrl;
+
+// Stn055_05_StnMain.MotorCtrl
+// Call to motor control function block for each main line motor	
+// Blue Storage - Enc51:  3,4,5,6  Enc61: 6  	Enc62: 8,9
+// Red Storage  - Enc51:  2 	Enc61: 5 		Enc62: 3,4,5,6,7
+// Grn Storage  - Enc51:  1 	Enc61: 1,2,3,4  Enc62: 1,2
+// complete
+
+	Enc051Mtr01 : FB_ConvMtrCtrl;
+	Enc051Mtr02 : FB_ConvMtrCtrl;
+	Enc051Mtr03 : FB_ConvMtrCtrl;
+	Enc051Mtr04 : FB_ConvMtrCtrl;
+	Enc051Mtr05 : FB_ConvMtrCtrl;
+	Enc051Mtr06 : FB_ConvMtrCtrl;
+
+	Enc061Mtr01 : FB_ConvMtrCtrl;
+	Enc061Mtr02 : FB_ConvMtrCtrl;
+	Enc061Mtr03 : FB_ConvMtrCtrl;
+	Enc061Mtr04 : FB_ConvMtrCtrl;
+	Enc061Mtr05 : FB_ConvMtrCtrl;
+	Enc061Mtr06 : FB_ConvMtrCtrl;
+
+	Enc062Mtr01 : FB_ConvMtrCtrl;
+	Enc062Mtr02 : FB_ConvMtrCtrl;
+	Enc062Mtr03 : FB_ConvMtrCtrl;
+	Enc062Mtr04 : FB_ConvMtrCtrl;
+	Enc062Mtr05 : FB_ConvMtrCtrl;
+	Enc062Mtr06 : FB_ConvMtrCtrl;
+	Enc062Mtr07 : FB_ConvMtrCtrl;
+	Enc062Mtr08 : FB_ConvMtrCtrl;
+	Enc062Mtr09 : FB_ConvMtrCtrl;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

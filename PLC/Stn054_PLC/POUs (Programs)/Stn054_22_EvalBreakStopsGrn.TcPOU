@@ -1,0 +1,211 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_22_EvalBreakStopsGrn" Id="{60d37676-8de9-46d0-957f-fcb805efc2a2}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_22_EvalBreakStopsGrn
+VAR
+	
+
+// BS 1 are under full control of 3 lane switch in station 53
+// Outputs for BS 2, 3, and 4 are on valve banks oontrolled by station 53 so using remote outputs 
+// Outputs for BS 22, 23,24 25 are on valve bank controlled by station 51 so using remote outputs
+// Outputs for BS 26, 27, 28, 29, 30, 31, 32 are on valve bank conrolled by station 53 so using remote outputs
+// Output for BS 33  is on valve bank controlled by station 55 so using remote outputs
+// extra time needed for travel to buffer full sensors
+// BS3 at bottom of high friction climb across to Green eval has a long distance to buffer full sensor at top of cross-over
+// BS6 at end of cross-over has a long distance to buffer full sensor near the green Eval Empty divert
+
+//BS2 Puck Present pragma missing - here it is:  (there is no buffer full sensor avail)
+//		.fbBreakStop[2].iPuckPresent := <0,1,1>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0; DONE works
+// let's use the BS2 buffer full at bottom of hill - too many faults without something here
+// BS3 BF is at top of the hill, next to BS4
+//		.fbBreakStop[2].iBufferFull  :=  <0,1,1>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 2;<<<---- needs to corrected below for BS2 BF, bad pragma below
+
+{attribute 'TcLinkToOSO' := '
+		.fbBreakStop[5].oStopLower :=  <0,1,0>TIIB[N56S00 (AL1332)]^N56S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[6].oStopLower :=  <0,1,1>TIIB[N56S00 (AL1332)]^N56S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[7].oStopLower :=  <0,1,7>TIIB[N56S00 (AL1332)]^N56S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[8].oStopLower :=  <0,1,4>TIIB[N57S00 (AL1332)]^N57S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[9].oStopLower :=  <0,1,6>TIIB[N57S00 (AL1332)]^N57S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[10].oStopLower :=  <0,1,4>TIIB[N58S00 (AL1332)]^N58S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[11].oStopLower :=  <0,1,5>TIIB[N58S00 (AL1332)]^N58S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[12].oStopLower :=  <0,1,2>TIIB[N58S00 (AL1332)]^N58S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[13].oStopLower :=  <0,1,4>TIIB[N51S00 (AL1332)]^N51S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[14].oStopLower :=  <0,1,2>TIIB[N51S00 (AL1332)]^N51S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[15].oStopLower :=  <0,1,0>TIIB[N52S00 (AL1332)]^N52S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[16].oStopLower :=  <0,1,1>TIIB[N52S00 (AL1332)]^N52S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[17].oStopLower :=  <0,1,4>TIIB[N53S00 (AL1332)]^N53S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[18].oStopLower :=  <0,1,6>TIIB[N53S00 (AL1332)]^N53S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[19].oStopLower :=  <0,1,7>TIIB[N53S00 (AL1332)]^N53S02 (EX260)^RxPDO^output byte 0;
+		.fbBreakStop[20].oStopLower :=  <0,1,2>TIIB[N53S00 (AL1332)]^N53S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[21].oStopLower :=  <0,1,4>TIIB[N54S00 (AL1332)]^N54S02 (EX260)^RxPDO^output byte 0;		
+		.fbBreakStop[2].iPuckPresent :=  <0,1,1>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[2].iBufferFull  :=  <0,1,1>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[3].iPuckPresent :=  <0,1,0>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[3].iBufferFull  :=  <0,1,0>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[4].iPuckPresent :=  <0,1,1>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[4].iBufferFull  :=  <0,1,1>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[5].iPuckPresent :=  <0,1,1>TIIB[N56S00 (AL1332)]^N56S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[5].iBufferFull  :=  <0,1,1>TIIB[N56S00 (AL1332)]^N56S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[6].iPuckPresent :=  <0,1,2>TIIB[N56S00 (AL1332)]^N56S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[6].iBufferFull  :=  <0,1,2>TIIB[N56S00 (AL1332)]^N56S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[7].iPuckPresent :=  <0,1,4>TIIB[N56S00 (AL1332)]^N56S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[7].iBufferFull  :=  <0,1,4>TIIB[N56S00 (AL1332)]^N56S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[8].iPuckPresent :=  <0,1,3>TIIB[N57S00 (AL1332)]^N57S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[8].iBufferFull  :=  <0,1,3>TIIB[N57S00 (AL1332)]^N57S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[9].iPuckPresent :=  <0,1,0>TIIB[N57S00 (AL1332)]^N57S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[9].iBufferFull  :=  <0,1,0>TIIB[N57S00 (AL1332)]^N57S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[10].iPuckPresent :=  <0,1,3>TIIB[N58S00 (AL1332)]^N58S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[10].iBufferFull  :=  <0,1,3>TIIB[N58S00 (AL1332)]^N58S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[11].iPuckPresent :=  <0,1,4>TIIB[N58S00 (AL1332)]^N58S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[11].iBufferFull  :=  <0,1,4>TIIB[N58S00 (AL1332)]^N58S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[12].iPuckPresent :=  <0,1,3>TIIB[N58S00 (AL1332)]^N58S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[12].iBufferFull  :=  <0,1,3>TIIB[N58S00 (AL1332)]^N58S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[13].iPuckPresent :=  <0,1,3>TIIB[N51S00 (AL1332)]^N51S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[13].iBufferFull  :=  <0,1,3>TIIB[N51S00 (AL1332)]^N51S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[14].iPuckPresent :=  <0,1,3>TIIB[N51S00 (AL1332)]^N51S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[14].iBufferFull  :=  <0,1,3>TIIB[N51S00 (AL1332)]^N51S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[15].iPuckPresent :=  <0,1,0>TIIB[N52S00 (AL1332)]^N52S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[15].iBufferFull  :=  <0,1,0>TIIB[N52S00 (AL1332)]^N52S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[16].iPuckPresent :=  <0,1,1>TIIB[N52S00 (AL1332)]^N52S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[16].iBufferFull  :=  <0,1,1>TIIB[N52S00 (AL1332)]^N52S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[17].iPuckPresent :=  <0,1,3>TIIB[N53S00 (AL1332)]^N53S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[17].iBufferFull  :=  <0,1,3>TIIB[N53S00 (AL1332)]^N53S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[18].iPuckPresent :=  <0,1,0>TIIB[N53S00 (AL1332)]^N53S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[18].iBufferFull  :=  <0,1,0>TIIB[N53S00 (AL1332)]^N53S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[19].iPuckPresent :=  <0,1,1>TIIB[N53S00 (AL1332)]^N53S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[19].iBufferFull  :=  <0,1,1>TIIB[N53S00 (AL1332)]^N53S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[20].iPuckPresent :=  <0,1,3>TIIB[N53S00 (AL1332)]^N53S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[20].iBufferFull  :=  <0,1,3>TIIB[N53S00 (AL1332)]^N53S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[21].iPuckPresent :=  <0,1,3>TIIB[N54S00 (AL1332)]^N54S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[21].iBufferFull  :=  <0,1,3>TIIB[N54S00 (AL1332)]^N54S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[22].iPuckPresent :=  <0,1,0>TIIB[N11S00 (AL1332)]^N11S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[22].iBufferFull  :=  <0,1,0>TIIB[N11S00 (AL1332)]^N11S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[23].iPuckPresent :=  <0,1,1>TIIB[N11S00 (AL1332)]^N11S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[23].iBufferFull  :=  <0,1,1>TIIB[N11S00 (AL1332)]^N11S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[24].iPuckPresent :=  <0,1,0>TIIB[N11S00 (AL1332)]^N11S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[24].iBufferFull  :=  <0,1,0>TIIB[N11S00 (AL1332)]^N11S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[25].iPuckPresent :=  <0,1,1>TIIB[N11S00 (AL1332)]^N11S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[25].iBufferFull  :=  <0,1,1>TIIB[N11S00 (AL1332)]^N11S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[26].iPuckPresent :=  <0,1,0>TIIB[N61S00 (AL1332)]^N61S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[26].iBufferFull  :=  <0,1,0>TIIB[N61S00 (AL1332)]^N61S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[27].iPuckPresent :=  <0,1,1>TIIB[N61S00 (AL1332)]^N61S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[27].iBufferFull  :=  <0,1,1>TIIB[N61S00 (AL1332)]^N61S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[28].iPuckPresent :=  <0,1,2>TIIB[N61S00 (AL1332)]^N61S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[28].iBufferFull  :=  <0,1,2>TIIB[N61S00 (AL1332)]^N61S01 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[29].iPuckPresent :=  <0,1,0>TIIB[N61S00 (AL1332)]^N61S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[29].iBufferFull  :=  <0,1,0>TIIB[N61S00 (AL1332)]^N61S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[30].iPuckPresent :=  <0,1,1>TIIB[N61S00 (AL1332)]^N61S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[30].iBufferFull  :=  <0,1,1>TIIB[N61S00 (AL1332)]^N61S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[31].iPuckPresent :=  <0,1,0>TIIB[N61S00 (AL1332)]^N61S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[31].iBufferFull  :=  <0,1,0>TIIB[N61S00 (AL1332)]^N61S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[32].iPuckPresent :=  <0,1,1>TIIB[N61S00 (AL1332)]^N61S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[32].iBufferFull  :=  <0,1,1>TIIB[N61S00 (AL1332)]^N61S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[33].iPuckPresent :=  <0,1,0>TIIB[N62S00 (AL1332)]^N62S01 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[33].iBufferFull  :=  <0,1,0>TIIB[N62S00 (AL1332)]^N62S01 (AL2341)^TxPDO^input byte 2'}
+	fbBreakStopGroup: FB_BreakStopGroup;
+	
+	i: DINT;
+	NumberBreakStopEvalGrn: DINT := 33;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+//  combine running state of any multiple conveyors in a break stop here.
+gStn054_22_EvalBreakStopsGrn.ConvRunning[02] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[03] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr01 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[04] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[05] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr01 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[06] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr02 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr05;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[07] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr05;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[08] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr05;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[09] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr05 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[10] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[11] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[12] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[13] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr01 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr03;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[14] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr03;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[15] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr03;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[16] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr03 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr04;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[17] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr04;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[18] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr04;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[19] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr04;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[20] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr04;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[21] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr04 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[22] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[23] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[24] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[25] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[26] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[27] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[28] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr01 AND  gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[29] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[30] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[31] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[32] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr02;
+gStn054_22_EvalBreakStopsGrn.ConvRunning[33] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc060Mtr02 AND gConsumed_SafetyInterfaceConv.Stn055PLCData[0].10;
+
+gStn054_22_EvalBreakStopsGrn.Config.BreakStops[3].BufferArrivalFaultTime := T#45s ;  //long time up the green conv to Mtr 2 & Red to Grn Merge
+gStn054_22_EvalBreakStopsGrn.Config.BreakStops[6].BufferArrivalFaultTime := T#45s ;  //long time down the green conv to Mtr 3 & Grn to Red Merge
+ 
+fbBreakStopGroup(
+	pStn := ADR(gStn054),
+	pCmp := ADR(gStn054_22_EvalBreakStopsGrn),
+	pStateTraceBuffer := ADR(gStn054_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn054_StateTraceFifo),
+	pStats := ADR(gStn054_02_Stats),
+);
+
+
+//Producing lower stop request to station 053 for shared valve bank
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].0 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[2];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].1 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[3];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].4 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[4];
+
+
+//Producing lower stop request to station 051 for shared valve bank
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].10 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[22];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].11 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[23];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].12 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[24];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].13 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[25];
+
+//Producing lower stop request to station 053 for shared valve bank
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].20 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[26];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].21 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[27];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].22 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[28];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].23 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[29];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].24 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[30];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].25 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[31];
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].26 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[32];
+
+//Producing lower stop request to station 055 for shared valve bank
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[0].0 := gStn054_22_EvalBreakStopsGrn.LowerStopReq[33];
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn054_22_EvalBreakStopsGrn">
+      <LineId Id="3" Count="3" />
+      <LineId Id="440" Count="2" />
+      <LineId Id="449" Count="23" />
+      <LineId Id="444" Count="0" />
+      <LineId Id="478" Count="3" />
+      <LineId Id="448" Count="0" />
+      <LineId Id="337" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="797" Count="0" />
+      <LineId Id="11" Count="6" />
+      <LineId Id="19" Count="2" />
+      <LineId Id="690" Count="0" />
+      <LineId Id="22" Count="1" />
+      <LineId Id="591" Count="0" />
+      <LineId Id="24" Count="14" />
+      <LineId Id="138" Count="1" />
+      <LineId Id="137" Count="0" />
+      <LineId Id="39" Count="1" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

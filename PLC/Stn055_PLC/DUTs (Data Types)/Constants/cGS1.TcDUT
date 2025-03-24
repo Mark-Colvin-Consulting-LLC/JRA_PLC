@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cGS1" Id="{69121a24-9d5b-4ed8-a320-05378217cc75}">
+    <Declaration><![CDATA[{attribute 'qualified_only' := ''}
+{attribute 'to_string' := ''}
+{attribute 'strict' := ''}
+TYPE cGS1 :
+(
+	SN := 21,
+	SKU := 241,
+	MSN := 250,
+	PPN := 240
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

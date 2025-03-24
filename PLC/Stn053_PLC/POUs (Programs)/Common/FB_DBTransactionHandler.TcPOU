@@ -1,0 +1,356 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_DBTransactionHandler" Id="{9f0e2a28-942a-4e4b-aa33-bcb41a3b2001}" SpecialFunc="None">
+    <Declaration><![CDATA[{attribute 'enable_dynamic_creation'}
+FUNCTION_BLOCK FB_DBTransactionHandler
+VAR_INPUT
+	ProjectDBDefs : IProjectDBDefs; //Instance of the custom database FB for this database
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//Property backing variables
+	_JRSQLNetId : T_AmsNetID;
+	_JRSQLPort : T_AmsPort;
+	_DBServer : POINTER TO fb_dbserver;
+	_Busy : BOOL;
+	_Done : BOOL;
+	_Error : BOOL;
+	_ErrorId : UINT;	
+	_ErrorText : STRING;
+	
+	//'Framework'
+	bFirstScan: BOOL := TRUE;
+	tmrState:  TON;
+
+	nState:	UDINT	:= 0;
+	nNextState:	UDINT	:= 0;
+	bFirstEntry: BOOL;	
+	
+	//Locals
+	Triggered : BOOL := FALSE;
+	DataReturn : BOOL := FALSE;
+	
+	spName :STRING;
+	spData: pvoid;
+	spDataSize:UDINT;
+	
+	spDefinition : DBSPDefinition;
+	spCallResult : DBSPCallResult;
+	
+	TransmitBuffer : POINTER TO BYTE;
+	TransmitSize : UINT;
+	ReceiveBuffer : POINTER TO BYTE;
+	ReceiveSize : UINT;
+	
+	LastProcessTime : TIME;
+		
+	fbADSReadWrite: ADSRDWRTEX;
+
+END_VAR
+VAR CONSTANT
+	cJRSQLTimeout : TIME := T#10S;
+	cJRSQLCommandExecute : UDINT := 16#1000;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bFirstScan THEN
+	nNextState:=0;
+	nState:=9999;
+	
+	fbADSReadWrite(NETID:=_JRSQLNetId,PORT:=_JRSQLPort,WRTRD:=FALSE,TMOUT:=cJRSQLTimeout);
+	bFirstScan := FALSE;
+END_IF
+
+//state machine	
+IF nState <> nNextState THEN
+	bFirstEntry := TRUE;
+	nState := nNextState;
+ELSE
+	bFirstEntry := FALSE;
+END_IF
+
+tmrState(IN:=(NOT bFirstEntry), PT:=T#20S);
+
+CASE nState OF
+0:
+	IF bFirstEntry THEN
+		_Error:=FALSE;
+		_ErrorId := 16#0;
+		_ErrorText := '';
+		_Done:=FALSE;
+	END_IF
+
+	IF Triggered THEN
+		IF _DBServer^.Connected THEN
+			nNextState := 40;
+		ELSE
+			nNextState := 10;
+		END_IF
+	END_IF
+	
+10://wait for connection
+	IF (_DBServer^.Connected) THEN
+		nNextState := 0;
+	ELSIF tmrState.ET > cJRSQLTimeout THEN
+		_ErrorText:='JRSQL connection timeout';		
+		_ErrorId := 16#1;
+		_Error:=TRUE;
+		nNextState	:= 999;
+ 	END_IF
+
+//States combined to get rid of scan delays	
+40: //Call JRSQL
+	IF bFirstEntry THEN
+		IF(ProjectDBDefs.GetSPDef(spName, ADR(spDefinition))) THEN
+			TransmitSize := SIZEOF(DBSPDefinition) + spDefinition.InputParamSize;
+			ReceiveSize := SIZEOF(DBSPCallResult) + spDefinition.OutputParamSize;
+
+			IF (spDataSize = spDefinition.InputParamSize+spDefinition.OutputParamSize) THEN
+				;
+			ELSE
+				_ErrorText := CONCAT('Procedure data size mismatch. Expected: ',CONCAT(UINT_TO_STRING(spDefinition.InputParamSize+spDefinition.OutputParamSize),CONCAT(' Got: ',UDINT_TO_STRING(spDataSize))));
+				_ErrorId:= 16#3;
+				_Error:=TRUE;
+				nNextState := 999;
+			END_IF
+		ELSE 
+			_ErrorText:='Stored procedure not found';		
+			_ErrorId := 16#2;
+			_Error:=TRUE;
+			nNextState	:= 999;		
+		END_IF	
+	
+		IF (NOT _Error) THEN
+			//Allocate buffers
+			TransmitSize := SIZEOF(DBSPDefinition) + spDefinition.InputParamSize;
+			TransmitBuffer := __NEW(BYTE, TransmitSize);
+			MEMSET(TransmitBuffer,0,TransmitSize);
+			ReceiveSize := SIZEOF(DBSPCallResult) + spDefinition.OutputParamSize;
+			ReceiveBuffer := __NEW(BYTE, ReceiveSize);
+			MEMSET(ReceiveBuffer,0,ReceiveSize);
+		
+			memcpy(TransmitBuffer,ADR(spDefinition),SIZEOF(DBSPDefinition));
+			memcpy((TransmitBuffer + SIZEOF(DBSPDefinition)),spData,spDefinition.InputParamSize);
+		END_IF
+	END_IF
+
+	IF (NOT _Error) THEN
+		
+		fbADSReadWrite(WRTRD:=TRUE, IDXGRP:=cJRSQLCommandExecute, WRITELEN:=TransmitSize, SRCADDR:= TransmitBuffer, READLEN:=ReceiveSize, DESTADDR:= ReceiveBuffer);
+
+		IF NOT fbADSReadWrite.Busy THEN
+			IF NOT fbADSReadWrite.ERR THEN
+				memcpy(ADR(spCallResult),ReceiveBuffer,SIZEOF(DBSPCallResult));
+			
+				IF spCallResult.Result <> 1 THEN
+					//Error returned by JRSQL
+					_ErrorText := CONCAT('JRSQL error: ',spCallResult.ResultString);
+					_ErrorId:= 16#1000 + spCallResult.Result;
+					_Error:=TRUE;
+					nNextState := 999;
+				ELSE
+					//Copy result to caller
+					memcpy(spData+spDefinition.InputParamSize,ReceiveBuffer+SIZEOF(DBSPCallResult),spDefinition.OutputParamSize);
+					LastProcessTime := spCallResult.ProcessTime;
+					_Done:=TRUE;
+					nNextState := 999;		
+				END_IF
+			ELSE
+				IF fbADSReadWrite.ERRID = 1861 THEN
+					_ErrorText := 'JRSQL response timeout';
+					_ErrorId:= 16#8;
+					_Error:=TRUE;
+					nNextState := 999;	
+				ELSE
+					_ErrorText := Concat('Error communicating to JRSQL: ', UDINT_TO_STRING(fbADSReadWrite.ERRID));
+					_ErrorId:= 16#9;
+					_Error:=TRUE;
+					nNextState := 999;	
+				END_IF
+			END_IF
+		END_IF
+	
+		IF (nState <> nNextState) THEN
+			fbADSReadWrite(WRTRD:=FALSE);
+			__DELETE(TransmitBuffer);
+			__DELETE(ReceiveBuffer);
+		END_IF
+	
+	END_IF
+	
+999:
+	IF bFirstEntry THEN
+		IF NOT _Error THEN
+			_Done:=TRUE;
+		END_IF
+	END_IF
+	
+	IF NOT Triggered THEN
+		nNextState	:= 0;	
+	END_IF
+
+END_CASE	
+
+_Busy := (nState <> 0);
+Triggered:=FALSE;
+DataReturn:=FALSE;]]></ST>
+    </Implementation>
+    <Property Name="Busy" Id="{bf2c6052-5adb-4e5b-8378-24289933e00b}">
+      <Declaration><![CDATA[PROPERTY Busy : bool]]></Declaration>
+      <Get Name="Get" Id="{104c2950-0273-4ea4-8743-66e623841e00}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Busy := _Busy;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Done" Id="{0b33b791-237d-4a7f-a435-20c7bc7ac2c1}">
+      <Declaration><![CDATA[PROPERTY Done : bool]]></Declaration>
+      <Get Name="Get" Id="{6f20f74f-fcb6-4f3b-9c10-493ba8b2c316}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Done := _Done;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Error" Id="{b6be1fed-a803-48fc-9410-7df6fa52e649}">
+      <Declaration><![CDATA[PROPERTY Error : bool]]></Declaration>
+      <Get Name="Get" Id="{386ffafc-87ff-4a1c-8fbd-8f0db5d0365f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Error := _Error;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="ErrorId" Id="{5a268983-5467-4cb7-904b-836ee06314a4}">
+      <Declaration><![CDATA[PROPERTY ErrorId : UDINT
+]]></Declaration>
+      <Get Name="Get" Id="{05003e82-69b7-4877-be37-77a4efbdcc5f}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ErrorId := _ErrorId;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="ErrorText" Id="{e068f502-94eb-4cdc-94fb-00165ad45ac8}">
+      <Declaration><![CDATA[PROPERTY ErrorText : STRING]]></Declaration>
+      <Get Name="Get" Id="{d5cdd56c-a0ce-4273-9068-1727ea34b733}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[ErrorText := _ErrorText;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="ExecuteSP" Id="{15a65f4f-8267-4cde-9717-99c29504a58f}">
+      <Declaration><![CDATA[METHOD ExecuteSP : BOOL
+VAR_INPUT
+	bForeground : BOOL;
+	sSPName : STRING;
+	pData : pvoid;
+	nDataSize : UDINT;
+END_VAR
+VAR
+	BackgroundItem : POINTER TO DBBackgroundItem;
+	
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bForeground THEN
+	//execute in process
+	IF NOT busy THEN
+		//first time call, set data
+		spName := sSPName;
+		spData := pData;
+		spDataSize := nDataSize;
+	ELSE
+		//subsequent call
+	
+	END_IF
+
+	Triggered:=TRUE;
+	DataReturn:=FALSE;
+	ExecuteSP:=(_Done OR _Error);
+ELSE
+	//build a new item to disassociate from the caller
+	BackgroundItem:= __NEW(DBBackgroundItem);
+	BackgroundItem^.SPName := sSPName;
+	BackgroundItem^.DataSize := nDataSize;
+	memcpy(ADR(BackgroundItem^.Data),pData,nDataSize);
+	
+	//Pass it off to the background fifo	
+	IF NOT (_DBServer^.AddBackgroundItem(BackgroundItem)) THEN
+		//add failed, clear the memory
+
+		__DELETE(BackgroundItem);
+	END_IF
+	
+	ExecuteSP:=TRUE;
+END_IF
+
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{1633268f-2c9e-4455-8eba-f5bcf28a8415}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+	
+	pDBServer : POINTER TO FB_DBServer; //Instance of the custom database FB for this database
+	JRSQLNetId : T_AmsNetID := ''; //AMS address of JRSQL
+	JRSQLPort : T_AmsPort := 2020; //AMS port of JRSQL
+	ProjectDBDefs : IProjectDBDefs; //Project database config
+	
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[_DBServer := pDBServer;
+_JRSQLNetId := JRSQLNetId;
+_JRSQLPort := JRSQLPort;
+THIS^.ProjectDBDefs := ProjectDBDefs;
+
+IF bInitRetains THEN
+	bFirstScan := TRUE;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_DBTransactionHandler">
+      <LineId Id="3" Count="139" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.Busy.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.Done.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.Error.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.ErrorId.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.ErrorText.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.ExecuteSP">
+      <LineId Id="3" Count="31" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBTransactionHandler.FB_init">
+      <LineId Id="3" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

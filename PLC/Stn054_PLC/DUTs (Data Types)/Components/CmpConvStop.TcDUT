@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvStop" Id="{959145b0-da95-422b-a26c-ca4b771b8582}">
+    <Declaration><![CDATA[TYPE CmpConvStop : //Version 03 - 06/17/2022
+STRUCT
+	
+	Framework: Framework;
+	Available: BOOL;
+	Release: BOOL;
+	WorkReq: BOOL;
+	WorkCmp: BOOL;
+	ConvRunning: BOOL;
+	StatusInCycleAuto: BOOL;
+	StatusPuckPresent: BOOL;
+	StatusBufferFull: BOOL;
+	RemoteBufferFull: BOOL;
+	FreeRunCycleStop: BOOL;
+	Config: CmpConvStopConfig;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

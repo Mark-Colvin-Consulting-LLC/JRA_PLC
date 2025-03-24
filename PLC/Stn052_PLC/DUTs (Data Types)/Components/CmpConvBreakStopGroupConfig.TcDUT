@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvBreakStopGroupConfig" Id="{7d4895b4-6cb6-4333-814b-8ddb743dae19}">
+    <Declaration><![CDATA[TYPE CmpConvBreakStopGroupConfig :
+STRUCT
+	NumberStops : DINT;
+	BreakStopDefault: BreakStopConfig;
+	BreakStops: ARRAY[1..cBreakStopGroupMaxInstance] OF BreakStopConfig;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

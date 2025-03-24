@@ -1,0 +1,633 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{44cdfcd5-cd60-4880-96ad-1377c010f647}</ProjectGuid>
+    <SubObjectsSortedByName>True</SubObjectsSortedByName>
+    <DownloadApplicationInfo>true</DownloadApplicationInfo>
+    <WriteProductVersion>true</WriteProductVersion>
+    <GenerateTpy>false</GenerateTpy>
+    <Name>Stn053_PLC</Name>
+    <ProgramVersion>3.1.4023.0</ProgramVersion>
+    <Application>{1165868a-878f-4431-9f25-725e03c34729}</Application>
+    <TypeSystem>{ed65ed5c-86ee-45ed-8cb2-6710046c6dbc}</TypeSystem>
+    <Implicit_Task_Info>{1caee5eb-0806-4219-b42d-12e104e0c512}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{09b7863e-768d-4fe6-8c96-974820d2ab0b}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{a44bc1a9-ad33-41d0-9f22-ad13ed30a344}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{a54c293d-6e1f-4247-8c89-0688381ff4ee}</LibraryReferences>
+    <Released>false</Released>
+    <MultiuserActive>true</MultiuserActive>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="DUTs %28Data Types%29" />
+    <Folder Include="DUTs %28Data Types%29\Components" />
+    <Folder Include="DUTs %28Data Types%29\Constants" />
+    <Folder Include="DUTs %28Data Types%29\Other" />
+    <Folder Include="GLVs %28Global Variables%29" />
+    <Folder Include="POUs %28Programs%29\Common" />
+    <Folder Include="VISUs %28Visulaizations%29" />
+    <Folder Include="POUs %28Programs%29" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DUTs %28Data Types%29\Components\Cmp3LaneSwitchMain.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\Cmp3LaneSwitchMainConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\Cmp3LaneSwitchMainSim.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvBreakStopGroup.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvBreakStopGroupConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvDivert.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvDivertConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvMerge.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvMergeConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvStop.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpConvStopConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpCore.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpHMI.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpSafetyInterface.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpSafetyInterfaceConv.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpWorkStopMainLnSw.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpWorkStopMainLnSwConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpWorkStopMainLnSwSim.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\MastLight.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\c3LnSwFaultCodes.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cDeviceHeading.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cLaneSel.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cPuckSide.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cPuckStatusEval.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cResolvedDBStatusRoute.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cStatus.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cTraySize.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\BreakStopConfig.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\BufferTC_DivertComm.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\ConvMtrRunningPuck.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\Debug_ComponentCalls.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\DeviceData.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\DeviceDataEval.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\DeviceDataExt.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\DeviceLabel.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\MastLightReq.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\Plc2PlcDataSafetyPuckConv.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\Plc2PlcData_V3.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\PuckData.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\PuckLnSw.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\PuckLnSwAction.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GlobalTextList.TcGTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GLVs %28Global Variables%29\Global_Variables.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="PlcTask_Stn053.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LaneSwitchMain.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LaneSwitchTC_Main.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LnSw_00_Production_V00.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LnSw_00_Production_V01.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LnSw_01_SingleLane_V00.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LnSw_02_RoundRobin_V00.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_3LnSw_03_RoundRobin_V01.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_BreakStop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_BreakStopGroup.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_BufferRecircDivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_CleaningRecircExitDivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_ConvDivertPuck.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_ConvMerge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_ConvStop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_DBBackgroundTransactionHandler.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_DBDefs_CRTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_DBServer.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_DBTransactionHandler.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_EmptyDivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_GradingRecircDivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn211DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn221DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn222DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn231DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn232DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn241DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn251DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_Stn252DivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_TestRecircDivertTC.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_WorkStopMainLnSw.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_RFID.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FN_IntraloxToLane.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FN_NumToLane.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FN_ResolveDBStatusRouteDevice.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FN_ResolveDBStatusRoutePuck.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FN_StringToLane.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_00_ModeControl.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_01_HMI.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_02_Stats.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_05_StnMain.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_10_EvalLnSwPrestopGrn.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_11_EvalLnSwPrestopMainGrn.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_12_EvalLnSwPrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_13_EvalLnSwPrestopMainRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_14_EvalLnSwPrestopBlu.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_15_EvalLnSwPrestopMainBlu.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_16_EvalLnSw.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_19_GrnRedRecircMergeSpurPrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_20_GrnRedRecircMergeMainPrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_21_EvalBreakStopsRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_22_EvalBreakStopsBlu.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_23_GrnRedRecircMerge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_24_EmptyPuckStorageDivertRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_25_EmptyPuckStorageBreakStop1Red.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_26_EmptyPuckStorageBreakStop2Red.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_27_EmptyPuckStorageMainMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_28_EmptyPuckStorageSpurMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_29_EmptyPuckStorageMergeRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_30_Stn211Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_31_Stn211MergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_32_Stn211Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_40_BufferRecircEntryDivertRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_41_BufferRecircMainMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_42_BufferRecircSpurMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_43_BufferRecircMergeRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_45_CleaningRecircExitDivertRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_46_CleaningRecircExitMainMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_47_CleaningRecircExitSpurMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_48_CleaningRecircExitMergeRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_50_Stn221Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_51_Stn221MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_52_Stn221Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_55_Stn222Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_56_Stn222MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_57_Stn222Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_60_Stn231Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_61_Stn231MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_62_Stn231Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_65_Stn232Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_66_Stn232MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_67_Stn232Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_75_GradingRecircEntryDivertRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_76_TestRecircExitMainMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_77_TestRecircExitSpurMergePrestopRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_78_TestRecircExitMergeRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_80_Stn241Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_81_Stn241MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_82_Stn241Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_88_Stn251Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_89_Stn251MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_90_Stn251Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_91_Stn252Divert.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_92_Stn252MainMergePrestop.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_93_Stn252Merge.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_95_TestRecircEntryDivertRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_96_EvalRecircBreakStopsRed.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_98_ReceivingBypassExitMergeMainPrestopBlu.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_99_ReceivingBypassExitMergeBlu.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_Config.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Stn053_PrgCalls.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Visualization Manager.TcVMO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\Safety.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\StateDisplay.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\Station.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\ThreeLaneSwitchData.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Stn053_PLC.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="JRA_Beckhoff_Common">
+      <DefaultResolution>JRA_Beckhoff_Common, * (JR Automation)</DefaultResolution>
+      <Namespace>JRA_Beckhoff_Common</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="JRA_GXO_Common">
+      <DefaultResolution>JRA_GXO_Common, * (JR Automation)</DefaultResolution>
+      <Namespace>JRA_GXO_Common</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="JRA_GXO_DB">
+      <DefaultResolution>JRA_GXO_DB, * (JR Automation)</DefaultResolution>
+      <Namespace>JRA_GXO_DB</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemMeter">
+      <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemMeter</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElems">
+      <DefaultResolution>VisuElems, 3.5.13.40 (System)</DefaultResolution>
+      <Namespace>VisuElems</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsSpecialControls">
+      <DefaultResolution>VisuElemsSpecialControls, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemsSpecialControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsWinControls">
+      <DefaultResolution>VisuElemsWinControls, 3.5.13.20 (System)</DefaultResolution>
+      <Namespace>VisuElemsWinControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemTextEditor">
+      <DefaultResolution>VisuElemTextEditor, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemTextEditor</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="system_visuinputs">
+      <DefaultResolution>visuinputs, 3.5.13.0 (system)</DefaultResolution>
+      <Namespace>visuinputs</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuNativeControl">
+      <DefaultResolution>VisuNativeControl, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuNativeControl</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderResolution Include="JRA_GXO_Common">
+      <Resolution>JRA_GXO_Common, 0.0.11 (JR Automation)</Resolution>
+    </PlaceholderResolution>
+    <PlaceholderResolution Include="JRA_GXO_DB">
+      <Resolution>JRA_GXO_DB, 0.0.17 (JR Automation)</Resolution>
+    </PlaceholderResolution>
+  </ItemGroup>
+  <ItemGroup>
+    <SubObject Include="FB_3LaneSwitchMain.DfnMessages" />
+    <SubObject Include="FB_3LaneSwitchTC_Main.Validate" />
+    <SubObject Include="FB_BreakStopGroup.DfnMessages" />
+    <SubObject Include="FB_ConvDivertPuck.DfnMessages" />
+    <SubObject Include="FB_ConvMerge.DfnMessages" />
+    <SubObject Include="FB_ConvStop.DfnMessages" />
+    <SubObject Include="FB_WorkStopMainLnSw.DfnMessages" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <PlcProjectOptions>
+      <XmlArchive>
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
+      <v n="Name">"&lt;ProjectRoot&gt;"</v>
+      <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
+        <o>
+          <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
+        <o>
+          <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
+          <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>Rules</v>
+            <o>
+              <v n="Name">"Rules"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+          </d>
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
+        <o>
+          <v n="Name">"{40450F57-0AA3-4216-96F3-5444ECB29763}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="String">
+            <v>ActiveVisuProfile</v>
+            <v>IR0whWr8bwfwBwAAiD2qpQAAAABVAgAA37x72QAAAAABAAAAAAAAAAEaUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwACTHsAZgA5ADUAYgBiADQAMgA2AC0ANQA1ADIANAAtADQAYgA0ADUALQA5ADQAMAAwAC0AZgBiADAAZgAyAGUANwA3AGUANQAxAGIAfQADCE4AYQBtAGUABDBUAHcAaQBuAEMAQQBUACAAMwAuADEAIABCAHUAaQBsAGQAIAA0ADAAMgA0AC4ANwAFFlAAcgBvAGYAaQBsAGUARABhAHQAYQAGTHsAMQA2AGUANQA1AGIANgAwAC0ANwAwADQAMwAtADQAYQA2ADMALQBiADYANQBiAC0ANgAxADQANwAxADMAOAA3ADgAZAA0ADIAfQAHEkwAaQBiAHIAYQByAGkAZQBzAAhMewAzAGIAZgBkADUANAA1ADkALQBiADAANwBmAC0ANABkADYAZQAtAGEAZQAxAGEALQBhADgAMwAzADUANgBhADUANQAxADQAMgB9AAlMewA5AGMAOQA1ADgAOQA2ADgALQAyAGMAOAA1AC0ANAAxAGIAYgAtADgAOAA3ADEALQA4ADkANQBmAGYAMQBmAGUAZABlADEAYQB9AAoOVgBlAHIAcwBpAG8AbgALBmkAbgB0AAwKVQBzAGEAZwBlAA0KVABpAHQAbABlAA4aVgBpAHMAdQBFAGwAZQBtAE0AZQB0AGUAcgAPDkMAbwBtAHAAYQBuAHkAEAxTAHkAcwB0AGUAbQARElYAaQBzAHUARQBsAGUAbQBzABIwVgBpAHMAdQBFAGwAZQBtAHMAUwBwAGUAYwBpAGEAbABDAG8AbgB0AHIAbwBsAHMAEyhWAGkAcwB1AEUAbABlAG0AcwBXAGkAbgBDAG8AbgB0AHIAbwBsAHMAFCRWAGkAcwB1AEUAbABlAG0AVABlAHgAdABFAGQAaQB0AG8AcgAVIlYAaQBzAHUATgBhAHQAaQB2AGUAQwBvAG4AdAByAG8AbAAWFHYAaQBzAHUAaQBuAHAAdQB0AHMAFwxzAHkAcwB0AGUAbQAYGFYAaQBzAHUARQBsAGUAbQBCAGEAcwBlABkmRABlAHYAUABsAGEAYwBlAGgAbwBsAGQAZQByAHMAVQBzAGUAZAAaCGIAbwBvAGwAGyJQAGwAdQBnAGkAbgBDAG8AbgBzAHQAcgBhAGkAbgB0AHMAHEx7ADQAMwBkADUAMgBiAGMAZQAtADkANAAyAGMALQA0ADQAZAA3AC0AOQBlADkANAAtADEAYgBmAGQAZgAzADEAMABlADYAMwBjAH0AHRxBAHQATABlAGEAcwB0AFYAZQByAHMAaQBvAG4AHhRQAGwAdQBnAGkAbgBHAHUAaQBkAB8WUwB5AHMAdABlAG0ALgBHAHUAaQBkACBIYQBmAGMAZAA1ADQANAA2AC0ANAA5ADEANAAtADQAZgBlADcALQBiAGIANwA4AC0AOQBiAGYAZgBlAGIANwAwAGYAZAAxADcAIRRVAHAAZABhAHQAZQBJAG4AZgBvACJMewBiADAAMwAzADYANgBhADgALQBiADUAYwAwAC0ANABiADkAYQAtAGEAMAAwAGUALQBlAGIAOAA2ADAAMQAxADEAMAA0AGMAMwB9ACMOVQBwAGQAYQB0AGUAcwAkTHsAMQA4ADYAOABmAGYAYwA5AC0AZQA0AGYAYwAtADQANQAzADIALQBhAGMAMAA2AC0AMQBlADMAOQBiAGIANQA1ADcAYgA2ADkAfQAlTHsAYQA1AGIAZAA0ADgAYwAzAC0AMABkADEANwAtADQAMQBiADUALQBiADEANgA0AC0ANQBmAGMANgBhAGQAMgBiADkANgBiADcAfQAmFk8AYgBqAGUAYwB0AHMAVAB5AHAAZQAnVFUAcABkAGEAdABlAEwAYQBuAGcAdQBhAGcAZQBNAG8AZABlAGwARgBvAHIAQwBvAG4AdgBlAHIAdABpAGIAbABlAEwAaQBiAHIAYQByAGkAZQBzACgQTABpAGIAVABpAHQAbABlACkUTABpAGIAQwBvAG0AcABhAG4AeQAqHlUAcABkAGEAdABlAFAAcgBvAHYAaQBkAGUAcgBzACs4UwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBIAGEAcwBoAHQAYQBiAGwAZQAsEnYAaQBzAHUAZQBsAGUAbQBzAC1INgBjAGIAMQBjAGQAZQAxAC0AZAA1AGQAYwAtADQAYQAzAGIALQA5ADAANQA0AC0AMgAxAGYAYQA3ADUANgBhADMAZgBhADQALihJAG4AdABlAHIAZgBhAGMAZQBWAGUAcgBzAGkAbwBuAEkAbgBmAG8AL0x7AGMANgAxADEAZQA0ADAAMAAtADcAZgBiADkALQA0AGMAMwA1AC0AYgA5AGEAYwAtADQAZQAzADEANABiADUAOQA5ADYANAAzAH0AMBhNAGEAagBvAHIAVgBlAHIAcwBpAG8AbgAxGE0AaQBuAG8AcgBWAGUAcgBzAGkAbwBuADIMTABlAGcAYQBjAHkAMzBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAFYAZQByAHMAaQBvAG4ASQBuAGYAbwA0MEwAbwBhAGQATABpAGIAcgBhAHIAaQBlAHMASQBuAHQAbwBQAHIAbwBqAGUAYwB0ADUaQwBvAG0AcABhAHQAaQBiAGkAbABpAHQAeQDQAAIaA9ADAS0E0AUGGgfQBwgaAUUHCQjQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtDtAPAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60BAAAA0A0BLRHQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0S0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAUAAAA0AwLrQIAAADQDQEtE9APAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAAAAAANAMC60CAAAA0A0BLRTQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0V0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtFtAPAS0X0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60EAAAA0A0BLRjQDwEtENAZGq0BRRscAdAAHBoCRR0LBAMAAAAFAAAADQAAAAAAAADQHh8tINAhIhoCRSMkAtAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAAAAANADAS0n0CgBLRHQKQEtENAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAQAAANADAS0n0CgBLRHQKQEtEJoqKwFFAAEC0AABLSzQAAEtF9AAHy0t0C4vGgPQMAutAQAAANAxC60XAAAA0DIarQDQMy8aA9AwC60CAAAA0DELrQMAAADQMhqtANA0Gq0A0DUarQA=</v>
+          </d>
+        </o>
+        <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
+        <o>
+          <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
+        <o>
+          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>GlobalVisuImageFilePath</v>
+            <v>"%APPLICATIONPATH%"</v>
+            <v>UnicodeStrings</v>
+            <v>false</v>
+          </d>
+        </o>
+      </d>
+      <d n="Values" t="Hashtable" />
+    </o>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
+    </PlcProjectOptions>
+  </ProjectExtensions>
+</Project>

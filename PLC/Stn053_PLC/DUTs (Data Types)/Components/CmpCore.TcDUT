@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpCore" Id="{f022f6bb-87ce-4afb-8d61-afded53c48d8}">
+    <Declaration><![CDATA[TYPE CmpCore :
+STRUCT
+	
+	Framework: Framework;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

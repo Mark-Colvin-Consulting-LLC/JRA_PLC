@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_3LnSw_01_SingleLane_V00" Id="{70b65323-0ce3-47b9-9c82-75f93082a644}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_3LnSw_01_SingleLane_V00
+VAR_INPUT
+	pCmp: POINTER TO Cmp3LaneSwitchMain;
+	pWorkStop: ARRAY[0..3] OF POINTER TO CmpWorkStopMainLnSw;
+	pBreakStop2: ARRAY[0..3] OF POINTER TO CmpConvStop;
+	TargetReq: BOOL;
+END_VAR
+
+VAR_OUTPUT
+	Act: PuckLnSwAction;
+END_VAR
+
+VAR
+	;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF TargetReq THEN
+	MEMSET(ADR(Act),0,SIZEOF(ACT));
+END_IF
+
+//Determine if it is okay to release a puck
+IF pWorkStop[pCmp^.Sim.ForceInfeedLane]^.WorkReq AND
+		(pCmp^.Sim.ForceInfeedLane = cLaneSel.Green OR //Infeed lane is valid
+		pCmp^.Sim.ForceInfeedLane = cLaneSel.Red OR
+		pCmp^.Sim.ForceInfeedLane = cLaneSel.Blue) AND
+		(pCmp^.Sim.ForceOutfeedLane = cLaneSel.Green OR //Outfeed lane is valid
+		pCmp^.Sim.ForceOutfeedLane = cLaneSel.Red OR
+		pCmp^.Sim.ForceOutfeedLane = cLaneSel.Blue) AND
+		pCmp^.PreSwitchBuffer[cPreSwitchBufferSize].RFID = 0 AND //There is a free slot in the pre switch buffer
+		pCmp^.PostSwitchBuffer[pCmp^.Sim.ForceOutfeedLane][cPostSwitchBufferSize].RFID = 0 AND //There is a free slot in the selected buffer
+		pCmp^.PreSwitchPuckCount + pCmp^.PostSwitchPuckCount[pCmp^.Sim.ForceOutfeedLane] < cPostSwitchBufferSize + 1  THEN //And the total amount of pucks destined for that lane do not exceed the buffer size
+	Act.Target_Workstop := pCmp^.Sim.ForceInfeedLane;
+	Act.Target_Lane := pCmp^.Sim.ForceOutfeedLane;
+	Act.OkTo_ReleasePuck := TRUE;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_3LnSw_01_SingleLane_V00">
+      <LineId Id="3" Count="13" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="17" Count="2" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

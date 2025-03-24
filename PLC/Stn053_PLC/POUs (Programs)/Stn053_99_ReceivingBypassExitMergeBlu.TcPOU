@@ -1,0 +1,52 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_99_ReceivingBypassExitMergeBlu" Id="{7bf737a2-2b44-4c32-829b-41c7f2ace686}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_99_ReceivingBypassExitMergeBlu
+VAR
+	{attribute 'TcLinkToOSO' := '.iBufferFull :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S03 (AL2341)^TxPDO^input byte 3'}	
+	fbConvMerge: FB_ConvMerge;		
+	{attribute 'TcLinkToOSO' := '<0,1,1>TIIB[N43S00 (AL1332)]^N43S03 (AL2341)^TxPDO^input byte 3'}
+	iBufferFull AT %I*: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+// This merge is NOT linked to any work cell
+
+gStn053_99_ReceivingBypassExitMergeBlu.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn053_99_ReceivingBypassExitMergeBlu.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr10;
+gStn053_99_ReceivingBypassExitMergeBlu.MainInAuto := gStn053.CycleAuto;
+
+gStn053_99_ReceivingBypassExitMergeBlu.SpurHeartbeatOK := gConsumed_SafetyInterfaceTo053_OK;  //because this PLC is Main
+gStn053_99_ReceivingBypassExitMergeBlu.SpurConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc052Mtr07;
+gStn053_99_ReceivingBypassExitMergeBlu.SpurInAuto := gConsumed_SafetyInterfaceConv.Stn051PLCData[1].0; 
+
+gStn051_57_ReceivingBypassMergeSpurPrestopBlu.Available := gConsumed_SafetyInterfaceConv.Stn051PLCData[1].1;
+
+fbConvMerge(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_99_ReceivingBypassExitMergeBlu),
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats),
+	pMain := ADR(gStn053_98_ReceivingBypassExitMergeMainPrestopBlu),
+	pSpur := ADR(gStn051_57_ReceivingBypassMergeSpurPrestopBlu));
+
+gProduced_Stn053ToSafetyInterface.Stn053PLCData[1].0 := iBufferFull;
+gProduced_Stn053ToSafetyInterface.Stn053PLCData[1].1 := gStn051_57_ReceivingBypassMergeSpurPrestopBlu.Release;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_99_ReceivingBypassExitMergeBlu">
+      <LineId Id="36" Count="4" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="43" Count="3" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="47" Count="8" />
+      <LineId Id="64" Count="0" />
+      <LineId Id="63" Count="0" />
+      <LineId Id="65" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

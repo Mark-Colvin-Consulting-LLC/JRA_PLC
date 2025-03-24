@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="Cmp3LaneSwitchMainConfig" Id="{26fc0ccf-af6a-40a0-a177-492ffdb46aa4}">
+    <Declaration><![CDATA[TYPE Cmp3LaneSwitchMainConfig :
+STRUCT
+	
+	DBStationNum: DINT;
+	
+	//Lane configurations
+	InGreenLine: DINT;
+	InBlueLine: DINT;
+	InRedLine: DINT;
+	OutGreenLine: DINT;
+	OutBlueLine: DINT;
+	OutRedLine: DINT;
+	
+	//Time configurations
+	tReleaseGap: TIME; //This will pace out releasing pucks by a minimum time
+	tDownstreamStopBufferFill: TIME; //This will fill the buffer
+	tDownstreamStopBufferEmpty: TIME;
+	tExitStopBufferFill: TIME; //This timer will fill the buffer
+	tExitStopBufferEmpty: TIME;
+	
+	PurgeGrnLaneTime: TIME;
+	PurgeRedLaneTime: TIME;
+	PurgeBluLaneTime: TIME;
+	
+	//End of lane maximum capacity
+	PostSwitchLaneCapacity: ARRAY[0..3] OF DINT;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

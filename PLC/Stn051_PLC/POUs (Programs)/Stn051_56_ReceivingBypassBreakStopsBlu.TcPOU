@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn051_56_ReceivingBypassBreakStopsBlu" Id="{601ebe8b-e3c0-4342-a601-e675f8da05a6}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn051_56_ReceivingBypassBreakStopsBlu
+VAR
+//correct
+	{attribute 'TcLinkToOSO' := '
+		.fbBreakStop[1].iBufferFull  :=  <0,1,0>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[1].iPuckPresent  :=  <0,1,0>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[1].oStopLower :=  <0,1,0>TIIB[N22S00 (AL1332)]^N22S02 (EX260)^RxPDO^output byte 3;
+		.fbBreakStop[2].iBufferFull :=  <0,1,1>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[2].iPuckPresent :=  <0,1,1>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[2].oStopLower :=  <0,1,1>TIIB[N22S00 (AL1332)]^N22S02 (EX260)^RxPDO^output byte 3;
+		.fbBreakStop[3].iBufferFull:=  <0,1,2>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[3].iPuckPresent :=  <0,1,2>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[3].oStopLower :=  <0,1,2>TIIB[N22S00 (AL1332)]^N22S02 (EX260)^RxPDO^output byte 3;
+		.fbBreakStop[4].iBufferFull :=  <0,1,3>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[4].iPuckPresent :=  <0,1,3>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[4].oStopLower :=  <0,1,3>TIIB[N22S00 (AL1332)]^N22S02 (EX260)^RxPDO^output byte 3'}
+	fbBreakStopGroup: FB_BreakStopGroup;
+	
+	i : DINT;
+	NumberBreakStopsBlu: DINT := 4;  
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+//  combine running state of any multiple conveyors in a break stop here.
+// motor control status here - Blue recv Bypass conv  
+
+gStn051_56_ReceivingBypassBreakStopsBlu.ConvRunning[01] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc052Mtr07;
+gStn051_56_ReceivingBypassBreakStopsBlu.ConvRunning[02] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc052Mtr07;
+gStn051_56_ReceivingBypassBreakStopsBlu.ConvRunning[03] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc052Mtr07;
+gStn051_56_ReceivingBypassBreakStopsBlu.ConvRunning[04] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc052Mtr07;
+
+
+fbBreakStopGroup(
+	pStn := ADR(gStn051),
+	pCmp := ADR(gStn051_56_ReceivingBypassBreakStopsBlu),
+	pStateTraceBuffer := ADR(gStn051_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn051_StateTraceFifo),
+	pStats := ADR(gStn051_02_Stats),
+);]]></ST>
+    </Implementation>
+    <LineIds Name="Stn051_56_ReceivingBypassBreakStopsBlu">
+      <LineId Id="17" Count="3" />
+      <LineId Id="54" Count="2" />
+      <LineId Id="58" Count="2" />
+      <LineId Id="23" Count="7" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

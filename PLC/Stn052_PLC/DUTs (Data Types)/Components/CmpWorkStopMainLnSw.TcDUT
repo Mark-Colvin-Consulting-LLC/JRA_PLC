@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpWorkStopMainLnSw" Id="{06ec2213-69d3-4002-b8a4-2dc4890fa821}">
+    <Declaration><![CDATA[TYPE CmpWorkStopMainLnSw :
+STRUCT
+	Framework: Framework;
+	Config: CmpWorkStopMainLnSwConfig;
+	Sim: CmpWorkStopMainLnSwSim;
+	WorkReq: BOOL;
+	WorkCmp: BOOL;
+	PuckLnSw: PuckLnSw;
+	DevicePresent: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

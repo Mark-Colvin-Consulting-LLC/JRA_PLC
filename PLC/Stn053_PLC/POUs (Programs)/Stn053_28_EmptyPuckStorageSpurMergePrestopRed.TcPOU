@@ -1,0 +1,45 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_28_EmptyPuckStorageSpurMergePrestopRed" Id="{4d7218c6-60ac-4a9a-ae93-e5be36fc0cea}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_28_EmptyPuckStorageSpurMergePrestopRed
+VAR
+	{attribute 'TcLinkToOSO' := '.iPuckPresent   :=  <0,1,2>TIIB[N46S00 (AL1332)]^N46S05 (AL2341)^TxPDO^input byte 1;
+		.iBufferFull   :=  <0,1,3>TIIB[N46S00 (AL1332)]^N46S05 (AL2341)^TxPDO^input byte 2;
+		.oStopLower :=  <0,1,6>TIIB[N46S00 (AL1332)]^N46S02 (EX260)^RxPDO^output byte 1'}
+	fbConvStop: FB_ConvStop;
+	
+	//Timer that delays the release of a puck from emptypuckstorage
+	tmrTimeSinceLastEmptyRelease : TON;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn053_28_EmptyPuckStorageSpurMergePrestopRed.ConvRunning  := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr05 AND gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr06;
+
+
+gStn053_28_EmptyPuckStorageSpurMergePrestopRed.WorkCmp := gStn053_28_EmptyPuckStorageSpurMergePrestopRed.WorkReq AND gConsumed_Stn211To053.ScratchPad[1].0 AND tmrTimeSinceLastEmptyRelease.Q;
+tmrTimeSinceLastEmptyRelease(IN := NOT gStn053_28_EmptyPuckStorageSpurMergePrestopRed.WorkCmp, PT := T#8000mS);
+
+fbConvStop(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_28_EmptyPuckStorageSpurMergePrestopRed),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats));]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_28_EmptyPuckStorageSpurMergePrestopRed">
+      <LineId Id="3" Count="2" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="7" Count="0" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="8" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,159 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FN_DeviceLabelParse" Id="{57f9754a-a8bb-4718-b8ed-bb335d077dfb}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION FN_DeviceLabelParse : DeviceLabel
+VAR_INPUT
+	DataMatrix: STRING(MAX_STRING_LENGTH);
+END_VAR
+VAR
+	pCodeSeparator: POINTER TO STRING(1);
+	aSplit: ARRAY[1..cCodes] OF STRING(MAX_STRING_LENGTH);
+	bResultSplit: BOOL;
+	i: UDINT;
+	Error: STRING(30);
+END_VAR
+VAR CONSTANT
+	cGS1Code: cGS1;
+	cCodeSeparator: STRING(1) := '$1D';
+	cCodes: UDINT := 4;
+	cErrorNoSNFound: INT := 1;
+	cErrorMaxSN: INT := 2;
+	cErrorMinSN: INT := 3;
+	cErrorNoSKUFound: INT := 4;
+	cErrorMaxSKU: INT := 5;
+	cErrorMaxMSN: INT := 6;
+	cErrorMaxPPN: INT := 7;
+	cMaxSN: DINT := 15;
+	cMinSN: DINT := 1;
+	cMaxSKU: DINT := 19;
+	///Not used
+	cMinSKU: DINT := 1;
+	cMaxMSN: DINT := 16;
+	///Not used
+	cMinMSN: DINT := 0;
+	cMaxPPN: DINT := 11;
+	///Not used
+	cMinPPN: DINT := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*
+Version 02 - 04/11/2022 - Error is not populated from a DeviceLabel DUT constant
+
+Function will parse a Device Label, input as a long string,
+into 4 separate fields
+
+Field 1 - SN (Serial Number)
+Field 2 - OEM SKU
+Field 3 - MSN (Material serial number)
+Field 4 - Product Part Number -Apple only-
+
+The function will return an error in all fields if any of the
+following conditions are met
+
+-No SN found
+-Too many characters for SN
+-Too few characters for SN
+-No SKU found
+-Too many characters for SKU
+-Too many characters for MSN
+-Too many characters for PPN
+
+NOTE: There should be either 4 fields found or 2 fields found
+
+NOTE: With the exception of group separators there should only be alpha numeric characters
+*)
+
+
+pCodeSeparator := ADR(cCodeSeparator);
+MEMSET(ADR(aSplit),0,SIZEOF(aSplit));
+aSplit[1] := DataMatrix;
+
+FOR i := 1 TO cCodes - 1 DO
+	bResultSplit := FindAndSplit(pSeparator := pCodeSeparator,
+		pSrcString := ADR(aSplit[i]),
+		pLeftString := ADR(aSplit[i]),
+		nLeftSize := SIZEOF(aSplit[i]),
+		pRightString := ADR(aSplit[i+1]),
+		nRightSize := SIZEOF(aSplit[i+1]),
+		bSearchFromRight := FALSE);
+	IF NOT bResultSplit THEN
+		EXIT;
+	END_IF
+END_FOR
+
+FN_DeviceLabelParse.SN := '';
+FN_DeviceLabelParse.SKU := '';
+FN_DeviceLabelParse.MSN := '';
+FN_DeviceLabelParse.PPN := '';
+Error := FN_DeviceLabelParse.cERROR;
+
+FOR i:= 1 TO cCodes DO
+	IF LEFT(aSplit[i],2) = DINT_TO_STRING(cGS1.SN) THEN
+		FN_DeviceLabelParse.SN := DELETE(aSplit[i],2,1);
+	ELSIF LEFT(aSplit[i],3) = DINT_TO_STRING(cGS1.SKU) THEN
+		FN_DeviceLabelParse.SKU := DELETE(aSplit[i],3,1);
+	ELSIF LEFT(aSplit[i],3) = DINT_TO_STRING(cGS1.MSN) THEN
+		FN_DeviceLabelParse.MSN := DELETE(aSplit[i],3,1);
+	ELSIF LEFT(aSplit[i],3) = DINT_TO_STRING(cGS1.PPN) THEN
+		FN_DeviceLabelParse.PPN := DELETE(aSplit[i],3,1);
+	END_IF
+END_FOR
+
+IF FN_DeviceLabelParse.SN = '' THEN
+	FN_DeviceLabelParse.SN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SN := CONCAT(FN_DeviceLabelParse.SN, INT_TO_STRING(cErrorNoSNFound));
+	FN_DeviceLabelParse.SKU := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SKU := CONCAT(Error, INT_TO_STRING(cErrorNoSNFound));
+	FN_DeviceLabelParse.MSN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.MSN := CONCAT(Error, INT_TO_STRING(cErrorNoSNFound));
+	FN_DeviceLabelParse.PPN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.PPN := CONCAT(Error, INT_TO_STRING(cErrorNoSNFound));
+	RETURN;
+END_IF
+
+IF LEN(FN_DeviceLabelParse.SN) > cMaxSN THEN
+	FN_DeviceLabelParse.SN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SN := CONCAT(Error, INT_TO_STRING(cErrorMaxSN));
+END_IF
+
+IF LEN(FN_DeviceLabelParse.SN) < cMinSN THEN
+	FN_DeviceLabelParse.SN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SN := CONCAT(Error, INT_TO_STRING(cErrorMinSN));
+END_IF
+
+IF FN_DeviceLabelParse.SKU = '' THEN
+	FN_DeviceLabelParse.SN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SN := CONCAT(Error, INT_TO_STRING(cErrorNoSKUFound));
+	FN_DeviceLabelParse.SKU := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SKU := CONCAT(Error, INT_TO_STRING(cErrorNoSKUFound));
+	FN_DeviceLabelParse.MSN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.MSN := CONCAT(Error, INT_TO_STRING(cErrorNoSKUFound));
+	FN_DeviceLabelParse.PPN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.PPN := CONCAT(Error, INT_TO_STRING(cErrorNoSKUFound));
+	RETURN;
+END_IF
+
+IF LEN(FN_DeviceLabelParse.SKU) > cMaxSKU THEN
+	FN_DeviceLabelParse.SKU := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.SKU := CONCAT(Error, INT_TO_STRING(cErrorMaxSKU));
+END_IF
+
+IF LEN(FN_DeviceLabelParse.MSN) > cMaxMSN THEN
+	FN_DeviceLabelParse.MSN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.MSN := CONCAT(Error, INT_TO_STRING(cErrorMaxMSN));
+END_IF
+
+IF LEN(FN_DeviceLabelParse.PPN) > cMaxPPN THEN
+	FN_DeviceLabelParse.PPN := CONCAT(Error, ': ');
+	FN_DeviceLabelParse.PPN := CONCAT(Error, INT_TO_STRING(cErrorMaxPPN));
+END_IF
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FN_DeviceLabelParse">
+      <LineId Id="3" Count="111" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

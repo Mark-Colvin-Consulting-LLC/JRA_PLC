@@ -1,0 +1,66 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="Debug_ComponentCalls" Id="{ac8c5c50-2d67-4d2a-ba84-98e7a7bdd9e9}">
+    <Declaration><![CDATA[TYPE Debug_ComponentCalls :
+STRUCT
+	
+	//Stn 051 Programs
+	CallStn051_20_ReturnBreakStopsGrn: BOOL;
+	CallStn051_21_ReturnBreakStopsRed: BOOL;
+	
+	//Stn 052 Programs
+	CallStn052_20_ReceivingBreakStopsGrn: BOOL;
+	CallStn052_21_ReceivingBreakStopsRed: BOOL;
+	CallStn052_35_Stn123Divert: BOOL;
+	CallStn052_36_Stn123MainMergePrestop: BOOL;
+	CallStn052_37_Stn123Merge: BOOL;
+	CallStn052_40_Stn124Divert: BOOL;
+	CallStn052_41_Stn124MainMergePrestop: BOOL;
+	CallStn052_42_Stn124Merge: BOOL;
+	CallStn052_45_Stn125Divert: BOOL;
+	CallStn052_46_Stn125MainMergePrestop: BOOL;
+	CallStn052_47_Stn125Merge: BOOL;
+	CallStn052_50_Stn126Divert: BOOL;
+	CallStn052_51_Stn126MainMergePrestop: BOOL;
+	CallStn052_52_Stn126Merge: BOOL;
+	
+	//Stn 053 Call Programs
+	CallStn053_22_EvalBreakStopsBlu: BOOL;
+	CallStn053_25_EmptyPuckStorageBreakStop1Red: BOOL;
+	CallStn053_26_EmptyPuckStorageBreakStop2Red: BOOL;
+	CallStn053_41_BufferRecircMainMergePrestopRed: BOOL;
+	CallStn053_42_BufferRecircSpurMergePrestopRed: BOOL;
+	CallStn053_43_BufferRecircMergeRed: BOOL;
+	CallStn053_45_CleaningRecircExitDivertRed: BOOL;
+	CallStn053_97_RedGrnRecircMergePrestopRed: BOOL;
+	CallStn053_98_ReceivingBypassExitMergeMainPrestopBlu: BOOL;
+	CallStn053_99_ReceivingBypassExitMergeBlu: BOOL;
+
+	//Stn 055 Red Line Components
+	CallStn055_21_StorageBreakStopsRed: BOOL;
+	CallStn055_40_StorageBypassDivertRed: BOOL;
+	CallStn055_41_StorageBypassMainMergePrestopRed: BOOL;
+	CallStn055_42_StorageBypassSpurMergePrestopRed: BOOL;
+	CallStn055_43_StorageBypassMergeRed: BOOL;
+	CallStn055_45_Stn511Divert: BOOL;
+	CallStn055_46_Stn511MainMergePrestop: BOOL;
+	CallStn055_47_Stn511Merge: BOOL;
+	CallStn055_50_Stn512Divert: BOOL;
+	CallStn055_51_Stn512MainMergePrestop: BOOL;
+	CallStn055_52_Stn512Merge: BOOL;
+	
+	//Stn 055 Green Line Components
+	CallStn055_20_StorageBreakStopsGrn: BOOL;
+	CallStn055_25_StorageBypassDivertGrn: BOOL;
+	CallStn055_26_StorageBypassMainMergePrestopGrn: BOOL;
+	CallStn055_27_StorageBypassSpurMergePrestopGrn: BOOL;
+	CallStn055_28_StorageBypassMergeGrn: BOOL;
+	CallStn055_30_Stn411Divert: BOOL;
+	CallStn055_31_Stn411MainMergePrestop: BOOL;
+	CallStn055_32_Stn411Merge: BOOL;	
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

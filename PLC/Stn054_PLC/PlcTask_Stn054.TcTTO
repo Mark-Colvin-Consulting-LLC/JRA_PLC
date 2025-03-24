@@ -1,0 +1,31 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <Task Name="PlcTask_Stn054" Id="{8eb98867-e9fa-4207-b4c9-724af64d7aa6}">
+    <!--CycleTime in micro seconds.-->
+    <CycleTime>2000</CycleTime>
+    <Priority>24</Priority>
+    <PouCall>
+      <Name>Stn054_Config</Name>
+    </PouCall>
+    <PouCall>
+      <Name>Stn054_00_ModeControl</Name>
+    </PouCall>
+    <PouCall>
+      <Name>Stn054_01_HMI</Name>
+    </PouCall>
+    <PouCall>
+      <Name>Stn054_02_Stats</Name>
+    </PouCall>
+    <PouCall>
+      <Name>Stn054_05_StnMain</Name>
+    </PouCall>
+    <PouCall>
+      <Name>Stn054_PrgCalls</Name>
+    </PouCall>
+    <TaskFBGuid>{2b778a1b-baea-4cb5-b011-ecc327dbccb2}</TaskFBGuid>
+    <Fb_init>{ac7c45ef-685c-4993-b9e2-565ad03e7746}</Fb_init>
+    <Fb_exit>{4b273ae9-fadf-4ad4-a5be-ea0bab316bd8}</Fb_exit>
+    <CycleUpdate>{d0d27228-7737-4a97-a643-008f5b7b68ee}</CycleUpdate>
+    <PostCycleUpdate>{c1b7b930-1d68-4914-9256-475bce93847d}</PostCycleUpdate>
+  </Task>
+</TcPlcObject>

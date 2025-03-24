@@ -1,0 +1,113 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn055_30_Stn411Divert" Id="{0301df20-5259-4819-a082-a0e63786a87e}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn055_30_Stn411Divert
+VAR
+	
+	fbTC: FB_Stn411DivertTC;	
+
+	{attribute 'TcLinkToOSO' := '.iPuckPresent  :=  <0,1,0>TIIB[N67S00 (AL1332)]^N67S03 (AL2341)^TxPDO^input byte 0;
+		.iMainBufferFull  :=  <0,1,0>TIIB[N67S00 (AL1332)]^N67S03 (AL2341)^TxPDO^input byte 2;
+		.iDivertMain  :=  <0,1,1>TIIB[N67S00 (AL1332)]^N67S03 (AL2341)^TxPDO^input byte 2;
+		.iDivertSpur  :=  <0,1,1>TIIB[N67S00 (AL1332)]^N67S03 (AL2341)^TxPDO^input byte 0;
+		.oDivertMain :=  <0,1,2>TIIB[N67S00 (AL1332)]^N67S02 (EX260)^RxPDO^output byte 1;
+		.oDivertSpur :=  <0,1,3>TIIB[N67S00 (AL1332)]^N67S02 (EX260)^RxPDO^output byte 1;
+		.oStopLower  :=  <0,1,0>TIIB[N67S00 (AL1332)]^N67S02 (EX260)^RxPDO^output byte 1'}
+	{attribute 'TcLinkTo' := '.fbRFID.iRawArray[0] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 0;
+		.fbRFID.iRawArray[1] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 1;
+		.fbRFID.iRawArray[2] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 2;
+		.fbRFID.iRawArray[3] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 3;
+		.fbRFID.iRawArray[4] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 4;
+		.fbRFID.iRawArray[5] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 5;
+		.fbRFID.iRawArray[6] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 6;
+		.fbRFID.iRawArray[7] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 7;
+		.fbRFID.iRawArray[8] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 8;
+		.fbRFID.iRawArray[9] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 9;
+		.fbRFID.iRawArray[10] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 10;
+		.fbRFID.iRawArray[11] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 11;
+		.fbRFID.iRawArray[12] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 12;
+		.fbRFID.iRawArray[13] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 13;
+		.fbRFID.iRawArray[14] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 14;
+		.fbRFID.iRawArray[15] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 15;
+		.fbRFID.iRawArray[16] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 16;
+		.fbRFID.iRawArray[17] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 17;
+		.fbRFID.iRawArray[18] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 18;
+		.fbRFID.iRawArray[19] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 19;
+		.fbRFID.iRawArray[20] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 20;
+		.fbRFID.iRawArray[21] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 21;
+		.fbRFID.iRawArray[22] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 22;
+		.fbRFID.iRawArray[23] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 23;
+		.fbRFID.iRawArray[24] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 24;
+		.fbRFID.iRawArray[25] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 25;
+		.fbRFID.iRawArray[26] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 26;
+		.fbRFID.iRawArray[27] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 27;
+		.fbRFID.iRawArray[28] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 28;
+		.fbRFID.iRawArray[29] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 29;
+		.fbRFID.iRawArray[30] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 30;
+		.fbRFID.iRawArray[31] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^TxPDO^input byte 31;
+		.fbRFID.oRawArray[0] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 0;
+		.fbRFID.oRawArray[1] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 1;
+		.fbRFID.oRawArray[2] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 2;
+		.fbRFID.oRawArray[3] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 3;
+		.fbRFID.oRawArray[4] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 4;
+		.fbRFID.oRawArray[5] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 5;
+		.fbRFID.oRawArray[6] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 6;
+		.fbRFID.oRawArray[7] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 7;
+		.fbRFID.oRawArray[8] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 8;
+		.fbRFID.oRawArray[9] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 9;
+		.fbRFID.oRawArray[10] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 10;
+		.fbRFID.oRawArray[11] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 11;
+		.fbRFID.oRawArray[12] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 12;
+		.fbRFID.oRawArray[13] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 13;
+		.fbRFID.oRawArray[14] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 14;
+		.fbRFID.oRawArray[15] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 15;
+		.fbRFID.oRawArray[16] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 16;
+		.fbRFID.oRawArray[17] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 17;
+		.fbRFID.oRawArray[18] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 18;
+		.fbRFID.oRawArray[19] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 19;
+		.fbRFID.oRawArray[20] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 20;
+		.fbRFID.oRawArray[21] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 21;
+		.fbRFID.oRawArray[22] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 22;
+		.fbRFID.oRawArray[23] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 23;
+		.fbRFID.oRawArray[24] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 24;
+		.fbRFID.oRawArray[25] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 25;
+		.fbRFID.oRawArray[26] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 26;
+		.fbRFID.oRawArray[27] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 27;
+		.fbRFID.oRawArray[28] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 28;
+		.fbRFID.oRawArray[29] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 29;
+		.fbRFID.oRawArray[30] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 30;
+		.fbRFID.oRawArray[31] := TIIB[N67S00 (AL1332)]^N67S06 (DTI425)^RxPDO^output byte 31'}							 
+	fbConvDivert: FB_ConvDivertPuck;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[gStn055_30_Stn411Divert.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn055_30_Stn411Divert.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc061Mtr04;
+gStn055_30_Stn411Divert.MainInAuto := gStn055.CycleAuto;
+
+gStn055_30_Stn411Divert.SpurHeartbeatOK := gConsumed_Stn411To055_OK;
+gStn055_30_Stn411Divert.SpurConvRunning := gConsumed_Stn411To055.SpurConvRunning;
+gStn055_30_Stn411Divert.SpurInAuto := gConsumed_Stn411To055.StationInAuto;
+gStn055_30_Stn411Divert.SpurBufferFull := gConsumed_Stn411To055.DivertSpurDSBufferFull;
+
+fbTC(
+	pCmp := ADR(gStn055_30_Stn411Divert)
+);
+
+fbConvDivert(
+	pStn := ADR(gStn055),
+	pCmp := ADR(gStn055_30_Stn411Divert),
+	pStateTraceBuffer := ADR(gStn055_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn055_StateTraceFifo),
+	pStats := ADR(gStn055_02_Stats));]]></ST>
+    </Implementation>
+    <LineIds Name="Stn055_30_Stn411Divert">
+      <LineId Id="3" Count="0" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="5" Count="4" />
+      <LineId Id="11" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

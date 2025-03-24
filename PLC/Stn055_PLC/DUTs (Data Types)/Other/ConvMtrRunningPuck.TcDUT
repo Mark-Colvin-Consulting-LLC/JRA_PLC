@@ -1,0 +1,101 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="ConvMtrRunningPuck" Id="{9274f355-165e-4d46-99d6-d3665997bd23}">
+    <Declaration><![CDATA[TYPE ConvMtrRunningPuck :
+STRUCT
+	/// Conv Motor Running state
+	Enc051Mtr01: BOOL;
+	Enc051Mtr02: BOOL;
+	Enc051Mtr03: BOOL;
+	Enc051Mtr04: BOOL;
+	Enc051Mtr05: BOOL;
+	Enc051Mtr06: BOOL;
+	Enc052Mtr01: BOOL;
+	Enc052Mtr02: BOOL;
+	Enc052Mtr03: BOOL;
+	Enc052Mtr04: BOOL;
+	Enc052Mtr05: BOOL;
+	Enc052Mtr06: BOOL;
+	Enc052Mtr07: BOOL;
+	Enc053Mtr01: BOOL;
+	Enc053Mtr02: BOOL;
+	Enc053Mtr03: BOOL;
+	Enc053Mtr04: BOOL;
+	Enc053Mtr05: BOOL;
+	Enc053Mtr06: BOOL;
+	Enc054Mtr01: BOOL;
+	Enc054Mtr02: BOOL;
+	Enc054Mtr03: BOOL;
+	Enc054Mtr04: BOOL;
+	Enc054Mtr05: BOOL;
+	Enc054Mtr06: BOOL;
+	Enc054Mtr07: BOOL;
+	Enc054Mtr08: BOOL;
+	Enc054Mtr09: BOOL;
+	Enc055Mtr01: BOOL;
+	Enc055Mtr02: BOOL;
+	Enc055Mtr03: BOOL;
+	Enc055Mtr04: BOOL;
+	Enc055Mtr05: BOOL;
+	Enc055Mtr06: BOOL;
+	Enc056Mtr01: BOOL;
+	Enc056Mtr02: BOOL;
+	Enc056Mtr03: BOOL;
+	Enc056Mtr04: BOOL;
+	Enc056Mtr05: BOOL;
+	Enc056Mtr06: BOOL;
+	Enc056Mtr07: BOOL;
+	Enc056Mtr08: BOOL;
+	Enc056Mtr09: BOOL;
+	Enc056Mtr10: BOOL;
+	Enc056Mtr11: BOOL;
+	Enc057Mtr01: BOOL;
+	Enc057Mtr02: BOOL;
+	Enc057Mtr03: BOOL;
+	Enc057Mtr04: BOOL;
+	Enc057Mtr05: BOOL;
+	Enc057Mtr06: BOOL;
+	Enc057Mtr07: BOOL;
+	Enc057Mtr08: BOOL;
+	Enc057Mtr09: BOOL;
+	Enc057Mtr10: BOOL;
+	Enc058Mtr01: BOOL;
+	Enc058Mtr02: BOOL;
+	Enc058Mtr03: BOOL;
+	Enc058Mtr04: BOOL;
+	Enc058Mtr05: BOOL;
+	Enc058Mtr06: BOOL;
+	Enc058Mtr07: BOOL;
+	Enc058Mtr08: BOOL;
+	Enc059Mtr01: BOOL;
+	Enc059Mtr02: BOOL;
+	Enc059Mtr03: BOOL;
+	Enc059Mtr04: BOOL;
+	Enc059Mtr05: BOOL;
+	Enc059Mtr06: BOOL;
+	Enc060Mtr01: BOOL;
+	Enc060Mtr02: BOOL;
+	Enc060Mtr03: BOOL;
+	Enc060Mtr04: BOOL;
+	Enc060Mtr05: BOOL;
+	Enc060Mtr06: BOOL;
+	Enc061Mtr01: BOOL;
+	Enc061Mtr02: BOOL;
+	Enc061Mtr03: BOOL;
+	Enc061Mtr04: BOOL;
+	Enc061Mtr05: BOOL;
+	Enc061Mtr06: BOOL;
+	Enc062Mtr01: BOOL;
+	Enc062Mtr02: BOOL;
+	Enc062Mtr03: BOOL;
+	Enc062Mtr04: BOOL;
+	Enc062Mtr05: BOOL;
+	Enc062Mtr06: BOOL;
+	Enc062Mtr07: BOOL;
+	Enc062Mtr08: BOOL;
+	Enc062Mtr09: BOOL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

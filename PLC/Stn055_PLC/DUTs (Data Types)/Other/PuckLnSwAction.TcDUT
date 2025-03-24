@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="PuckLnSwAction" Id="{afc5df95-f226-4e59-8306-7d22851ee772}">
+    <Declaration><![CDATA[TYPE PuckLnSwAction :
+STRUCT
+
+	OkTo_ReleasePuck: BOOL;
+	OkTo_Fault: BOOL;
+	Target_Workstop: cLaneSel;
+	Target_Lane: cLaneSel;
+	Target_FaultCode: DINT;
+	Target_PuckLnSw: PuckLnSw; //Used for Debug and Visualization
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

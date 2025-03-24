@@ -1,0 +1,161 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="SafetyInterface_MastLight051" Id="{a16f2c87-509d-420f-8d42-05c9221aa7d8}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM SafetyInterface_MastLight051
+VAR
+
+	{attribute 'TcLinkTo' := '.oRawArray[0] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 0;
+		.oRawArray[1] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 1;
+		.oRawArray[2] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 2;
+		.oRawArray[3] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 3;
+		.oRawArray[4] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 4;
+		.oRawArray[5] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 5;
+		.oRawArray[6] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 6;
+		.oRawArray[7] := TIIB[N13S00 (AL1332)]^N13S07 (DV2530)^RxPDO^output byte 7'}
+	fbMastLight: FB_MastLight;	
+	
+	oStackLightRed AT %Q*: BOOL;		//Real Output via I/O link mast light
+	oStackLightGreen AT %Q*: BOOL;		//Real Output via I/O link mast light
+	oStackLightAmber AT %Q*: BOOL;		//Real Output via I/O link mast light
+	oStackLightHorn AT %Q*: BOOL;		//Real Output via I/O link mast light
+
+	b500msPulse: BOOL;
+	tmrPulseON: TON;
+	tmrPulseOFF: TON;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[(*Call output code*)
+Output();
+
+(*1/2 second pulse generator*)
+tmrPulseON(IN:=NOT tmrPulseOFF.Q,PT:=T#0.5s);
+tmrPulseOFF(IN:=tmrPulseON.Q,PT:=T#0.5s);
+IF tmrPulseON.Q THEN
+	b500msPulse := TRUE;
+ELSE
+	b500msPulse := FALSE;
+END_IF]]></ST>
+    </Implementation>
+    <Action Name="Output" Id="{f7a1ae57-b2ad-4b98-92db-1d5b93021d91}">
+      <Implementation>
+        <ST><![CDATA[(******Outputs******)
+
+IF (b500msPulse AND
+		(gConsumed_Stn051ToSafetyInterface.Enc051MastLight.RedFlashReq OR
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.RedFlashReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.RedFlashReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.RedFlashReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.RedFlashReq)) OR
+		(gConsumed_Stn051ToSafetyInterface.Enc051MastLight.RedReq OR
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.RedReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.RedReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.RedReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.RedReq) THEN
+	oStackLightRed := TRUE;
+ELSE
+	oStackLightRed := FALSE;
+END_IF
+
+IF (b500msPulse AND //Pulsed light
+		(gConsumed_Stn051ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.GrnFlashReq)) OR
+		((gConsumed_Stn051ToSafetyInterface.Enc051MastLight.GrnReq OR 
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.GrnReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.GrnReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.GrnReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.GrnReq) AND
+		NOT (gConsumed_Stn051ToSafetyInterface.Enc051MastLight.GrnFlashReq OR //Only stay solid green if not flashing
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.GrnFlashReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.GrnFlashReq)) THEN
+	oStackLightGreen := TRUE;
+ELSE
+	oStackLightGreen := FALSE;
+END_IF
+
+IF (b500msPulse AND
+		(gConsumed_Stn051ToSafetyInterface.Enc051MastLight.YelFlashReq OR
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.YelFlashReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.YelFlashReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.YelFlashReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.YelFlashReq)) OR
+		(gConsumed_Stn051ToSafetyInterface.Enc051MastLight.YelReq OR
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.YelReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.YelReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.YelReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.YelReq) THEN
+	oStackLightAmber := TRUE;
+ELSE
+	oStackLightAmber := FALSE;
+END_IF
+
+// This logic is commented out because the other station still performs the oscillation
+//(*IF (Local.State = 0 AND b500msPulse) OR (pStn^.CycleFaulted AND Local.State <> 0) OR hiTestIndicatorTree THEN
+//	oFaultAck_ResetPBLight := TRUE;
+//ELSE
+//	oFaultAck_ResetPBLight := FALSE;
+//END_IF*)
+
+//(* Add horn beep pattern logic*)
+//(* Are the conditions RIGHT FOR honking? *)
+//(* Supress horn if not acknowledged after suitable period of time *)
+//tmrSupressHorn(IN:=(Local.State = 0 OR Local.State = 10),PT:=T#60S);
+
+//DoBeep :=	(Local.State = 0 AND NOT tmrSupressHorn.Q) OR
+//			(Local.State = 10 AND NOT tmrSupressHorn.Q AND NOT SeparateAckAndReset) OR
+//			Local.State = 150 OR
+//			hiTestIndicatorTree;
+
+//tmrBeepPatternON(IN:=NOT tmrBeepPatternOFF.Q,PT:=T#1.0S);
+//tmrBeepPatternOFF(IN:=DoBeep AND tmrBeepPatternON.Q,PT:=T#1.0s);
+
+
+IF (gConsumed_Stn051ToSafetyInterface.Enc051MastLight.HornReq OR
+		gConsumed_Stn052ToSafetyInterface.Enc051MastLight.HornReq OR
+		gConsumed_Stn053ToSafetyInterface.Enc051MastLight.HornReq OR
+		gConsumed_Stn054ToSafetyInterface.Enc051MastLight.HornReq OR
+		gConsumed_Stn055ToSafetyInterface.Enc051MastLight.HornReq) THEN
+	oStackLightHorn := TRUE;
+ELSE
+	oStackLightHorn := FALSE;
+END_IF
+
+fbMastLight(
+	GreenLight := oStackLightGreen,
+	YellowLight := oStackLightAmber,
+	RedLight := oStackLightRed,
+	Horn := oStackLightHorn);
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="SafetyInterface_MastLight051">
+      <LineId Id="57" Count="10" />
+    </LineIds>
+    <LineIds Name="SafetyInterface_MastLight051.Output">
+      <LineId Id="2" Count="1" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="70" Count="3" />
+      <LineId Id="81" Count="3" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="11" Count="4" />
+      <LineId Id="120" Count="14" />
+      <LineId Id="95" Count="3" />
+      <LineId Id="20" Count="1" />
+      <LineId Id="99" Count="13" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="37" Count="18" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="114" Count="0" />
+      <LineId Id="116" Count="3" />
+      <LineId Id="56" Count="10" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

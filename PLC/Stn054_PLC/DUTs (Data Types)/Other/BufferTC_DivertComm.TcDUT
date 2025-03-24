@@ -1,0 +1,15 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="BufferTC_DivertComm" Id="{f68f40d4-2023-48f8-aa46-08d17e70f7b0}">
+    <Declaration><![CDATA[TYPE BufferTC_DivertComm :
+STRUCT
+	
+	NeedEmpties: BOOL;
+	NeedFullPriorityNormal: BOOL;
+	NeedFullPriorityHigh: BOOL;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

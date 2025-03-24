@@ -1,0 +1,234 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_Stn121DivertTC" Id="{a5ae9651-8a16-4b18-b0cd-8b3635c3c6c6}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Stn121DivertTC
+VAR_INPUT
+	
+	pCmp: POINTER TO CmpConvDivert;
+	
+	DivertOnlyExceptions: BOOL;
+	InBypassThisStn: BOOL;
+	InBypassDownstreamStn: BOOL;
+	
+	config_IsCRTC1: BOOL;
+	config_IsPilot: BOOL;
+	config_IsFirstRecevingInPair: BOOL;
+	config_SpurNOKThrottleTime_Pilot: TIME;
+	
+END_VAR
+
+VAR
+	
+	MainRunning: BOOL;
+	SpurRunning: BOOL;
+	
+	onsPuckReady: R_TRIG;
+	ResolvedDBStatusRoute: cResolvedDBStatusRoute;
+	DBRouteToSpur_Empty: BOOL;
+	DBRouteToSpur_Full: BOOL;
+	RouteToSpur: BOOL;
+	
+	ReleaseToNotStarveDownstreamStn_CRTC1: BOOL;
+	ReleaseToNotBlockMain_CRTC1: BOOL;
+	ReleaseToNotBlockMain_Pilot: BOOL;
+	ReleaseToNotBlockMain: BOOL;
+	tmrSpurNOKThrottle_Pilot: TON;
+	onsDivertActedOnRelease: R_TRIG;
+	LastEmptyWasSentToMain: BOOL;
+		
+	Debug_ForceAllToSpur: BOOL;
+	Debug_TestDownstreamTrottle: BOOL;
+	Debug_OnlyAllowEmpty: BOOL;
+	Debug_DivertAllToMain: BOOL;
+	Debug_DivertAllToSpur: BOOL;
+		
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Traffic control for specific dirvert - Stn121
+// 
+// Currently each divert has independent/unique function block as it is expected that they will
+//   eventually need to be tweeked for specific application
+
+// Sum of main/spur running conditions... don't release if not running
+MainRunning :=
+	pCmp^.MainHeartbeatOK AND
+	pCmp^.MainConvRunning;
+
+SpurRunning :=
+	pCmp^.SpurHeartbeatOK AND
+	pCmp^.SpurConvRunning;
+	
+// On falling edge of request note if status of puck indicates that it could go to spur
+//   and set bit based on which way it was actually told to release.
+// Note: this logic must be above the decision logic so it reflects the result from last scan
+onsDivertActedOnRelease(CLK:=NOT pCmp^.PuckReady);
+IF onsDivertActedOnRelease.Q AND RouteToSpur THEN
+	LastEmptyWasSentToMain := pCmp^.PuckReleaseMain;	
+END_IF;		
+
+(*
+// Use DB supplied status (and route as needed) to determine if puck should go to spur
+// This is evaluated every scan so is always current to respond to changing conditions.
+// Generally will release to main line if not routed to this spur but may release to main even if
+//   routed to this spur so downstream station is not starved
+//
+//  For both both line types the standard puck to send to receiving is effectively empty pucks (empty status)
+//  Special logic in DB and/or in PLC will be sure status is 'unknown' for any device on puch without a SN (puck exception)
+//
+//  For Pilot, receiving has an exception conveyor that will need to handle all the various excetptions that will later be
+//     handleded by "storage" or other stations on CRTC1
+//
+ 
+DBRouteToSpur :=
+	NOT pCmp^.UnknownPuck AND										// No RFID
+	((pCmp^.Puck.Device.Status = '' AND
+	pCmp^.Puck.PuckOnlyRoute <> cDBDetailRoute.PuckException) OR	// Empty
+	Debug_ForceAllToSpur OR
+	(Config_IsPilot AND												// Pilot accepts puck excp. and consolidation
+	NOT Debug_OnlyAllowEmpty AND											
+	(pCmp^.Puck.PuckOnlyRoute = cDBDetailRoute.PuckException OR 	// Puck only unknown to exception
+	pCmp^.Puck.Device.Status = cDBDeviceStatus.Unknown OR  			// Puck only unknown to excetpion via DB set device unknown
+	pCmp^.Puck.Device.Route = cDBDetailRoute.PuckException OR		// Device to exception
+	pCmp^.Puck.Device.Route = cDBDetailRoute.Consolidation)));		// Device to consolidation
+*)
+
+
+// On rising edege of puck ready interperate the puck/device data to see if it should be diverted to spur
+onsPuckReady(CLK:=pCmp^.PuckReady);
+IF onsPuckReady.Q THEN 	
+	// Call function to turn DB puck/device status/route into single readable resolution
+	ResolvedDBStatusRoute :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.ReceivingGreen);
+		
+	// Use DB route and other possible line status to determine if puck should go to spur
+	DBRouteToSpur_Empty := 
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Empty_NoRoute OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Empty_RoutedThisStation OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Empty_RoutedOtherStation;
+	
+	DBRouteToSpur_Full := 
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Normal_RoutedException OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Normal_RoutedConsolidation OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.NonNormal_RoutedException OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.UnknownDevice;
+END_IF
+
+//  Note that only "full" puck receving as determined above are headed to exception which only occurs on pilot)
+//    Also only for pilot allow the station to request blcoking empties/only divet fulls if idle so exception have easy room to come off)
+RouteToSpur := 
+	(DBRouteToSpur_Full AND
+	config_IsPilot) OR
+	(DBRouteToSpur_Empty AND
+	(NOT DivertOnlyExceptions OR
+	NOT config_IsPilot));
+
+// Timer for pilot to give slight delay for opertunity for puck to go to spur
+//   if puck ready remains on then spur must not be able to rescive it for what ever reason.
+tmrSpurNOKThrottle_Pilot(
+		IN:= pCmp^.PuckReady AND RouteToSpur,
+		PT:= config_SpurNOKThrottleTime_Pilot);	
+
+ReleaseToNotBlockMain_CRTC1 := 
+	NOT SpurRunning OR
+	NOT pCmp^.senSpurBufferFullOff;
+		
+// Optional delay for spur to become ready... although appealing the non-linear path of parts through the line combined
+//   with serieres stations with same function bassicly mean pucks need to transfer as fast as (reasonably) possible.. and
+//   and any delay to wait for spur to become available is detrimental to another station / full line throughput
+IF NOT Debug_TestDownstreamTrottle THEN
+	ReleaseToNotBlockMain_Pilot := 
+		NOT SpurRunning OR
+		NOT pCmp^.senSpurBufferFullOff;
+ELSE
+	ReleaseToNotBlockMain_Pilot := 
+		tmrSpurNOKThrottle_Pilot.Q;
+END_IF
+// For CRTC1 we must keep pucks circulating at full speed since there are so many downstream stations that a simple
+//   buffer full type check will not work.  If a full set of status and data is avaiable in the future then something
+//   may be able to make a complex choice... but not here, not now.
+// For pilot, since it is linear and less complex so some slight delay for now...	
+ReleaseToNotBlockMain :=
+	(config_IsCRTC1 AND
+	ReleaseToNotBlockMain_CRTC1) OR
+	(config_IsPilot AND
+	ReleaseToNotBlockMain_Pilot);
+	
+ReleaseToNotStarveDownstreamStn_CRTC1 :=
+	config_IsCRTC1 AND
+	((config_IsFirstRecevingInPair AND
+	NOT LastEmptyWasSentToMain AND
+	NOT InBypassDownstreamStn) OR
+	InBypassThisStn);
+	
+// Release main if DB route is not to spur, or even if it is to spur when this station is bypassed,
+//   or release to not block main line traffic, or if CRTC1 to release eveey other spur heading puck downstream
+//   for partner station to have work.
+pCmp^.PuckReleaseMain := 
+	pCmp^.PuckReady AND
+	MainRunning AND
+	((NOT RouteToSpur OR
+	(RouteToSpur AND 
+	(InBypassThisStn OR
+	ReleaseToNotBlockMain OR
+	ReleaseToNotStarveDownstreamStn_CRTC1))) OR
+	Debug_DivertAllToMain) AND
+	NOT Debug_DivertAllToSpur;
+
+// Release to spur if that is route and it is available.
+//    and not trying to keep downstream station fed.
+pCmp^.PuckReleaseSpur :=
+	pCmp^.PuckReady AND
+	MainRunning AND
+	SpurRunning AND
+	((RouteToSpur AND
+	NOT InBypassThisStn AND
+	NOT ReleaseToNotStarveDownstreamStn_CRTC1) OR
+	Debug_DivertAllToSpur) AND
+	NOT Debug_DivertAllToMain;
+	
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Stn121DivertTC">
+      <LineId Id="383" Count="20" />
+      <LineId Id="645" Count="0" />
+      <LineId Id="404" Count="18" />
+      <LineId Id="564" Count="0" />
+      <LineId Id="423" Count="4" />
+      <LineId Id="646" Count="0" />
+      <LineId Id="651" Count="16" />
+      <LineId Id="675" Count="2" />
+      <LineId Id="668" Count="0" />
+      <LineId Id="670" Count="0" />
+      <LineId Id="729" Count="0" />
+      <LineId Id="679" Count="0" />
+      <LineId Id="731" Count="0" />
+      <LineId Id="681" Count="1" />
+      <LineId Id="730" Count="0" />
+      <LineId Id="683" Count="0" />
+      <LineId Id="727" Count="0" />
+      <LineId Id="732" Count="0" />
+      <LineId Id="647" Count="0" />
+      <LineId Id="429" Count="10" />
+      <LineId Id="527" Count="1" />
+      <LineId Id="520" Count="0" />
+      <LineId Id="515" Count="0" />
+      <LineId Id="517" Count="0" />
+      <LineId Id="516" Count="0" />
+      <LineId Id="522" Count="1" />
+      <LineId Id="526" Count="0" />
+      <LineId Id="524" Count="0" />
+      <LineId Id="441" Count="27" />
+      <LineId Id="606" Count="0" />
+      <LineId Id="605" Count="0" />
+      <LineId Id="469" Count="9" />
+      <LineId Id="602" Count="1" />
+      <LineId Id="479" Count="2" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpHMI" Id="{ebbfbff2-6d0c-44ea-8521-d5bdc7cec4a3}">
+    <Declaration><![CDATA[TYPE CmpHMI :
+STRUCT
+	
+	Title : STRING := '';
+	Message : STRING := '';
+	Timeout : TIME := T#0s;
+	InformationOnly :BOOL;
+	Trigger : BOOL;
+	RespPositive : BOOL;
+	RespNegative : BOOL;
+	RespTimeout : BOOL;
+	HeartbeatOK : BOOL;
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

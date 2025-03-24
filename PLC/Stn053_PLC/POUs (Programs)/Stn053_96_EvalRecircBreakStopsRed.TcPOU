@@ -1,0 +1,140 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_96_EvalRecircBreakStopsRed" Id="{73e55d59-d4ca-4255-80cb-212e20cff386}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_96_EvalRecircBreakStopsRed
+VAR
+	{attribute 'TcLinkToOSO' := '
+		.fbBreakStop[1].iBufferFull :=  <0,1,0>TIIB[N44S00 (AL1332)]^N44S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[1].iPuckPresent :=  <0,1,0>TIIB[N44S00 (AL1332)]^N44S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[1].oStopLower  :=  <0,1,6>TIIB[N44S00 (AL1332)]^N44S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[2].iBufferFull :=  <0,1,1>TIIB[N44S00 (AL1332)]^N44S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[2].iPuckPresent :=  <0,1,1>TIIB[N44S00 (AL1332)]^N44S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[2].oStopLower :=  <0,1,7>TIIB[N44S00 (AL1332)]^N44S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[3].iBufferFull :=  <0,1,0>TIIB[N44S00 (AL1332)]^N44S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[3].iPuckPresent :=  <0,1,0>TIIB[N44S00 (AL1332)]^N44S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[3].oStopLower :=  <0,1,0>TIIB[N44S00 (AL1332)]^N44S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[4].iBufferFull :=  <0,1,1>TIIB[N44S00 (AL1332)]^N44S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[4].iPuckPresent :=  <0,1,1>TIIB[N44S00 (AL1332)]^N44S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[4].oStopLower :=  <0,1,1>TIIB[N44S00 (AL1332)]^N44S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[5].iBufferFull :=  <0,1,0>TIIB[N43S00 (AL1332)]^N43S05 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[5].iPuckPresent :=  <0,1,0>TIIB[N43S00 (AL1332)]^N43S05 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[5].oStopLower :=  <0,1,6>TIIB[N43S00 (AL1332)]^N43S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[6].iBufferFull :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S05 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[6].iPuckPresent :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S05 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[6].oStopLower :=  <0,1,7>TIIB[N43S00 (AL1332)]^N43S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[7].iBufferFull :=  <0,1,0>TIIB[N43S00 (AL1332)]^N43S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[7].iPuckPresent :=  <0,1,0>TIIB[N43S00 (AL1332)]^N43S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[7].oStopLower :=  <0,1,0>TIIB[N43S00 (AL1332)]^N43S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[8].iBufferFull :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[8].iPuckPresent :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[8].oStopLower :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[9].iBufferFull :=  <0,1,0>TIIB[N42S00 (AL1332)]^N42S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[9].iPuckPresent :=  <0,1,0>TIIB[N42S00 (AL1332)]^N42S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[9].oStopLower :=  <0,1,0>TIIB[N42S00 (AL1332)]^N42S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[10].iBufferFull :=  <0,1,1>TIIB[N42S00 (AL1332)]^N42S03 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[10].iPuckPresent :=  <0,1,1>TIIB[N42S00 (AL1332)]^N42S03 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[10].oStopLower :=  <0,1,1>TIIB[N42S00 (AL1332)]^N42S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[11].iBufferFull :=  <0,1,0>TIIB[N41S00 (AL1332)]^N41S03 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[11].iPuckPresent :=  <0,1,0>TIIB[N41S00 (AL1332)]^N41S03 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[11].oStopLower :=  <0,1,6>TIIB[N41S00 (AL1332)]^N41S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[12].iBufferFull :=  <0,1,1>TIIB[N41S00 (AL1332)]^N41S03 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[12].iPuckPresent :=  <0,1,1>TIIB[N41S00 (AL1332)]^N41S03 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[12].oStopLower :=  <0,1,7>TIIB[N41S00 (AL1332)]^N41S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[13].iBufferFull :=  <0,1,0>TIIB[N41S00 (AL1332)]^N41S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[13].iPuckPresent :=  <0,1,0>TIIB[N41S00 (AL1332)]^N41S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[13].oStopLower :=  <0,1,0>TIIB[N41S00 (AL1332)]^N41S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[14].iBufferFull :=  <0,1,1>TIIB[N41S00 (AL1332)]^N41S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[14].iPuckPresent :=  <0,1,1>TIIB[N41S00 (AL1332)]^N41S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[14].oStopLower :=  <0,1,1>TIIB[N41S00 (AL1332)]^N41S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[15].iBufferFull :=  <0,1,0>TIIB[N48S00 (AL1332)]^N48S05 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[15].iPuckPresent :=  <0,1,0>TIIB[N48S00 (AL1332)]^N48S05 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[15].oStopLower :=  <0,1,6>TIIB[N48S00 (AL1332)]^N48S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[16].iBufferFull :=  <0,1,1>TIIB[N48S00 (AL1332)]^N48S05 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[16].iPuckPresent :=  <0,1,1>TIIB[N48S00 (AL1332)]^N48S05 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[16].oStopLower :=  <0,1,7>TIIB[N48S00 (AL1332)]^N48S02 (EX260)^RxPDO^output byte 1;
+		.fbBreakStop[17].iBufferFull :=  <0,1,0>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[17].iPuckPresent :=  <0,1,0>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[17].oStopLower :=  <0,1,0>TIIB[N48S00 (AL1332)]^N48S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[18].iBufferFull :=  <0,1,1>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[18].iPuckPresent :=  <0,1,1>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[18].oStopLower :=  <0,1,1>TIIB[N48S00 (AL1332)]^N48S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[19].iBufferFull :=  <0,1,2>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[19].iPuckPresent :=  <0,1,2>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[19].oStopLower :=  <0,1,2>TIIB[N48S00 (AL1332)]^N48S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[20].iBufferFull :=  <0,1,0>TIIB[N47S00 (AL1332)]^N47S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[20].iPuckPresent :=  <0,1,0>TIIB[N47S00 (AL1332)]^N47S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[20].oStopLower :=  <0,1,0>TIIB[N47S00 (AL1332)]^N47S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[21].iBufferFull :=  <0,1,1>TIIB[N47S00 (AL1332)]^N47S05 (AL2341)^TxPDO^input byte 2;
+		.fbBreakStop[21].iPuckPresent :=  <0,1,1>TIIB[N47S00 (AL1332)]^N47S05 (AL2341)^TxPDO^input byte 0;
+		.fbBreakStop[21].oStopLower :=  <0,1,1>TIIB[N47S00 (AL1332)]^N47S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[22].iBufferFull :=  <0,1,0>TIIB[N47S00 (AL1332)]^N47S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[22].iPuckPresent :=  <0,1,0>TIIB[N47S00 (AL1332)]^N47S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[22].oStopLower :=  <0,1,2>TIIB[N47S00 (AL1332)]^N47S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[23].iBufferFull :=  <0,1,1>TIIB[N47S00 (AL1332)]^N47S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[23].iPuckPresent :=  <0,1,1>TIIB[N47S00 (AL1332)]^N47S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[23].oStopLower :=  <0,1,3>TIIB[N47S00 (AL1332)]^N47S02 (EX260)^RxPDO^output byte 2;
+		.fbBreakStop[24].iBufferFull :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 3;
+		.fbBreakStop[24].iPuckPresent :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 1;
+		.fbBreakStop[24].oStopLower :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S02 (EX260)^RxPDO^output byte 2'};
+	fbBreakStopGroup: FB_BreakStopGroup;
+	
+	i: DINT;
+	NumberBreakStopRed: DINT := 24;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+//  combine running state of any multiple conveyors in a break stop here.
+// motor control status here - Red recirc conv  
+  
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[01] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr04;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[02] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr04;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[03] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr04;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[04] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr04;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[05] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr04;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[06] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr04 AND gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr02;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[07] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr02;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[08] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr02 AND gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr03;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[09] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr05;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[10] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr05;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[11] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr05;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[12] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr05;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[13] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr05;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[14] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc057Mtr05 AND gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr07;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[15] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr07;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[16] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr07;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[17] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr07;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[18] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr07;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[19] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr07 AND gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr08;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[20] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr10;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[21] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr10;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[22] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr10;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[23] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr10;
+gStn053_96_EvalRecircBreakStopsRed.ConvRunning[24] := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr10;
+
+
+fbBreakStopGroup(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_96_EvalRecircBreakStopsRed),
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats),
+);]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_96_EvalRecircBreakStopsRed">
+      <LineId Id="3" Count="3" />
+      <LineId Id="99" Count="14" />
+      <LineId Id="115" Count="0" />
+      <LineId Id="117" Count="4" />
+      <LineId Id="125" Count="3" />
+      <LineId Id="124" Count="0" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="11" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,124 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_StorageBypassBluDivertTC" Id="{700c6cf9-1d0c-426a-98dc-fef10d3c0c95}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_StorageBypassBluDivertTC
+VAR_INPUT
+	
+	pCmp: POINTER TO CmpConvDivert;
+
+END_VAR
+
+VAR
+	
+	MainRunning: BOOL;
+	SpurRunning: BOOL;
+	
+	onsPuckReady: R_TRIG;
+	ResolvedDBStatusRouteGreen: cResolvedDBStatusRoute;
+	ResolvedDBStatusRouteRed: cResolvedDBStatusRoute;
+	ResolvedDBStatusRouteBlue: cResolvedDBStatusRoute;
+	DBRouteToMain: BOOL;
+	RouteToSpur: BOOL;
+	
+	
+	tmrSpurNotOKToReceive: TON;
+	
+	Debug_DivertAllToMain: BOOL;
+	Debug_DivertAllToSpur: BOOL;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Traffic control for specific divert - Stn611 - Tray Load - Storage Bypass for Blue puck conveyor
+// 
+// Currently each divert has independent/unique function block as it is expected that they will
+//   eventually need to be tweeked for specific application
+
+// Sum of main/spur running conditions... don't release if not running
+MainRunning :=
+	pCmp^.MainHeartbeatOK AND
+	pCmp^.MainConvRunning;
+
+SpurRunning :=
+	pCmp^.SpurHeartbeatOK AND
+	pCmp^.SpurConvRunning;
+
+
+// On rising edege of puck ready interperate the puck/device data to see if it should be diverted to spur
+onsPuckReady(CLK:=pCmp^.PuckReady);
+IF onsPuckReady.Q THEN 	
+	// Call function to turn DB puck/device status/route into single readable resolution for each Tray Load route
+	ResolvedDBStatusRouteGreen :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.TrayLoadGreen);
+	ResolvedDBStatusRouteRed :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.TrayLoadRed);
+	ResolvedDBStatusRouteBlue :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.TrayLoadBlue);
+		
+	// Use DB route and other possible line status to determine if puck should go to spur
+	// This station never works on an empty puck.
+	// only NORMAL pucks routed to this Tray Load route
+	DBRouteToMain := 
+		(ResolvedDBStatusRouteGreen = cResolvedDBStatusRoute.Normal_RoutedThisStation OR 
+		ResolvedDBStatusRouteRed = cResolvedDBStatusRoute.Normal_RoutedThisStation OR
+		ResolvedDBStatusRouteBlue = cResolvedDBStatusRoute.Normal_RoutedThisStation);
+	
+END_IF
+
+RouteToSpur := NOT DBRouteToMain;
+	
+// Run timer for spur not ok to receive - no conv running or DS BF blocked
+// TODO - RCC: Eventualy include upstream buffer full before forcing release
+tmrSpurNotOKToReceive(
+		IN:= NOT SpurRunning OR NOT pCmp^.senSpurBufferFullOff,
+		PT:= T#1000MS);
+		
+// Release main if that is DB route or if spur not ready in time
+//  and a few other misc conditions.
+//if main BF, release ALL to spur.
+
+//pCmp^.MainBufferFull := NOT pCmp^.senMainBufferFullOff;
+
+pCmp^.PuckReleaseMain := 
+	pCmp^.PuckReady AND					//MUST have debounce time for puck data and Main conv running
+	MainRunning AND
+	(DBRouteToMain OR					//MUST route to main for this station or All to main
+//	tmrSpurNotOkToReceive.Q OR
+	pCmp^.UnknownPuck OR
+	Debug_DivertAllToMain) AND
+	NOT Debug_DivertAllToSpur AND		//MUST not route ALL to spur
+	pCmp^.senMainBufferFullOff;			//MUST have main DS BF must be clear
+
+// Release to spur if that is route and it is available.
+pCmp^.PuckReleaseSpur :=
+	pCmp^.PuckReady AND					//MUST have debounce time for puck data and BOTH conv running
+	MainRunning AND
+	SpurRunning AND
+	((RouteToSpur AND					//MUST route to spur or All to spur 
+	NOT pCmp^.UnknownPuck) OR
+	Debug_DivertAllToSpur) AND
+	NOT Debug_DivertAllToMain OR		//MUST not route ALL to main
+	NOT pCmp^.senMainBufferFullOff;		//Might have main DS BF blocked
+	
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_StorageBypassBluDivertTC">
+      <LineId Id="395" Count="59" />
+      <LineId Id="468" Count="1" />
+      <LineId Id="455" Count="9" />
+      <LineId Id="470" Count="0" />
+      <LineId Id="465" Count="2" />
+      <LineId Id="362" Count="1" />
+      <LineId Id="332" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

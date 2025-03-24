@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpSafetyInterfaceConv" Id="{c6acad09-508c-44d2-8601-954bad0bdb37}">
+    <Declaration><![CDATA[TYPE CmpSafetyInterfaceConv :
+STRUCT
+
+	//Station to Main Safety interface
+	// Currently no data flows back from stn to Main saftey interface
+	
+	//Main Safety interface to Station
+	iSafetyResetPB: BOOL;		 
+	iSafetyCtrlGroupError: BOOL;	
+	iEstopRlyTripped: BOOL;				
+	iEstopButtonNOK1: BOOL;		
+	iAirPressureOk: BOOL;
+	
+END_STRUCT
+
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

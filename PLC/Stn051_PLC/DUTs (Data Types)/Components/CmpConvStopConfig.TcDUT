@@ -1,0 +1,28 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvStopConfig" Id="{7edfdccf-d768-433c-a7fd-ef494f8a2f26}">
+    <Declaration><![CDATA[TYPE CmpConvStopConfig :
+STRUCT
+	
+	HandshakeUpstream: BOOL;
+	HasLocate: BOOL; 
+	DoesWorkRequest: BOOL;
+	HandshakeDownstream: BOOL;
+	BufferOnlyOneInMotion: BOOL;
+	BufferArrivalFault: BOOL;
+	RemoteBufferSensor: BOOL;
+	DepartStopFaultTime: TIME;
+	TimeSpacingMinimum: TIME;
+	BufferArrivalFaultTime: TIME;
+	PuckSensorOnTime: TIME;
+	PuckSensorOffTime: TIME;
+	LocateOpenedSensorOnTime: TIME;
+	LocateClosedSensorOnTime: TIME;
+	BufferSensorOnTime: TIME;
+	BufferSensorOffTime: TIME;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

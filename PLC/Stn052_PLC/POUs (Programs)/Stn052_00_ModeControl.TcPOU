@@ -1,0 +1,1175 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn052_00_ModeControl" Id="{bd233217-56cc-4e5e-af94-f13cf0b846d8}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn052_00_ModeControl
+VAR
+	pStn: POINTER TO Station;
+	pSafetyInterface_Enc053: POINTER TO CmpSafetyInterfaceConv;
+	pSafetyInterface_Enc054: POINTER TO CmpSafetyInterfaceConv;
+	pSafetyInterface_Enc055: POINTER TO CmpSafetyInterfaceConv;
+	pCmpMain: POINTER TO CmpCore;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFifo: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+	
+	Local: FrameworkLocal;
+	tmrDelayPCStart: TON;
+	fbStartPC: NT_StartProcess;
+	fbGetTime: GETSYSTEMTIME;
+	NoFault: BOOL;
+	StationResetRequest: BOOL;
+	MsgText: STRING256;
+	AltMsgText: STRING256;
+	FaultText: STRING256;
+	FaultAltText: STRING256;
+	FaultNumber: INT;
+	FaultData: StatsFault;
+	StationLevelFault: BOOL;
+	TempEvent: StatsEvent;
+	TimeStamp: StateTimeStamp;
+	CurrentTime: TIMESTRUCT;
+	TimeLo: UDINT;
+	TimeHi: UDINT;
+	cmdEstopReset: BOOL;
+	cmdStart: BOOL;
+	cmdOperatorStop: BOOL;
+	cmdMachineStop: BOOL;
+	cmdFaultAcknowledge: BOOL;
+	cmdFaultAcknowledgeViaGuardDoor: BOOL;
+	cmdFaultAcknowledgeViaRobotKeyInManual: BOOL;
+	cmdFullInit: BOOL;
+	cmdFaultReset: BOOL;
+	cmdSingleStepOn: BOOL;
+	cmdSingleStepOff: BOOL;
+	cmdSingleStepAdvance: BOOL;
+	cmdManualMode: BOOL;
+	OKToStart: BOOL;
+	OKToReset: BOOL;
+	onsStart: R_TRIG;
+	onsOperatorStop: R_TRIG;
+	onsMachineStop: R_TRIG;
+	onsFaultAcknowledge: R_TRIG;
+	onsStationReset: R_TRIG;
+	onsFaultReset: R_TRIG;
+	onsSingleStepOn: R_TRIG;
+	onsSingleStepOff: R_TRIG;
+	onsSingleStepAdvance: R_TRIG;
+	onsManualMode: R_TRIG;
+	onsEStopNotOKHMIMessage: BOOL;
+	onsEStopNotOKStartAttmpt: BOOL;
+	onsPowerOnAttmpt: BOOL;
+	onsAirNotOKHMIMessage: BOOL;
+	onsAirNotOKStartAttempt: BOOL;
+	WaitForResetMsg: BOOL;
+	
+	{attribute 'TcLinkTo' := 'TIIB[N15S06 (EL1008)]^Channel 2^Input'}
+	iAirPressureOk AT %I*: BOOL;			//Real Input
+	iCycleStartPB AT %I*: BOOL;				//Not used
+	iCycleStopPB AT %I*: BOOL;				//Not used
+	iFaultAck_ResetPB AT %I*: BOOL;			//Not used
+	iStationPowerOnPB AT %I*: BOOL;			//Not used
+	iStationResetPB AT %I*: BOOL;			//Not used
+	iPowerSupplySystem24VDCOk AT %I*: BOOL;	//Not used
+	{attribute 'TcLinkTo' := 'TIID^EC_N00S00 (EtherCAT Master)^Inputs^DevState'}
+	iEthercatDevState AT %I*: UINT;			//TODO RCC: add EtherCAT / IO network OK logic
+	// {attribute 'TcLinkTo' := 'TIID^PN_N30S19 (Profinet Master)^Inputs^DevState'}
+	iProfinetDevState AT %I*: UINT;			//TODO RCC: add EtherCAT / IO network OK logic
+	senIONetworkOK: FB_Sensor;				//TODO RCC: add EtherCAT / IO network OK logic
+	iEnclosureTemperatureHigh AT %I*: BOOL;	//Not used
+	
+	iEstopRlyTripped: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK1: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK2: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK3: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK4: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK5: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK6: BOOL;				//Populated from Safety consumed tag
+	iEstopButtonNOK7: BOOL;				//Populated from Safety consumed tag
+	iGrdDrRlyTripped: BOOL;				//Populated from Safety consumed tag
+	iGrdDr1Open: BOOL;					//Populated from Safety consumed tag
+	iGrdDr2Open: BOOL;					//Populated from Safety consumed tag
+	iGrdDr3Open: BOOL;					//Populated from Safety consumed tag
+	iGrdDr4Open: BOOL;					//Populated from Safety consumed tag
+	iGrdDr5Open: BOOL;					//Populated from Safety consumed tag
+	iGrdDr6Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr1Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr2Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr3Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr4Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr5Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr6Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr7Open: BOOL;					//Populated from Safety consumed tag
+	iToolDr8Open: BOOL;					//Populated from Safety consumed tag
+	iTool1PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool2PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool3PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool4PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool5PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool6PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool7PosNOK: BOOL;					//Populated from Safety consumed tag
+	iTool8PosNOK: BOOL;					//Populated from Safety consumed tag
+	iRobot1CommNOK: BOOL;				//Populated from Safety consumed tag
+	iRobot2CommNOK: BOOL;				//Populated from Safety consumed tag
+	iRobot3CommNOK: BOOL;				//Populated from Safety consumed tag
+	iRobot1InManual: BOOL;				//Populated from Safety consumed tag
+	iRobot2InManual: BOOL;				//Populated from Safety consumed tag
+	iRobot3InManual: BOOL;				//Populated from Safety consumed tag
+	iSafetyResetPB: BOOL;				//Populated from Safety consumed tag
+	iSafetyCtrlGroupError: BOOL;		//Populated from Safety consumed tag
+	iServoSTOEnableImmedOff: BOOL;		//Populated from Safety consumed tag
+	iServoSTOEnableDelayedOff: BOOL;	//Populated from Safety consumed tag
+	iRowa_JROkToRowaRlyTripped: BOOL;	//Populated from Safety consumed tag
+	iRowa_RowaToJRSafetyNOK: BOOL;		//Populated from Safety consumed tag
+
+	oStackLightRed AT %Q*: BOOL;		//Real Output via I/O link mast light
+	oStackLightGreen AT %Q*: BOOL;		//Real Output via I/O link mast light
+	oStackLightAmber AT %Q*: BOOL;		//Real Output via I/O link mast light
+	oStackLightHorn AT %Q*: BOOL;		//Real Output via I/O link mast light
+	//	{attribute 'TcLinkTo' := 'TIIB[N15S09 (EL2008)]^Channel 1^Output'}
+	//	oControlPowerPBLight AT %Q*: BOOL;	//Real Output
+	oGuardDoorsLock: BOOL;				//Local tag drives several real outputs below
+	// {attribute 'TcLinkTo' := 'TIIB[N20S21 (EL2008)]^Channel 1^Output'}
+	oGuardDoorLock1 AT %Q*: BOOL;		//Real Output
+	// {attribute 'TcLinkTo' := 'TIIB[N20S21 (EL2008)]^Channel 2^Output'}
+	oGuardDoorLock2 AT %Q*: BOOL;		//Real Output
+	// {attribute 'TcLinkTo' := 'TIIB[N20S21 (EL2008)]^Channel 3^Output'}
+	oGuardDoorLock3 AT %Q*: BOOL;		//Real Output
+	oEstopReset AT %Q*: BOOL;			//Not used
+
+	hiGuardDoorsLock: BOOL;
+	hiGuardDoorsUnlock: BOOL; 
+	hiTestIndicatorTree: BOOL;
+	hiStationDryCycleEnable: BOOL;				//Not used
+	hiStationPurgeModeEnable: BOOL;				//Not used
+	hiEstopReset: BOOL;							//Not used
+	hoCurrentStateModeControl: DINT;
+	hoSingleStepEnabled: BOOL := FALSE; 
+	hoStationDryCycleEnabled: BOOL := FALSE;	//Not used
+	hoStationPurgeModeEnabled: BOOL := FALSE;	//Not used
+	hoFirstScan: BOOL;
+
+	RequiredStationResetAfterManualMode: BOOL := TRUE;
+	SeparateAckAndReset: BOOL := TRUE;
+
+	bStartingToRun: BOOL;
+	b500msPulse: BOOL;
+	tmrPulseON: TON;
+	tmrPulseOFF: TON;
+	tmrBeepPatternON: TON;
+	tmrBeepPatternOFF: TON;
+	tmrState: TON;
+	tmrAirPressureNotOK: TON;
+	tmrOKToStop: TON;
+	tmrSoftEstopReset: TON;
+	tmrSupressHorn: TON;
+	DoBeep: BOOL;
+	Simulate: BOOL := FALSE;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[pStn := ADR(gStn052);
+pSafetyInterface_Enc053 := ADR(gConsumed_SafetyInterfaceConv.Enc053);
+pSafetyInterface_Enc054 := ADR(gConsumed_SafetyInterfaceConv.Enc054);
+pSafetyInterface_Enc055 := ADR(gConsumed_SafetyInterfaceConv.Enc055);
+//TODO add others here
+pStateTraceBuffer := ADR(gStn052_StateTraceBuffer);
+pStateTraceFifo := ADR(gStn052_StateTraceFifo);
+pStats := ADR(gStn052_02_Stats);
+pCmpMain := ADR(gStn052_05_StnMain);
+
+IF gFirstScan THEN
+	hoFirstScan := TRUE;
+	FaultNumber := 1;
+	FaultText := 'PLC First SCAN';
+	Local.State := 9999; (* Necessary to get state 0 to execute FirstScan logic *)
+	Local.NextState := 0;
+END_IF
+
+IF gFirstScan THEN
+	tmrDelayPCStart(IN:=FALSE);
+	FBStartPC(START:=FALSE);
+ELSE
+	tmrDelayPCStart(IN:=TRUE,pt:=T#30s);
+END_IF
+
+// Any needed PC applications can be started here
+IF tmrDelayPCStart.Q THEN
+		   ;
+END_IF
+
+(*Publish station variables to safety interface*)
+gProduced_Stn052ToSafetyInterface.CycleAuto := pStn^.CycleAuto;
+gProduced_Stn052ToSafetyInterface.CycleReset := pStn^.CycleReset;
+gProduced_Stn052ToSafetyInterface.OkForManual := pStn^.OKForManual;
+
+(*Call input code*)
+Input();
+
+(*Status from each component*)
+pStn^.CycleFaulted := StationLevelFault OR pStn^.FaultedFIFO.Count > 0;
+pStn^.CycleManual := pStn^.CycleManualFIFO.Count > 0;
+pStn^.Attention := pStn^.AttentionRequiredFIFO.Count > 0;
+pStn^.OKToStop := FALSE;
+IF (pStn^.NotOKtoStopFIFO.Count = 0) THEN
+	tmrOKToStop(IN:=TRUE, PT:=T#2.0S);
+	IF tmrOKToStop.Q THEN
+		pStn^.OKToStop := TRUE;
+	END_IF;
+ELSE
+	tmrOKToStop(IN:=FALSE);
+END_IF
+
+(*Check for need of full initialization*)
+IF gFirstScan OR cmdFullInit OR (cmdManualMode AND RequiredStationResetAfterManualMode) THEN
+	pStn^.FullInitRequired := TRUE;
+END_IF
+
+(*Station permissives*)
+pStn^.OKForManual := NOT pStn^.CycleAuto AND NOT pStn^.CycleReset AND (pStn^.FullInitRequired OR (NOT RequiredStationResetAfterManualMode));
+OKToStart := NOT pStn^.CycleFaulted AND NOT pStn^.EmergencyStop AND NOT pStn^.CycleManual AND iAirPressureOk;
+OKToReset := NOT pStn^.EmergencyStop AND NOT pStn^.CycleManual AND iAirPressureOk;
+
+(*Single Step*)
+IF cmdSingleStepOn THEN
+	pStn^.SingleStep := TRUE;
+	hoSingleStepEnabled := TRUE;
+ELSIF pStn^.SingleStep AND (cmdSingleStepOff OR gFirstScan) THEN
+	pStn^.SingleStep := FALSE;
+	hoSingleStepEnabled := FALSE;
+END_IF
+pStn^.StepAdvance := (pStn^.SingleStep AND cmdSingleStepAdvance);
+IF pStn^.StepAdvance THEN
+	pStn^.StepAdvance := pStn^.StepAdvance;
+END_IF
+
+(*SIMULATE CODE*)
+IF Simulate OR gSimulate OR pStn^.DryCycle THEN
+	iEstopRlyTripped := FALSE;
+	iAirPressureOk := TRUE;
+END_IF
+
+hoCurrentStateModeControl := Local.State;
+
+(*Mode Logic*)
+
+IF Local.NextState <> Local.State THEN
+	Local.FirstEntry := TRUE;
+	Local.State := Local.NextState;
+	fbGetTime(timeLoDW=>TimeStamp.TimeLo, timeHiDW=>TimeStamp.TimeHi);
+	TimeStamp.ID := 0;
+	TimeStamp.State := Local.State;
+	pStateTraceFifo^.LOAD(pFIFO := pStateTraceBuffer, in := TimeStamp);
+	tmrState(IN:=FALSE); (*clear timer if state changes*)
+ELSE
+	Local.FirstEntry := FALSE;
+END_IF
+
+CASE Local.State OF
+
+0:	(*Faulted, Not Acknowledged*)
+
+	IF Local.FirstEntry THEN
+		(*Display the first fault on the operator panel*)
+		MsgText := pStn^.FirstFault.StringData[0];
+		AltMsgText := pStn^.FirstFault.StringData[2];
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Red, cChannel.FirstFault);
+		(*Log fault event*)
+		TempEvent.EType := cStats.Faulted;
+		TempEvent.Data[0] := DINT_TO_REAL(pStn^.FirstFault.FaultID);
+		TempEvent.StringData[0] := pStn^.FirstFault.StringData[0];
+		F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+	END_IF
+
+	// Added to match JRA_GXO_Common library v0.0.10
+	IF pStn^.ManualCycleClearMsg THEN
+		MEMSET(ADR(pStn^.FirstFault),0,SIZEOF(pStn^.FirstFault)); (*clear first fault*)
+		MsgText := 'Manual cycle was requested';
+		AltMsgText := 'Manual cycle was requested';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+	END_IF	
+	
+	IF cmdFaultAcknowledge OR cmdFaultAcknowledgeViaGuardDoor OR
+		cmdFaultAcknowledgeViaRobotKeyInManual OR NOT SeparateAckAndReset THEN
+		Local.NextState := 10;
+	END_IF
+
+10:	(*Faulted. Acknowledged*)
+
+	IF Local.FirstEntry THEN
+		IF SeparateAckAndReset THEN
+			(*Send event fault acknowledge*)
+			TempEvent.EType := cStats.FaultAcknowledge;
+			F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+			// Leave fault text displayed when ack hit to silence horn
+			//MsgText := 'Fault Acknowledged';
+			//AltMsgText := 'Alt: Fault Acknowledged';
+			//F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+		END_IF
+		WaitForResetMsg := TRUE;
+	END_IF
+
+	// Added to match JRA_GXO_Common library v0.0.10
+	IF pStn^.ManualCycleClearMsg THEN
+		MEMSET(ADR(pStn^.FirstFault),0,SIZEOF(pStn^.FirstFault)); (*clear first fault*)
+		MsgText := 'Manual cycle was requested';
+		AltMsgText := 'Manual cycle was requested';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+	END_IF	
+	
+	IF OKToReset THEN
+		// Leave fault text displayed when ack hit to silence horn
+		(*
+		IF WaitForResetMsg AND SeparateAckAndReset THEN
+			WaitForResetMsg := FALSE;
+			IF pStn^.FullInitRequired THEN
+				MsgText := 'Full Init Required. Waiting for Full Init';
+				AltMsgText := 'Alt: Full Init Required. Waiting for Full Init';
+			ELSE
+				MsgText := 'Waiting for Fault Reset or Full Init';
+				AltMsgText := 'Alt: Waiting for Fault Reset or Full Init';
+			END_IF
+			F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+		END_IF
+		*)
+		IF cmdFaultReset AND NOT pStn^.FullInitRequired THEN
+			Local.NextState := 20;
+			pStn^.SingleStep := FALSE;
+		END_IF
+		IF cmdFullInit THEN
+			Local.NextState := 50;
+			pStn^.SingleStep := FALSE;
+		END_IF
+	END_IF
+
+20:	(*Unlatch Faults - Fault Reset*)
+
+	IF Local.FirstEntry THEN
+		pStn^.UnlatchFaults := TRUE;
+		IF NOT SeparateAckAndReset THEN
+			(*Send event fault acknowledge*)
+			TempEvent.EType := cStats.FaultAcknowledge;
+			F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+		END_IF
+	END_IF
+
+	IF NOT pStn^.CycleFaulted AND NOT StationLevelFault THEN
+		pStn^.UnlatchFaults := FALSE;
+		Local.NextState := 30;
+	END_IF
+
+30:	(*Fault Reset*)
+
+	IF Local.FirstEntry THEN
+		pStn^.CycleReset := TRUE;
+		MEMSET(ADR(pStn^.FirstFault),0,SIZEOF(pStn^.FirstFault)); (*clear first fault*)
+		MsgText := 'Resetting...';
+		AltMsgText := 'Alt: Resetting...';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+	END_IF
+
+	IF pStn^.ResetDone THEN
+		pStn^.CycleReset := FALSE;
+		Local.NextState := 100;
+	END_IF
+	IF pStn^.CycleFaulted OR cmdFullInit THEN
+		pStn^.CycleReset := FALSE;
+		Local.NextState := 0;
+	END_IF
+
+50:	(*Unlatch Faults - Station Reset*)
+
+	IF Local.FirstEntry THEN
+		pStn^.UnlatchFaults := TRUE;
+		IF NOT SeparateAckAndReset THEN
+			(*Send db event fault acknowledge*)
+			TempEvent.EType := cStats.FaultAcknowledge;
+			F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+		END_IF
+	END_IF
+	IF NOT pStn^.CycleFaulted AND NOT StationLevelFault THEN
+		pStn^.UnlatchFaults := FALSE;
+		Local.NextState := 60;
+	END_IF
+
+60:	(* Station Reset *)
+
+	IF Local.FirstEntry THEN
+		pStn^.CycleReset := TRUE;
+		MEMSET(ADR(pStn^.FirstFault),0,SIZEOF(pStn^.FirstFault)); (*clear first fault*)
+		MsgText := 'Resetting...';
+		AltMsgText := 'Alt: Resetting...';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+		TempEvent.EType := cStats.Initialize;
+		F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+	END_IF
+
+	IF pStn^.ResetDone THEN
+		pStn^.CycleReset := FALSE;
+		pStn^.FullInitRequired := FALSE;
+		Local.NextState := 100;
+	END_IF
+	IF pStn^.CycleFaulted THEN
+		pStn^.CycleReset := FALSE;
+		Local.NextState := 0;
+	END_IF
+
+100:	(*Idle*)
+
+	IF Local.FirstEntry THEN
+		StationResetRequest := FALSE;
+		TempEvent.EType := cStats.CycleTime;
+		TempEvent.Data[0] := 1; (*cancel any incomplete cycle time *)
+		F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+		(*Stack light flash green*)
+		MsgText := 'Idle';
+		AltMsgText := 'Alt: Idle';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+	END_IF
+
+	IF cmdStart AND OKToStart AND NOT pStn^.FullInitRequired THEN
+		bStartingToRun := TRUE;
+		Local.NextState := 200;
+	END_IF
+	IF pStn^.CycleFaulted THEN
+		Local.NextState := 0;
+	END_IF
+	IF cmdFullInit AND OKToReset THEN
+		Local.NextState := 60;
+	END_IF
+
+150:	(*Dwell for horn blast (look for DoBeep below) and time for guard door to lock*)
+	IF Local.FirstEntry THEN
+		Local.tmrState.PT := T#3s;
+	END_IF
+
+	IF Local.tmrState.Q THEN
+		Local.NextState := 170;
+	END_IF
+
+170:	(*Horn off (look for DoBeep below) and Check guard door*)
+	IF Local.FirstEntry THEN
+		;
+	END_IF
+
+	IF NOT FALSE(*iGuardDoorDoor1Open *) THEN
+		Local.NextState := 200;		(* start running *)
+	ELSE
+		bStartingToRun := FALSE;
+		FaultNumber := 10;
+		FaultText := 'Guard Door #1 Not Closed';
+		FaultAltText := CONCAT('Alt:', FaultText);
+		Local.NextState := 0;		(* field the error and come out of mode*)
+	END_IF
+
+200:	(*Running*)
+	IF Local.FirstEntry THEN
+		pStn^.CycleAuto := TRUE;
+		bStartingToRun := FALSE;
+		(*Stack light green*)
+		MsgText := 'Running';
+		AltMsgText := 'Alt: Running';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+		(*Send Working event*)
+		TempEvent.EType := cStats.Working;
+		F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+	END_IF
+	IF cmdOperatorStop THEN
+		Local.NextState := 250;
+	END_IF
+	IF pStn^.CycleFaulted OR cmdMachineStop THEN
+		Local.NextState := 260;
+	END_IF
+
+250:	(*Operator Stop Requested. Machine stopping*)
+	IF Local.FirstEntry THEN
+		pStn^.StopRequest := TRUE;
+		(*Start button flash green*)
+		MsgText := 'Stopping...';
+		AltMsgText := 'Alt: Stopping...';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+		TempEvent.EType := cStats.CycleTime;
+		TempEvent.Data[0] := 1; (*cancel cycle timer*)
+		F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+	END_IF
+
+	IF pStn^.OKToStop THEN
+		pStn^.StopRequest := FALSE;
+		pStn^.CycleAuto := FALSE;
+		IF pStn^.CycleFaulted THEN
+			Local.NextState := 0;
+		ELSE
+			TempEvent.EType := cStats.OperatorStop;
+			F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+			Local.NextState := 100;
+		END_IF
+	END_IF
+
+260:	(*Machine Stop Requested, or machine fault.. Machine stopping*)
+
+	IF Local.FirstEntry THEN
+		pStn^.StopRequest := TRUE;
+		(*Start button flash green*)
+		TempEvent.EType := cStats.CycleTime;
+		TempEvent.Data[0] := 1; (*cancel cycle timer*)
+		F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+	END_IF
+
+	IF pStn^.OKToStop THEN
+		pStn^.StopRequest := FALSE;
+		pStn^.CycleAuto := FALSE;
+		IF pStn^.CycleFaulted THEN
+			Local.NextState := 0;
+		ELSE
+			TempEvent.EType := cStats.MachineStop;
+			F_SendEvent(ADR(pStats^.StatsEventFIFO), ADR(pStats^.StatsEventBuffer), ADR(TempEvent));
+			Local.NextState := 100;
+		END_IF
+	END_IF
+END_CASE
+
+pStn^.CycleStopped := NOT pStn^.CycleAuto AND NOT pStn^.CycleReset AND NOT pStn^.CycleManual;
+
+(* --- Station Level Faults --- *)
+StationLevelFaults();
+
+(* --- Post station level fault --- *)
+IF FaultNumber <> 0 AND NOT StationLevelFault THEN
+	StationLevelFault := TRUE;
+	FaultData.FaultID := FaultNumber;
+	MsgText := 'Fault: ';
+	AltMsgText := 'AltFault: ';
+	MsgText := CONCAT(MsgText,DINT_TO_STRING(FaultData.FaultID));
+	MsgText := CONCAT(MsgText,' ');
+	MsgText := CONCAT(MsgText, FaultText);
+	AltMsgText := CONCAT(AltMsgText,DINT_TO_STRING(FaultData.FaultID));
+	AltMsgText := CONCAT(AltMsgText,' ');
+	AltMsgText := CONCAT(AltMsgText, FaultAltText);
+	F_AddMessage(pStn, MsgText, AltMsgText, cColor.Red, cChannel.Fault);
+	IF pStn^.FirstFault.FaultID = 0 THEN
+		// TODO - RCC: clean up  local.faultData vs just FaultData
+		//pStn^.FirstFault := Local.FaultData;
+		pStn^.FirstFault := FaultData;
+		pStn^.FirstFault.StationID := pStn^.StationID;
+		pStn^.FirstFault.StringData[0] := MsgText;
+		pStn^.FirstFault.StringData[1] := AltMsgText;
+	END_IF
+END_IF
+
+IF pStn^.UnlatchFaults THEN
+	FaultNumber := 0;
+	StationLevelFault := FALSE;
+END_IF
+
+(*Call output code*)
+Output();
+
+(*1/2 second pulse generator*)
+tmrPulseON(IN:=NOT tmrPulseOFF.Q,PT:=T#0.5s);
+tmrPulseOFF(IN:=tmrPulseON.Q,PT:=T#0.5s);
+IF tmrPulseON.Q THEN
+	b500msPulse := TRUE;
+ELSE
+	b500msPulse := FALSE;
+END_IF
+pStn^.b500msPulse := b500msPulse;
+
+(*Clear manual cycle clear msg*)
+// Added to match JRA_GXO_Common library v0.0.10
+pStn^.ManualCycleClearMsg := FALSE;
+
+(*Clear status fifo buffers*)
+pStn^.AttentionRequiredFIFO.INIT(pFIFO:=ADR(pStn^.AttentionRequiredFIFOBuffer));
+pStn^.NotOKtoStopFIFO.INIT(pFIFO:=ADR(pStn^.NotOKToStopFIFOBuffer));
+pStn^.FaultedFIFO.INIT(pFIFO:=ADR(pStn^.FaultedFIFOBuffer));
+pStn^.CycleManualFIFO.INIT(pFIFO:=ADR(pStn^.CycleManualFIFOBuffer));
+
+]]></ST>
+    </Implementation>
+    <Action Name="Input" Id="{26b97b4f-8fd2-4c47-a259-a146c0d6782c}">
+      <Implementation>
+        <ST><![CDATA[// Map safety status bit consumed from safety interface PLC to local "input" tags
+
+// TODO RCC: Need to impliment additional guard doors
+// TODO RCC: Need to impliment additional msg for safety ctrl error
+iEstopRlyTripped := 
+	(pSafetyInterface_Enc053^.iEstopRlyTripped OR
+	 pSafetyInterface_Enc054^.iEstopRlyTripped OR
+	 pSafetyInterface_Enc055^.iEstopRlyTripped) AND
+	 NOT Simulate;
+iEstopButtonNOK1 := pSafetyInterface_Enc053^.iEstopButtonNOK1 OR
+	pSafetyInterface_Enc054^.iEstopButtonNOK1 OR
+	pSafetyInterface_Enc055^.iEstopButtonNOK1;
+iEstopButtonNOK2 := FALSE;
+iEstopButtonNOK3 :=  FALSE;
+iEstopButtonNOK4 :=  FALSE;
+iEstopButtonNOK5 :=  FALSE;
+iEstopButtonNOK6 :=  FALSE;
+iEstopButtonNOK7 :=  FALSE;
+iGrdDrRlyTripped :=  FALSE;
+iGrdDr1Open :=  FALSE;
+iGrdDr2Open :=  FALSE;
+iGrdDr3Open :=  FALSE;
+iGrdDr4Open :=  FALSE;
+iGrdDr5Open :=  FALSE;
+iGrdDr6Open :=  FALSE;
+iToolDr1Open :=  FALSE;
+iToolDr2Open :=  FALSE;
+iToolDr3Open :=  FALSE;
+iToolDr4Open :=  FALSE;
+iToolDr5Open :=  FALSE;
+iToolDr6Open :=  FALSE;
+iToolDr7Open :=  FALSE;
+iToolDr8Open :=  FALSE;
+iTool1PosNOK :=  FALSE;
+iTool2PosNOK :=  FALSE;
+iTool3PosNOK :=  FALSE;
+iTool4PosNOK :=  FALSE;
+iTool5PosNOK :=  FALSE;
+iTool6PosNOK :=  FALSE;
+iTool7PosNOK :=  FALSE;
+iTool8PosNOK :=  FALSE;
+iRobot1CommNOK :=  FALSE;
+iRobot2CommNOK :=  FALSE;
+iRobot3CommNOK :=  FALSE;
+iRobot1InManual :=  FALSE;
+iRobot2InManual :=  FALSE;
+iRobot3InManual :=  FALSE;
+iSafetyResetPB := pSafetyInterface_Enc053^.iSafetyResetPB OR
+	pSafetyInterface_Enc054^.iSafetyResetPB OR
+	pSafetyInterface_Enc055^.iSafetyResetPB;
+iSafetyCtrlGroupError := pSafetyInterface_Enc053^.iSafetyCtrlGroupError OR
+	pSafetyInterface_Enc054^.iSafetyCtrlGroupError OR
+	pSafetyInterface_Enc055^.iSafetyCtrlGroupError;
+iServoSTOEnableImmedOff :=  FALSE;
+iServoSTOEnableDelayedOff :=  FALSE;
+iRowa_JROkToRowaRlyTripped :=  FALSE;
+iRowa_RowaToJRSafetyNOK :=  FALSE;
+
+cmdEstopReset := iStationPowerOnPB OR hiEstopReset;
+tmrSoftEstopReset(IN:=hiEstopReset, PT:=T#2S);
+IF NOT iEstopRlyTripped OR tmrSoftEstopReset.Q THEN
+	hiEstopReset := FALSE;
+END_IF
+
+onsStart(CLK:=(pStn^.hiCycleStart OR iCycleStartPB));
+cmdStart := onsStart.Q;
+pStn^.hiCycleStart := FALSE;
+
+onsOperatorStop(CLK:=(pStn^.hiCycleStop OR iCycleStopPB));
+cmdOperatorStop := onsOperatorStop.Q;
+pStn^.hiCycleStop := FALSE;
+
+(*machine stop receives signals from other stations or SCADA*)
+(*onsMachineStop(CLK:=FALSE);*)
+cmdMachineStop := pStn^.MachineStopRqst;
+pStn^.MachineStopRqst := FALSE;
+
+onsFaultAcknowledge(CLK:=(pStn^.hiFaultAck OR iFaultAck_ResetPB));
+cmdFaultAcknowledge := onsFaultAcknowledge.Q; (*AND (SentFaultEvent AND SeparateAckAndReset); (* SentFaultEvent cleared after ack*)*)
+pStn^.hiFaultAck := FALSE;
+
+onsFaultReset(CLK:= (pStn^.hiFaultReset OR iFaultAck_ResetPB));
+cmdFaultReset := onsFaultReset.Q; (*AND (NOT SentFaultEvent OR NOT SeparateAckAndReset)*)
+pStn^.hiFaultReset := FALSE;
+
+onsStationReset(CLK:=(pStn^.hiStationReset OR iStationResetPB));
+cmdFullInit := onsStationReset.Q;
+pStn^.hiStationReset := FALSE;
+
+onsSingleStepOn(CLK:=(pStn^.hiSingleStepON));
+cmdSingleStepOn := onsSingleStepOn.Q;
+pStn^.hiSingleStepON := FALSE;
+
+onsSingleStepOff(CLK:=(pStn^.hiSingleStepOff));
+cmdSingleStepOff := onsSingleStepOff.Q;
+pStn^.hiSingleStepOff := FALSE;
+
+onsSingleStepAdvance(CLK:=(pStn^.hiSingleStepAdvance));
+cmdSingleStepAdvance := onsSingleStepAdvance.Q;
+pStn^.hiSingleStepAdvance := FALSE;
+
+onsManualMode(CLK:=(pStn^.hiManualMode));
+cmdManualMode := onsManualMode.Q;
+pStn^.hiManualMode := FALSE;
+
+pStn^.EmergencyStop := iEstopRlyTripped OR iGrdDrRlyTripped;
+
+iAirPressureOk := gConsumed_SafetyInterfaceConv.Enc053.iAirPressureOk AND
+	gConsumed_SafetyInterfaceConv.Enc054.iAirPressureOk AND
+	gConsumed_SafetyInterfaceConv.Enc055.iAirPressureOk;
+pStn^.ControlAirOk := iAirPressureOk;
+
+cmdFaultAcknowledgeViaGuardDoor := 
+	iGrdDr1Open OR
+	iGrdDr2Open OR
+	iGrdDr3Open;
+
+cmdFaultAcknowledgeViaRobotKeyInManual :=
+	iRobot1InManual;
+	
+(*debounced detection of IO failure*)
+senIONetworkOK(Input := (iEthercatDevState = 0), OnTime := T#1s, OffTime := T#50ms);]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="Output" Id="{26dd3012-66a6-4cd9-bde3-f9d1ffb60444}">
+      <Implementation>
+        <ST><![CDATA[(******Outputs******)
+
+IF cmdEstopReset THEN
+	oEstopReset := TRUE;
+ELSIF oEstopReset THEN
+	oEstopReset := FALSE;
+END_IF
+
+//Mast light red request logic
+IF hiTestIndicatorTree THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.RedReq := TRUE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.RedReq := TRUE;
+	//oStackLightRed := TRUE; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.RedReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.RedReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.RedReq := FALSE;
+	//oStackLightRed := FALSE; //Removed to switch to req version
+END_IF
+
+//Mast light red flash request logic
+IF pStn^.CycleFaulted THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.RedFlashReq := TRUE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.RedFlashReq := TRUE;
+	//oStackLightRed := TRUE; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.RedFlashReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.RedFlashReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.RedFlashReq := FALSE;
+	//oStackLightRed := FALSE; //Removed to switch to req version
+END_IF
+
+//Mast light green request logic
+IF (NOT pStn^.CycleFaulted AND pStn^.CycleAuto) OR hiTestIndicatorTree THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.GrnReq := TRUE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.GrnReq := TRUE;
+	//oStackLightGreen := TRUE; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.GrnReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.GrnReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.GrnReq := FALSE;
+	//oStackLightGreen := FALSE; //Removed to switch to req version
+END_IF
+
+//Mast light green flash request logic
+IF NOT pStn^.CycleFaulted AND NOT pStn^.CycleAuto THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.GrnFlashReq := TRUE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.GrnFlashReq := TRUE;
+	//oStackLightGreen := TRUE; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.GrnFlashReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.GrnFlashReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.GrnFlashReq := FALSE;
+	//oStackLightGreen := FALSE; //Removed to switch to req version
+END_IF
+
+//Mast light amber request logic
+IF hiTestIndicatorTree THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.YelReq := TRUE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.YelReq := TRUE;	
+	//oStackLightAmber := TRUE; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.YelReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.YelReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.YelReq := FALSE;	
+	//oStackLightAmber := FALSE; //Removed to switch to req version
+END_IF
+
+//Mast light amber flash request logic
+IF pStn^.Attention THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.YelFlashReq := TRUE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.YelFlashReq := TRUE;
+	//oStackLightAmber := TRUE; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.YelFlashReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.YelFlashReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.YelFlashReq := FALSE;
+	//oStackLightAmber := FALSE; //Removed to switch to req version
+END_IF
+
+////iEstopRlyTripped  iGrdDrRlyTripped
+//IF not(iEstopRlyTripped) and not(iGrdDrRlyTripped) then 
+//	oControlPowerPBLight:= true;
+//ELSIF not(iEstopRlyTripped) and iGrdDrRlyTripped then
+//	oControlPowerPBLight := b500msPulse;
+//ELSE
+//	oControlPowerPBLight:= false;
+//END_IF
+
+(*IF (Local.State = 0 AND b500msPulse) OR (pStn^.CycleFaulted AND Local.State <> 0) OR hiTestIndicatorTree THEN
+	oFaultAck_ResetPBLight := TRUE;
+ELSE
+	oFaultAck_ResetPBLight := FALSE;
+END_IF*)
+
+(* Add horn beep pattern logic*)
+(* Are the conditions RIGHT FOR honking? *)
+(* Supress horn if not acknowledged after suitable period of time *)
+tmrSupressHorn(IN:=(Local.State = 0 OR Local.State = 10),PT:=T#60S);
+
+DoBeep :=	(Local.State = 0 AND NOT tmrSupressHorn.Q) OR
+			(Local.State = 10 AND NOT tmrSupressHorn.Q AND NOT SeparateAckAndReset) OR
+			Local.State = 150 OR
+			hiTestIndicatorTree;
+
+//MastLight horn request logic			
+tmrBeepPatternON(IN:=NOT tmrBeepPatternOFF.Q,PT:=T#1.0S);
+tmrBeepPatternOFF(IN:=DoBeep AND tmrBeepPatternON.Q,PT:=T#1.0s);
+IF tmrBeepPatternON.Q THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.HornReq := DoBeep;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.HornReq := DoBeep; 
+	//oStackLightHorn := TRUE AND DoBeep; //Removed to switch to req version
+ELSIF gProduced_Stn052ToSafetyInterface.Enc053MastLight.HornReq THEN
+	gProduced_Stn052ToSafetyInterface.Enc053MastLight.HornReq := FALSE;
+	gProduced_Stn052ToSafetyInterface.Enc054MastLight.HornReq := FALSE;
+	//oStackLightHorn := FALSE; //Removed to switch to req version
+END_IF
+
+hoStationDryCycleEnabled := hiStationDryCycleEnable;
+pStn^.DryCycle := hiStationDryCycleEnable;
+
+IF (pStn^.CycleAuto OR pStn^.CycleReset OR bStartingToRun) AND NOT pStn^.EmergencyStop THEN
+	oGuardDoorsLock := TRUE;
+ELSIF pStn^.OKForManual THEN		(*#### Manual operation ####*)
+	IF hiGuardDoorsLock THEN
+		oGuardDoorsLock := TRUE;
+	END_IF
+	IF hiGuardDoorsUnlock THEN
+		oGuardDoorsLock := FALSE;
+	END_IF
+ELSIF oGuardDoorsLock THEN
+	oGuardDoorsLock := FALSE;
+END_IF
+
+hiGuardDoorsLock := FALSE;
+hiGuardDoorsUnlock := FALSE;
+
+oGuardDoorLock1 := oGuardDoorsLock;
+oGuardDoorLock2 := oGuardDoorsLock;
+oGuardDoorLock3 := oGuardDoorsLock;
+]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="StationLevelFaults" Id="{2f5f8793-8599-49c6-9bc5-3f326bf6e499}">
+      <Implementation>
+        <ST><![CDATA[(*Station Level Fault Logic*)
+(* ------ Main Estop Relay and Doors ------------ *)
+IF pStn^.EmergencyStop THEN
+	
+	// Don't enumerate which device for fault message
+	IF NOT StationLevelFault THEN 
+		IF onsEStopNotOKHMIMessage THEN
+			onsEStopNotOKHMIMessage := FALSE;
+			FaultNumber := 2;
+			FaultText := 'Guard or Emergency Stop';
+			FaultAltText := 'Alt: Guard or Emergency Stop';
+		END_IF
+	END_IF
+
+	// Do enumerate reasons if operator tries to start
+	IF cmdStart OR cmdFaultReset OR cmdFullInit OR iStationPowerOnPB OR iSafetyResetPB THEN
+		IF onsEStopNotOKStartAttmpt THEN
+
+			onsEStopNotOKStartAttmpt := FALSE;
+
+			IF iGrdDrRlyTripped THEN
+				MsgText := 'Guard Stopped; Need safety reset button';
+				AltMsgText := 'Alt: Guard Stopped; Need safety reset button';
+			END_IF
+	
+			IF iGrdDr1Open THEN
+				MsgText := 'Guard Door 1 Open';
+				AltMsgText := 'Alt: Guard Door 1 Open';
+			END_IF
+	
+			IF iGrdDr2Open THEN
+				MsgText := 'Guard Door 2 Open';
+				AltMsgText := 'Alt: Guard Door 2 Open';
+			END_IF
+	
+			IF iGrdDr3Open THEN
+				MsgText := 'Guard Door 3 Open';
+				AltMsgText := 'Alt: Guard Door 3 Open';
+			END_IF
+	
+			IF iGrdDr4Open THEN
+				MsgText := 'Guard Door 4 Open';
+				AltMsgText := 'Alt: Guard Door 4 Open';
+			END_IF
+	
+			IF iGrdDr5Open THEN
+				MsgText := 'Guard Door 5 Open';
+				AltMsgText := 'Alt: Guard Door 5 Open';
+			END_IF
+	
+			IF iGrdDr6Open THEN
+				MsgText := 'Guard Door 6 Open';
+				AltMsgText := 'Alt: Guard Door 6 Open';
+			END_IF
+	
+			IF iToolDr1Open THEN
+				MsgText := 'Cling Feeder 1 Door Open';
+				AltMsgText := 'Alt: Cling Feeder 1 Door Open';
+			END_IF
+	
+			IF iToolDr2Open THEN
+				MsgText := 'Cling Feeder 2 Door Open';
+				AltMsgText := 'Alt: Cling Feeder 2 Door Open';
+			END_IF
+	
+			IF iToolDr3Open THEN
+				MsgText := 'Cling Feeder 3 Door Open';
+				AltMsgText := 'Alt: Cling Feeder 3 Door Open';
+			END_IF
+	
+			IF iToolDr4Open THEN
+				MsgText := 'Cling Feeder 4 Door Open';
+				AltMsgText := 'Alt: Cling Feeder 4 Door Open';
+			END_IF
+	
+			IF iToolDr5Open THEN
+				MsgText := 'Tool Door 5 Open';
+				AltMsgText := 'Alt: Tool Door 5 Open';
+			END_IF
+	
+			IF iToolDr6Open THEN
+				MsgText := 'Tool Door 6 Open';
+				AltMsgText := 'Alt: Tool Door 6 Open';
+			END_IF
+	
+			IF iToolDr7Open THEN
+				MsgText := 'Tool Door 7 Open';
+				AltMsgText := 'Alt: Tool Door 7 Open';
+			END_IF
+	
+			IF iToolDr8Open THEN
+				MsgText := 'Tool Door 8 Open';
+				AltMsgText := 'Alt: Tool Door 8 Open';
+			END_IF
+	
+			IF iTool1PosNOK THEN
+				MsgText := 'Tool 1 Not In Position';
+				AltMsgText := 'Alt: Tool 1 Not In Position';
+			END_IF
+	
+			IF iTool2PosNOK THEN
+				MsgText := 'Tool 2 Not In Position';
+				AltMsgText := 'Alt: Tool 2 Not In Position';
+			END_IF
+	
+			IF iTool3PosNOK THEN
+				MsgText := 'Tool 3 Not In Position';
+				AltMsgText := 'Alt: Tool 3 Not In Position';
+			END_IF
+	
+			IF iTool4PosNOK THEN
+				MsgText := 'Tool 4 Not In Position';
+				AltMsgText := 'Alt: Tool 4 Not In Position';
+			END_IF
+	
+			IF iTool5PosNOK THEN
+				MsgText := 'Tool 5 Not In Position';
+				AltMsgText := 'Alt: Tool 5 Not In Position';
+			END_IF
+	
+			IF iTool6PosNOK THEN
+				MsgText := 'Tool 6 Not In Position';
+				AltMsgText := 'Alt: Tool 6 Not In Position';
+			END_IF
+	
+			IF iTool7PosNOK THEN
+				MsgText := 'Tool 7 Not In Position';
+				AltMsgText := 'Alt: Tool 7 Not In Position';
+			END_IF
+	
+			IF iTool8PosNOK THEN
+				MsgText := 'Tool 8 Not In Position';
+				AltMsgText := 'Alt: Tool 8 Not In Position';
+			END_IF
+	
+			IF iRowa_RowaToJRSafetyNOK THEN
+				MsgText := 'Rowa Safety Not Okay';
+				AltMsgText := 'Alt: Rowa Safety Not Okay ';
+			END_IF
+	
+			IF iRobot1CommNOK THEN
+				MsgText := 'Robot 1 communication error';
+				AltMsgText := 'Alt: Robot 1 communication error';
+			END_IF
+	
+			IF iRobot2CommNOK THEN
+				MsgText := 'Robot 2 communication error';
+				AltMsgText := 'Alt: Robot 2 communication error';
+			END_IF
+	
+			IF iRobot3CommNOK THEN
+				MsgText := 'Robot 3 communication error';
+				AltMsgText := 'Alt: Robot 3 communication error';
+			END_IF
+	
+			IF iRobot1InManual THEN
+				MsgText := 'Robot In Manual Mode';
+				AltMsgText := 'Alt: Robot In Manual Mode';
+			END_IF
+	
+			IF iRobot2InManual THEN
+				MsgText := 'Robot 2 In Manual Mode';
+				AltMsgText := 'Alt: Robot 2 In Manual Mode';
+			END_IF
+	
+			IF iRobot3InManual THEN
+				MsgText := 'Robot 3 In Manual Mode';
+				AltMsgText := 'Alt: Robot 3 In Manual Mode';
+			END_IF
+	
+			IF iEstopRlyTripped THEN
+				MsgText := 'Emergency Stop; Need safety reset button';
+				AltMsgText := 'Alt: Emergency Stop; Need safety reset button';
+			END_IF
+	
+			IF iEstopButtonNOK1 THEN
+				MsgText := 'Estop Button Pressed at PB Box 1';
+				AltMsgText := 'Alt: Estop Button Pressed at PB Box 1';
+			END_IF
+	
+			IF iEstopButtonNOK2 THEN
+				MsgText := 'Estop Button Pressed at PB Box 2';
+				AltMsgText := 'Alt: Estop Button Pressed at PB Box 2';
+			END_IF
+	
+			IF iEstopButtonNOK3 THEN
+				MsgText := 'Robot/Pendant Estop Button Pressed';
+				AltMsgText := 'Alt: Robot/Pendant Estop Button Pressed';
+			END_IF
+	
+			IF iEstopButtonNOK4 THEN
+				MsgText := 'Estop Button 4 Pressed';
+				AltMsgText := 'Alt: Estop Button 4 Pressed';
+			END_IF
+	
+			IF iEstopButtonNOK5 THEN
+				MsgText := 'Estop Button 5 Pressed';
+				AltMsgText := 'Alt: Estop Button 5 Pressed';
+			END_IF
+	
+			IF iEstopButtonNOK6 THEN
+				MsgText := 'Estop Button 6 Pressed';
+				AltMsgText := 'Alt: Estop Button 6 Pressed';
+			END_IF
+	
+			IF iEstopButtonNOK7 THEN
+				MsgText := 'Estop Button 7 Pressed';
+				AltMsgText := 'Alt: Estop Button 7 Pressed';
+			END_IF
+			
+			IF NOT iStationPowerOnPB AND NOT iSafetyResetPB THEN (* Control Power button *)
+				MsgText := CONCAT('RESET or START attempted; ',MsgText);
+				AltMsgText := CONCAT('Alt: RESET or START attempted; ',AltMsgText);
+			ELSE
+				onsPowerOnAttmpt := TRUE;
+			END_IF
+			
+			//TODO TAW - Add in message for safety controller faulted if possible
+			//"debug" is to be used for preficing any degug variables
+			
+			F_AddMessage(pStn, MsgText, AltMsgText, cColor.Blue, cChannel.Attention);
+
+		END_IF
+	ELSE
+		onsEStopNotOKStartAttmpt := TRUE;
+		onsPowerOnAttmpt := FALSE;
+	END_IF
+
+ELSE
+	IF onsPowerOnAttmpt THEN
+		MsgText := ' ';
+		AltMsgText := ' ';
+		F_AddMessage(pStn, MsgText, AltMsgText, cColor.Grey, cChannel.General);
+	END_IF
+	onsEStopNotOKStartAttmpt := TRUE;
+	onsEStopNotOKHMIMessage := TRUE;
+	onsPowerOnAttmpt := FALSE;
+END_IF
+
+(* ------ Main Air ------------ *)
+IF NOT iEstopRlyTripped AND NOT iAirPressureOk THEN
+	tmrAirPressureNotOK(IN := pStn^.CycleAuto OR pStn^.CycleReset OR pStn^.CycleManual, PT := T#3.0S);
+	IF tmrAirPressureNotOK.Q THEN
+		IF onsAirNotOKHMIMessage THEN
+			onsAirNotOKHMIMessage := FALSE;
+			FaultNumber := 3;
+			FaultText := 'Station Loss of Air Pressure';
+			FaultAltText := 'Alt: Station Loss of Air Pressure';
+		END_IF
+	ELSE
+		onsAirNotOKHMIMessage := TRUE;
+	END_IF
+
+	IF cmdStart OR cmdFaultReset OR cmdFullInit THEN
+		IF onsAirNotOKStartAttempt THEN
+			onsAirNotOKStartAttempt := FALSE;
+			MsgText := 'RESET or START attempted with loss of air pressure';
+			AltMsgText := 'Alt: RESET or START attempted with loss of air pressure';
+			F_AddMessage(pStn, MsgText, AltMsgText, cColor.Blue, cChannel.Attention);
+		END_IF
+	ELSE
+		onsAirNotOKStartAttempt := TRUE;
+	END_IF
+ELSE
+	onsAirNotOKHMIMessage := TRUE;
+	onsAirNotOKStartAttempt := TRUE;
+	tmrAirPressureNotOK(IN := FALSE);
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="Stn052_00_ModeControl">
+      <LineId Id="1619" Count="24" />
+      <LineId Id="2377" Count="2" />
+      <LineId Id="1648" Count="0" />
+      <LineId Id="2208" Count="3" />
+      <LineId Id="2207" Count="0" />
+      <LineId Id="1649" Count="381" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_00_ModeControl.Input">
+      <LineId Id="2" Count="3" />
+      <LineId Id="134" Count="52" />
+      <LineId Id="29" Count="48" />
+      <LineId Id="129" Count="0" />
+      <LineId Id="187" Count="2" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="78" Count="3" />
+      <LineId Id="84" Count="0" />
+      <LineId Id="130" Count="0" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="82" Count="0" />
+      <LineId Id="132" Count="0" />
+      <LineId Id="83" Count="0" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_00_ModeControl.Output">
+      <LineId Id="2" Count="7" />
+      <LineId Id="91" Count="63" />
+      <LineId Id="26" Count="1" />
+      <LineId Id="173" Count="6" />
+      <LineId Id="35" Count="17" />
+      <LineId Id="162" Count="10" />
+      <LineId Id="59" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="61" Count="13" />
+      <LineId Id="1" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="82" Count="3" />
+      <LineId Id="81" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn052_00_ModeControl.StationLevelFaults">
+      <LineId Id="2" Count="19" />
+      <LineId Id="184" Count="188" />
+      <LineId Id="126" Count="57" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,247 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_BreakStop" Id="{9be6a08d-a2f9-4e5f-8009-c39e47e44a65}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_BreakStop
+VAR_INPUT
+	CycleStart : BOOL;
+	CycleStop : BOOL;
+	UnlatchFaults : BOOL;
+	OKForManual : BOOL;
+	ConvRunning : BOOL;
+	PLCFirstScan : BOOL;
+	pConfig: POINTER TO BreakStopConfig;
+END_VAR
+VAR_OUTPUT
+	Running :		 			BOOL;				// BreakStop() processing is watching pucks and timers
+	StopLowerReq :				BOOL;
+	FaultPuckDidNotLeave :		BOOL;
+	FaultPuckDidNotArriveAtBuffer : BOOL;
+END_VAR
+
+VAR
+	State	:		DINT;
+	CycleManual	:	BOOL;
+	ErrorNumLocal : 	DINT;
+	NextState : 		DINT;
+	FirstEntry : 		BOOL;
+	tmrState : 			TON;
+	tmrStatePreset :	TIME;
+	PuckInTransitToBuffer: 		BOOL;
+	PuckInTransitTimeSpacing: 	BOOL;
+	tmrPuckInTransitToBuffer: 	TON;
+	tmrPuckInTransitTimeSpacing: 	TON;
+	senPuckPresent: 				FB_Sensor;
+	senBufferFull: 				FB_SensorHyst;
+	iPuckPresent AT %I*: BOOL; (*On/Off timing can be config based*)
+	iBufferFull AT %I*: BOOL; (*On/Off timing can be config based*)
+	oStopLower AT %Q*: BOOL;
+	hiStopLower: BOOL := FALSE;				// manual mode
+	hiStopRaise: BOOL := FALSE;
+	hiCycleStart: BOOL := FALSE;
+	hiCycleStop: BOOL := FALSE;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// This component was written for:  Conveyor press break stops in main conveyor system.
+//
+// This is a simpler, cleaner version of the Conveyor Stop software component used in the pilot project.
+// The purpose for this simpler version is allow a large array of function block instances to be run on the conveyor PLC
+// and several of the Break Stop components in the conveyor line can handled with a single component call. This reduces
+// the need for EVERY Break stop to be handled as a standard software component in conveyor logic.
+//
+// It services only the basic IO of the conveyor stop mechanical device:
+// Input -  Puck physically present input (sensor at the stop location)
+// Input - Puck detected at the BufferFull sensor 
+// Output - Stop lower release control to allow the puck to pass the stop location.
+//
+// The other options have been removed.
+//
+// There is limited reset capability and 2 possible faults:
+//  1. Puck presence timed out (seen too long at the stop location after release)
+//  2. Puck did not arrive at BufferFull sensor within the expected time.
+//
+
+IF PLCFirstScan THEN
+	// start with idle
+	State := 9999;
+ 	NextState := 5000;
+END_IF
+(* Housekeeping *)
+
+// PuckInTransit_TimeSpacing gets latched on when a puck is released.
+//   It is then cleared when the timer expires thus giving desired spacing before next puck is eligible for release.
+IF tmrPuckInTransitTimeSpacing.Q THEN
+	PuckInTransitTimeSpacing := FALSE;
+END_IF
+tmrPuckInTransitTimeSpacing(IN := PuckInTransitTimeSpacing, PT := pConfig^.TimeSpacingMinimum);
+
+// PuckInTransit_ToBuffer gets latched on when a puck is released.
+//   It is then cleared when puck arrives at the buffer full sensor or if not using one of the arrival at buffer config modes.
+// .
+IF iBufferFull OR
+		NOT pConfig^.EnableBufferArrivalFault  OR
+		NOT ConvRunning THEN
+	PuckInTransitToBuffer := FALSE;
+END_IF
+tmrPuckInTransitToBuffer(IN := PuckInTransitToBuffer, PT := pConfig^.BufferArrivalFaultTime);
+
+// Set the sensor on and off times based on config populated times where appropriate
+// these handle the sensor debounce timing.
+senPuckPresent(
+	Input := iPuckPresent, 
+	OnTime := pConfig^.DebounceTimePuckPresentOn, 
+	OffTime := pConfig^.DebounceTimePuckPresentOff);
+senBufferFull(
+	Input := iBufferFull,
+	OnTime := pConfig^.DebounceTimeBufferFullOn,
+	OffTime := pConfig^.DebounceTimeBufferFullOff);
+
+// Create FirstEntry and state timer.
+FirstEntry := NextState <> State;
+tmrState(IN:=NOT FirstEntry, PT:=tmrStatePreset);
+
+//Rotate state here.
+State := NextState;
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE State OF
+	0: (*Wait for action - START, STOP, RESETFAULT*)
+	
+		IF tmrPuckInTransitToBuffer.Q AND
+				pConfig^.EnableBufferArrivalFault THEN
+			NextState := 1;
+		ELSIF senBufferFull.Off AND
+				NOT PuckInTransitTimeSpacing AND
+				ConvRunning AND 
+				senPuckPresent.On THEN
+			NextState := 10;
+		END_IF
+
+		IF CycleStop OR hiCycleStop THEN
+			NextState := 5010;
+		END_IF
+	
+	1: (*FAULT: Last puck did not arrive at buffer*)
+		
+		FaultPuckDidNotArriveAtBuffer := TRUE;
+		Running := FALSE;		
+		IF UnlatchFaults THEN	
+			NextState := 5010;
+		END_IF
+	
+	10: (*Release puck*)
+		
+		IF FirstEntry THEN
+			oStopLower := TRUE;
+			tmrStatePreset := pConfig^.MaxTimeLeavingStop;
+		END_IF
+		
+		IF tmrState.Q THEN
+			NextState := 11;
+		ELSIF senPuckPresent.OFF THEN
+			NextState := 20;
+		END_IF
+		
+		IF State <> NextState THEN
+			oStopLower := FALSE;
+		END_IF
+	
+		IF CycleStop OR hiCycleStop  THEN
+			NextState := 5010;
+		END_IF
+	
+	11: (*Fault: Puck did not leave stop*)
+		
+		FaultPuckDidNotLeave := TRUE;
+		Running := FALSE;
+		IF UnlatchFaults THEN	
+			NextState := 5010;
+		END_IF
+	
+	20: (*Puck Away*)
+		
+		(*These are set true here, run timers in housekeeeping, and have rules based reset in housekeeping base on buffer full sensor or timer.*);
+		
+		PuckInTransitToBuffer := TRUE;
+		PuckInTransitTimeSpacing := TRUE;
+		
+		IF CycleStop OR hiCycleStop  THEN
+			NextState := 5010;
+		ELSE
+			NextState := 0;
+		END_IF
+	
+		
+	5000:  (* IDLE *)
+		Running := TRUE;
+		oStopLower := FALSE;
+		PuckInTransitToBuffer := FALSE;	
+		
+		IF CycleStart OR hiCycleStart  THEN
+			NextState := 0;
+		END_IF
+
+		IF UnlatchFaults THEN	
+			NextState := 5010;
+		END_IF
+	
+	5010: (*Fault Reset*)
+			oStopLower := FALSE;
+			PuckInTransitToBuffer := FALSE;
+			Running := FALSE;
+			FaultPuckDidNotLeave := FALSE;
+			FaultPuckDidNotArriveAtBuffer := FALSE;
+			NextState := 5000;
+	
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// *************************
+//   Post Housekeepting logic
+// *************************
+
+// Publish stop lower output request
+StopLowerReq := oStopLower;
+
+// Set Attention Bit (if needed)
+
+// Summation of all manual cycle requests
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+
+(*#### Manual operation ####*)
+IF OKForManual AND NOT Running THEN
+
+    IF hiStopLower THEN
+        oStopLower := TRUE;
+    END_IF
+    IF hiStopRaise THEN
+        oStopLower := FALSE;
+    END_IF
+
+END_IF
+
+(*#### Always turn off hi requests ####*)
+hiStopLower := FALSE;
+hiStopRaise := FALSE;
+hiCycleStart := FALSE;
+hiCycleStop := FALSE;
+
+(*### Simulation Logic ###*)
+;
+
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_BreakStop">
+      <LineId Id="3" Count="195" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

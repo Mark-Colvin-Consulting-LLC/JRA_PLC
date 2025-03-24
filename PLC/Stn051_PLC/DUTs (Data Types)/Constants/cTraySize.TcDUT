@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cTraySize" Id="{496e9df1-448f-45d9-bd26-cfc0bfcafd8c}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE cTraySize :
+(
+	
+	NoSize := 0,
+	Small:= 1,
+	Large := 2
+	
+) DINT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

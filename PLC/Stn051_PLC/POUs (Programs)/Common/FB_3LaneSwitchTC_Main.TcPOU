@@ -1,0 +1,142 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_3LaneSwitchTC_Main" Id="{7749870d-4a98-4c5d-b728-46d5f9e0965e}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_3LaneSwitchTC_Main
+VAR_INPUT
+	
+	pCmp: POINTER TO Cmp3LaneSwitchMain;
+	pWorkStop: ARRAY[0..3] OF POINTER TO CmpWorkStopMainLnSw;
+	pBreakStop2: ARRAY[0..3] OF POINTER TO CmpConvStop;
+	TargetReq: BOOL;
+
+END_VAR
+
+VAR_OUTPUT
+	Act: PuckLnSwAction;
+END_VAR
+
+VAR
+	ActPuckLnSwCandidate: PuckLnSwAction;
+	fbTC00: FB_3LnSw_00_Production_V01;
+	fbTC01: FB_3LnSw_01_SingleLane_V00;
+	fbTC02: FB_3LnSw_02_RoundRobin_V00;
+	fbTC03: FB_3LnSw_03_RoundRobin_V01;
+	fbTC04: FB_3LnSw_00_Production_V00;
+
+	ValidParameters: BOOL;			//TODO: Not yet integrated
+	tempInvalid: BOOL;              //TODO: Not yet integrated
+	CodeVersionNumberValid: BOOL;   //TODO: Not yet integrated
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Call the selected verion of traffic control fucntion block
+// This will allow easy switching between debug and real verions of trafic control and
+// allow for easy switching between candidate real versions.
+CASE pCmp^.Sim.TC_VersionToCall OF
+	
+	00:
+		CodeVersionNumberValid := TRUE;
+		fbTC00(pCmp := pCmp,
+			pWorkStop := pWorkStop,
+			pBreakStop2 := pBreakStop2,
+			TargetReq := TargetReq,
+			Act => ActPuckLnSwCandidate);
+
+	01:
+		CodeVersionNumberValid := TRUE;
+		fbTC01(pCmp := pCmp,
+			pWorkStop := pWorkStop,
+			pBreakStop2 := pBreakStop2,
+			TargetReq := TargetReq,
+			Act => ActPuckLnSwCandidate);
+	
+	02: //DBBypass,
+		CodeVersionNumberValid := TRUE;
+		fbTC02(pCmp := pCmp,
+			pWorkStop := pWorkStop,
+			pBreakStop2 := pBreakStop2,
+			TargetReq := TargetReq,
+			Act => ActPuckLnSwCandidate);
+			
+	03: //RealTest,
+	CodeVersionNumberValid := TRUE;
+	fbTC03(pCmp := pCmp,
+		pWorkStop := pWorkStop,
+		pBreakStop2 := pBreakStop2,
+		TargetReq := TargetReq,
+		Act => ActPuckLnSwCandidate);
+		
+	04: //Old Production
+		CodeVersionNumberValid := TRUE;
+		fbTC00(pCmp := pCmp,
+			pWorkStop := pWorkStop,
+			pBreakStop2 := pBreakStop2,
+			TargetReq := TargetReq,
+			Act => ActPuckLnSwCandidate);
+			
+	ELSE
+		
+		CodeVersionNumberValid := FALSE;
+		ActPuckLnSwCandidate.OkTo_ReleasePuck := FALSE;
+		ActPuckLnSwCandidate.OkTo_Fault := TRUE;
+		ActPuckLnSwCandidate.Target_FaultCode := c3LnSwFaultCodes.InvalidTrafficControl;
+		ActPuckLnSwCandidate.Target_Lane := cLaneSel.None;
+		ActPuckLnSwCandidate.Target_Workstop := claneSel.None;
+		
+END_CASE
+
+// Call validate action block to do sanity checks on various parameters for tote unload
+// and no cling load
+// Traffic control logic will be complicated and may make an error.
+Validate();
+ValidParameters := NOT tempInvalid;
+
+// If requested and parameters valid then apply the result of which
+// ever logic (or none) was called
+IF TargetReq AND
+		ValidParameters AND
+		CodeVersionNumberValid THEN
+	Act := ActPuckLnSwCandidate;
+ELSE
+	Act.OkTo_Fault := FALSE;
+	Act.OkTo_ReleasePuck := FALSE;
+END_IF]]></ST>
+    </Implementation>
+    <Action Name="Validate" Id="{88faf49c-91c5-48c6-845d-c22ce14a92aa}">
+      <Implementation>
+        <ST><![CDATA[tempInvalid := FALSE;
+
+IF ActPuckLnSwCandidate.Target_Workstop <> cLaneSel.Green AND
+		ActPuckLnSwCandidate.Target_Workstop <> cLaneSel.Red AND
+		ActPuckLnSwCandidate.Target_Workstop <> cLaneSel.Blue THEN
+	tempInvalid := TRUE;
+END_IF
+
+IF ActPuckLnSwCandidate.Target_Lane <> cLaneSel.Green AND
+		ActPuckLnSwCandidate.Target_Lane <> cLaneSel.Red AND
+		ActPuckLnSwCandidate.Target_Lane <> cLaneSel.Blue THEN
+	tempInvalid := TRUE;
+END_IF
+
+IF ActPuckLnSwCandidate.OkTo_Fault AND
+		ActPuckLnSwCandidate.Target_FaultCode < 1 OR
+		ActPuckLnSwCandidate.Target_FaultCode > 2 THEN
+	tempInvalid := TRUE;
+END_IF
+
+(*
+Current Valid Faults:
+1-DestinationLane invalid
+*)
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_3LaneSwitchTC_Main">
+      <LineId Id="3" Count="70" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_3LaneSwitchTC_Main.Validate">
+      <LineId Id="2" Count="23" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

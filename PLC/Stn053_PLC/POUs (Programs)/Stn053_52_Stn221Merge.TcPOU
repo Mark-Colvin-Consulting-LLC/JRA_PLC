@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_52_Stn221Merge" Id="{3712894e-1f45-42e1-a31b-5a6109f732c6}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_52_Stn221Merge
+VAR
+	{attribute 'TcLinkToOSO' := '.iBufferFull :=  <0,1,2>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 2'}	
+	fbConvMerge: FB_ConvMerge;	
+	{attribute 'TcLinkToOSO' := '<0,1,2>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull AT %I*: BOOL;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn053_52_Stn221Merge.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn053_52_Stn221Merge.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr08;
+gStn053_52_Stn221Merge.MainInAuto := gStn053.CycleAuto;
+
+gStn053_52_Stn221Merge.SpurHeartbeatOK := gConsumed_Stn221To053_OK;
+gStn053_52_Stn221Merge.SpurConvRunning := gConsumed_Stn221To053.SpurConvRunning;
+gStn053_52_Stn221Merge.SpurInAuto := gConsumed_Stn221To053.ScratchPad[0].2;
+gStn221_30_MergeSpurPreStop.Available := gConsumed_Stn221To053.Available;
+
+
+fbConvMerge(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_52_Stn221Merge),
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats),
+	pMain := ADR(gStn053_51_Stn221MainMergePrestop),
+	pSpur := ADR(gStn221_30_MergeSpurPreStop)		
+);
+
+gProduced_Stn053To221.Release := gStn221_30_MergeSpurPreStop.Release;
+gProduced_Stn053To221.iBufferFull := iBufferFull;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_52_Stn221Merge">
+      <LineId Id="3" Count="3" />
+      <LineId Id="40" Count="1" />
+      <LineId Id="9" Count="3" />
+      <LineId Id="15" Count="13" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

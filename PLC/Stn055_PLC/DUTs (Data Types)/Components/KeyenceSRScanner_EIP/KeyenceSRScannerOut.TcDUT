@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="KeyenceSRScannerOut" Id="{0c79c6b6-1727-41bc-82f6-28db08e018dc}">
+    <Declaration><![CDATA[TYPE KeyenceSRScannerOut :
+STRUCT
+	Reserved01: BIT;
+	ResultDataLatch: BIT;
+	Reserved02: BIT;
+	Reserved03: BIT;
+	Reserved04: BIT;
+	Reserved05: BIT;
+	Reserved06: BIT;
+	ErrorClear: BIT;
+	ReadRequest: BIT;
+	PresetRequest: BIT;
+	RegisterPresetDataRequest: BIT;
+	TuneRequest: BIT;
+	BankLoadRequest: BIT;
+	Reserved07: BIT;
+	Reserved08: BIT;
+	Reserved09: BIT;
+	ReadCompleteClear: BIT;
+	PresetCompleteClear: BIT;
+	RegisterPresetDataCompleteClear: BIT;
+	TuneCompleteClear: BIT;
+	BankLoadCompleteClear: BIT;
+	Reserved10: BIT;
+	Reserved11: BIT;
+	ExternalRequestCompleteClear: BIT;
+	Reserved12: BIT;
+	Reserved13: BIT;
+	Reserved14: BIT;
+	Reserved15: BIT;
+	Reserved16: BIT;
+	Reserved17: BIT;
+	Reserved18: BIT;
+	Reserved19: BIT;
+	BankNumber: UINT;
+	Reserved20: UINT;
+	Reserved21: UINT;
+	UserDataSize: UINT;
+	UserData: ARRAY[0..31] OF BYTE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="DeviceDataEval" Id="{f56f8c1d-b89b-4697-a8bf-03c76f11b3fb}">
+    <Declaration><![CDATA[TYPE DeviceDataEval :
+STRUCT
+	
+	OEM: STRING(50);
+	OMEModelName: STRING(50);
+	OEMModelCode: STRING(50);
+	Model: STRING(50);
+	Color: STRING(50);
+	OSName: STRING(50);
+	OSVersion: STRING(50);
+	Profile: STRING(50);
+	Carrier: STRING(50);
+	IMEI: STRING(30);
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

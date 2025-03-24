@@ -1,0 +1,54 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="Plc2PlcData_V3" Id="{b498bd94-59b1-4aed-9989-d505e1bae64b}">
+    <Declaration><![CDATA[TYPE Plc2PlcData_V3 :
+	// Created 2/01/2022 - Luke Offner
+STRUCT
+	//Station to main conv
+	HeartbeatStn : DINT;
+	DivertSpurDownstreamBufferFull : BOOL;
+	DivertSpurDSBufferAboveLowLevel : BOOL;
+	DivertSpurDSBufferFull : BOOL;
+	LiftPrestop1Ret : BOOL;
+	LiftTransfer1Lower : BOOL;
+	LiftTransfer1Raise : BOOL;
+	LiftPrestop2Ret : BOOL;
+	LiftTransfer2Lower : BOOL;
+	LiftTransfer2Raise : BOOL;
+	MergeSpurStopPuckPresent : BOOL;
+	SpurConvRunning : BOOL;
+	StationInBypass : BOOL;
+	Available : BOOL;
+	StationInAuto : BOOL;
+	LiftTransferBypassOK: BOOL;
+	
+	//Main Conv to Stn
+	HeartbeatMain : DINT;
+	LiftTransfer1Bypassed : BOOL;
+	LiftTransfer1Lowered : BOOL;
+	LiftTransfer1Raised : BOOL;
+	LiftTransfer1ToteAtPrestop : BOOL;
+	LiftTransfer1ToteAtTransfer : BOOL;
+	LiftTransfer1ToteRocker : BOOL;
+	LiftTransfer2Bypassed : BOOL;
+	LiftTransfer2DownstreamBufferFull : BOOL;
+	LiftTransfer2Lowered : BOOL;
+	LiftTransfer2Raised : BOOL;
+	LiftTransfer2ToteAtPrestop : BOOL;
+	LiftTransfer2ToteAtTransfer : BOOL;
+	LiftTransfer2ToteRocker : BOOL;
+	MergeSpurStopLower : BOOL;
+	Release : BOOL;
+	iBufferFull : BOOL;
+	ToteConvRunning : BOOL;
+	CartonConvRunning : BOOL;
+	
+	//Testing Ints
+	ScratchPad : ARRAY[0..25] OF INT;
+
+END_STRUCT
+
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

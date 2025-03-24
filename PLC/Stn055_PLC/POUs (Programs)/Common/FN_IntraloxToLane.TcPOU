@@ -1,0 +1,24 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FN_IntraloxToLane" Id="{feea6535-641a-40ac-9464-13e8e864558c}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION FN_IntraloxToLane : cLaneSel
+VAR_INPUT
+	IntraloxLane: DINT;
+	LaneConfig: Cmp3LaneSwitchMainConfig;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF LaneConfig.OutGreenLine = IntraloxLane THEN
+	FN_IntraloxToLane := cLaneSel.Green;
+ELSIF LaneConfig.OutRedLine = IntraloxLane THEN
+	FN_IntraloxToLane := cLaneSel.Red;
+ELSIF LaneConfig.OutBlueLine = IntraloxLane THEN
+	FN_IntraloxToLane := cLaneSel.Blue;
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FN_IntraloxToLane">
+      <LineId Id="3" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

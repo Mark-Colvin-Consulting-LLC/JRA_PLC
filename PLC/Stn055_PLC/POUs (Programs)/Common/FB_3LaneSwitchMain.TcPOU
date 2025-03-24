@@ -1,0 +1,1330 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_3LaneSwitchMain" Id="{09d2d069-cc2c-4b95-b5ec-b7964fc49366}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_3LaneSwitchMain
+VAR_INPUT
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO Cmp3LaneSwitchMain;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFIFO: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+	pWorkStopMain: ARRAY [0..3] OF POINTER TO CmpWorkStopMainLnSw;
+	pBreakStop2: ARRAY [0..3] OF POINTER TO CmpConvStop;
+END_VAR
+
+VAR
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+
+	fbTC: FB_3LaneSwitchTC_Main;
+	pTransactionHandler: POINTER TO FB_DBTransactionHandler;
+	GetStationData: DBGetStationData;
+	SetStationData: DBSetStationData;
+	Act: PuckLnSwAction;
+	DummyPuckLnSw: PuckLnSw;
+	DummyWorkStopMain: CmpWorkStopMainLnSw;
+	DummyBreakStop2: CmpConvStop;
+	PreBufferShift: R_TRIG;
+	PostBufferShift: ARRAY[1..3] OF F_TRIG;
+	FinalStageShift: ARRAY[1..3] OF F_TRIG;
+	i: UINT;
+	j: UINT;
+	tmrBreakstop2BufferFull: TON;
+	tmrBreakstop2BufferEmpty: TON;
+	tmrBreakstop1BufferFull: TON;
+	tmrBreakstop1BufferEmpty: TON;
+	tmrBreakstop1Pause: ARRAY[1..3] OF TON;
+	senBreakStop1PuckPresent: ARRAY[1..3] OF FB_Sensor;
+	ManualCycleStationEnable: BOOL;
+	ManualCycleStationDisable: BOOL;
+	RedLineEnable: BOOL;
+	GreenLineEnable: BOOL;
+	BlueLineEnable: BOOL;
+	tmrPurgeGrnLane: TON;
+	tmrPurgeRedLane: TON;
+	tmrPurgeBluLane: TON;
+	tmrReleaseDelay: TON;
+	tmrFaultClear: TON;
+
+	iInfeedSensor AT %I*: BOOL;
+	iMachineReady AT %I*: BOOL;
+	iBoschInfeedVFDNotRunning AT %I*: BOOL;
+	iBoschInfeedVFDNotFaulted AT %I*: BOOL;
+	iIntraloxInfeedVFDNotRunning AT %I*: BOOL;
+	iIntraloxInfeedVFDNotFaulted AT %I*: BOOL;
+	iIntraloxOutfeedVFD1NotRunning AT %I*: BOOL;
+	iIntraloxOutfeedVFD1NotFaulted AT %I*: BOOL;
+	iIntraloxOutfeedVFD2NotRunning AT %I*: BOOL;
+	iIntraloxOutfeedVFD2NotFaulted AT %I*: BOOL;
+	iDornerOutfeedVFDNotRunning AT %I*: BOOL;
+	iDornerOutfeedVFDNotFaulted AT %I*: BOOL;
+	iBreakStop1PuckPresent AT %I*: ARRAY[1..3] OF BOOL;
+	iBreakStop2PuckPresent AT %I*: ARRAY[1..3] OF BOOL;
+	iBreakStop1BufferFull AT %I*: ARRAY[1..3] OF BOOL;
+	iBoschInfeedMtrDiscOK AT %I*: BOOL;
+	iIntraloxInfeedMtrDiscOK AT %I*: BOOL;
+	iIntraloxOutfeedMtr1DiscOK AT %I*: BOOL;
+	iIntraloxOutfeedMtr2DiscOK AT %I*: BOOL;
+	iDornerOutfeedMtrDiscOK AT %I*: BOOL;
+	senInfeedSensor: FB_Sensor;
+
+	oClearFault AT %Q*: BOOL;
+	oMotorsRunning AT %Q*: BOOL;
+	oOutfeedDivertBit AT %Q*: ARRAY[0..1] OF BOOL;
+	oInfeedBeltBit AT %Q*: ARRAY[0..1] OF BOOL;
+	oBoschInfeedConvRun AT %Q*: BOOL;
+	oBoschInfeedConvFltRst AT %Q*: BOOL;
+	oIntraloxInfeedConvRun AT %Q*: BOOL;
+	oIntraloxInfeedConvFltRst AT %Q*: BOOL;
+	oIntraloxOutfeedConv1Run AT %Q*: BOOL;
+	oIntraloxOutfeedConv1FltRst AT %Q*: BOOL;
+	oIntraloxOutfeedConv2Run AT %Q*: BOOL;
+	oIntraloxOutfeedConv2FltRst AT %Q*: BOOL;
+	oDornerOutfeedConvRun AT %Q*: BOOL;
+	oDornerOutfeedConvFltRst AT %Q*: BOOL;
+	oBreakStop1PuckRelease AT %Q*: ARRAY[1..3] OF BOOL;
+
+	hiClearFault: BOOL;
+	hiDivertConvRun: BOOL;
+	hiRedLineEnable: BOOL;
+	hiRedLineDisable: BOOL;
+	hiGreenLineEnable: BOOL;
+	hiGreenLineDisable: BOOL;
+	hiBlueLineEnable: BOOL;
+	hiBlueLineDisable: BOOL;
+	hiClearPostSwitchBuffer: ARRAY[1..3] OF BOOL;
+	hiBoschInfeedConvRun : BOOL;
+	hiIntraloxInfeedConvRun: BOOL;
+	hiIntraloxOutfeedConv1Run: BOOL;
+	hiIntraloxOutfeedConv2Run: BOOL;
+	hiDornerOutfeedConvRun: BOOL;
+
+	hoAttention_StationDisable: BOOL;
+	hoAttention_RedLineDisable: BOOL;
+	hoAttention_GreenLineDisable: BOOL;
+	hoAttention_BlueLineDisable: BOOL;
+	hoPreSwitchBufferCount: DINT;
+	hoPostSwitchBufferCount: ARRAY[1..3] OF DINT;
+END_VAR
+
+VAR CONSTANT
+	cExceptionLogArrayBound: DINT := 29;
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Local.pStateTraceBuffer := pStateTraceBuffer;
+Local.pStateTraceFifo := pStateTraceFifo;
+Local.pStats := pStats;
+
+IF gFirstScan THEN
+	// Version 02 - 3/05/2023 – Publish Bosch infeed motor running
+	
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000ms;
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+	
+	//Enable all the lanes on initialization
+	pCmp^.LaneEnabled[cLaneSel.Green] := TRUE;
+	pCmp^.LaneEnabled[cLaneSel.Red] := TRUE;
+	pCmp^.LaneEnabled[cLaneSel.Blue] := TRUE;
+	
+	pTransactionHandler := gDBServer.GetTransactionHandler();
+	
+	pCmp^.PurgeActive[cLaneSel.Green] := TRUE;
+	pCmp^.PurgeActive[cLaneSel.Red] := TRUE;
+	pCmp^.PurgeActive[cLaneSel.Blue] := TRUE;
+	
+	
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(*Debounce timers*)
+senInfeedSensor(Input := iInfeedSensor, OnTime := T#20ms, OffTime := T#25ms);
+
+senBreakStop1PuckPresent[1](Input := iBreakStop1PuckPresent[1], OnTime := T#50ms, OffTime := T#1000ms);
+senBreakStop1PuckPresent[2](Input := iBreakStop1PuckPresent[2], OnTime := T#50ms, OffTime := T#1000ms);
+senBreakStop1PuckPresent[3](Input := iBreakStop1PuckPresent[3], OnTime := T#50ms, OffTime := T#1000ms);
+
+(* Housekeeping *)
+(*
+The component takes in information from WorkStopMainDivert work stops, and then calls a traffic control function to determine set the source
+and destination targets. After determining the targets this component interfaces with the Intralox 3 way switch. There is a database transaction to
+inform the server the decision for where the puck was sent to.
+The component also controls a VFD and several motors needed to drive the 3 lane switch
+Traffic control will coordinate 4 queues: one incoming puck queue from all three conveyors, and 3 outgoing queues for each conveyor line.
+A DINT enum will be used, red, green, blue to indicate the infeed and destination lanes.
+Two traffic controls will be programmed for the component, one for simple FIFO operation, and one for FIFO prioritization of primary route, follow by secondary route, will also look at the upstream buffer full and prioritize any lane that has a full buffer
+The downstream stop will remove pucks from their queue as the stop releases, this will operate as a passive way to remove pucks from the queue, and logic will be added to fill the queue and empty the queue accordingly.
+The queue size will be configurable, but initially set to 16 pucks per lane, There will be an intermediate stop which will be monitored for activity, but will not have constant influence on the queue
+*)
+
+//Initialize DummyPuckSwitch
+MEMSET(ADR(DummyPuckLnSw),0,SIZEOF(DummyPuckLnSw));
+	DummyPuckLnSw.RFID := 404;
+//Initializa Workstop and DummyBreakStop2
+MEMSET(ADR(DummyWorkStopMain),0,SIZEOF(DummyWorkStopMain));
+MEMSET(ADR(DummyBreakStop2),0,SIZEOF(DummyBreakStop2));
+
+//Set output bits based on the PreSwitchBuffer
+oInfeedBeltBit[0] := pCmp^.PreSwitchBuffer[0].InfeedBelt.0;
+oInfeedBeltBit[1] := pCmp^.PreSwitchBuffer[0].InfeedBelt.1;
+oOutfeedDivertBit[0] := pCmp^.PreSwitchBuffer[0].OutfeedDivert.0;
+oOutfeedDivertBit[1] := pCmp^.PreSwitchBuffer[0].OutfeedDivert.1;
+
+tmrReleaseDelay(IN := pCmp^.PreSwitchBuffer[cPreSwitchBufferSize].RFID = 0,
+	PT := pCmp^.Config.tReleaseGap);
+
+//Count pucks in PreSwitchBuffer
+pCmp^.PreSwitchPuckCount := 0;
+FOR i := 0 TO cPreSwitchBufferSize DO
+	IF pCmp^.PreSwitchBuffer[i].RFID <> 0 THEN
+		pCmp^.PreSwitchPuckCount := pCmp^.PreSwitchPuckCount + 1;
+	END_IF
+END_FOR
+
+//Shift PreBuffer until slot 0 is populated
+IF pCmp^.PreSwitchPuckCount > 0 AND
+		pCmp^.PreSwitchPuckCount < cPreSwitchBufferSize + 1 THEN
+	FOR i := 0 TO (cPreSwitchBufferSize - 1) DO
+		IF pCmp^.PreSwitchBuffer[i].RFID = 0 THEN
+			pCmp^.PreSwitchBuffer[i] := pCmp^.PreSwitchBuffer[i + 1];
+			MEMSET(ADR(pCmp^.PreSwitchBuffer[i + 1]),0,SIZEOF(pCmp^.PreSwitchBuffer[i + 1]));
+		END_IF
+	END_FOR
+END_IF
+
+//Shift PreSwitchBuffer after iInfeedSensor drops
+PreBufferShift(CLK := senInfeedSensor.Off);
+IF PreBufferShift.Q THEN
+	MEMCPY(ADR(pCmp^.PostSwitchBuffer[FN_IntraloxToLane(pCmp^.PreSwitchBuffer[0].OutfeedDivert,pCmp^.Config)][cPostSwitchBufferSize]),
+		ADR(pCmp^.PreSwitchBuffer[0]),
+		SIZEOF(pCmp^.PostSwitchBuffer[FN_IntraloxToLane(pCmp^.PreSwitchBuffer[0].OutfeedDivert,pCmp^.Config)][cPostSwitchBufferSize]));
+	pCmp^.PostSwitchBuffer[FN_IntraloxToLane(pCmp^.PreSwitchBuffer[0].OutfeedDivert,pCmp^.Config)][cPostSwitchBufferSize].TransferStage := 2;
+	MEMCPY(ADR(pCmp^.PreSwitchBuffer[0]),
+		ADR(pCmp^.PreSwitchBuffer[1]),
+		(SIZEOF(pCmp^.PreSwitchBuffer) - SIZEOF(pCmp^.PreSwitchBuffer[0])));
+	MEMSET(ADR(pCmp^.PreSwitchBuffer[cPreSwitchBufferSize]),
+		0,
+		SIZEOF(pCmp^.PreSwitchBuffer[cPreSwitchBufferSize]));
+END_IF
+
+FOR i := 1 TO 3 DO
+	//Count pucks in PostSwitchBuffer
+	pCmp^.PostSwitchPuckCount[i] := 0;
+	pCmp^.FinalStagePuckCount[i] := 0;
+	FOR j := 0 TO cPostSwitchBufferSize DO
+		IF pCmp^.PostSwitchBuffer[i][j].RFID <> 0 THEN
+			pCmp^.PostSwitchPuckCount[i] := pCmp^.PostSwitchPuckCount[i] + 1;
+		END_IF
+		IF pCmp^.PostSwitchBuffer[i][j].TransferStage = 3 THEN
+			pCmp^.FinalStagePuckCount[i] := pCmp^.FinalStagePuckCount[i] + 1;
+		END_IF
+	END_FOR
+
+	//Shift PostSwitchBuffer until slot 0 is populated
+	IF pCmp^.PostSwitchPuckCount[i] > 0 AND
+			pCmp^.PostSwitchPuckCount[i] < cPostSwitchBufferSize + 1 THEN
+		FOR j := 0 TO (cPostSwitchBufferSize - 1) DO
+			//Shift PostBuffer until slot 0 is populated
+			IF pCmp^.PostSwitchBuffer[i][j].RFID = 0 THEN
+				pCmp^.PostSwitchBuffer[i][j] := pCmp^.PostSwitchBuffer[i][j + 1];
+				MEMSET(ADR(pCmp^.PostSwitchBuffer[i][j + 1]),0,SIZEOF(pCmp^.PostSwitchBuffer[i][j + 1]));
+			END_IF
+		END_FOR
+	END_IF
+
+	//Shift PostSwitchBuffer after Downstream part present drops
+	PostBufferShift[i](CLK := iBreakStop2PuckPresent[i] AND
+		pCmp^.PostSwitchPuckCount[i] > 0);
+	IF PostBufferShift[i].Q THEN
+		MEMCPY(ADR(pCmp^.PostSwitchBuffer[i][0]), 
+			ADR(pCmp^.PostSwitchBuffer[i][1]), 
+			(SIZEOF(pCmp^.PostSwitchBuffer[i]) - SIZEOF(pCmp^.PostSwitchBuffer[i][0])));
+		MEMSET(ADR(pCmp^.PostSwitchBuffer[i][cPostSwitchBufferSize]),
+			0,
+			SIZEOF(pCmp^.PostSwitchBuffer[i][cPostSwitchBufferSize]));
+	END_IF
+
+	//After pucks pass breakstop1 move then to the next transfer state
+	FinalStageShift[i](CLK := iBreakStop1PuckPresent[i]);
+	IF FinalStageShift[i].Q THEN
+		FOR j := 0 TO cPostSwitchBufferSize DO
+			IF pCmp^.PostSwitchBuffer[i][j].TransferStage = 2 THEN
+				pCmp^.PostSwitchBuffer[i][j].TransferStage := 3;
+				EXIT;
+			END_IF
+		END_FOR
+	END_IF
+	
+	oBreakStop1PuckRelease[i] := NOT iBreakStop1BufferFull[i];
+	
+END_FOR
+
+
+//Input Dummies into traffic controls
+pWorkStopMain[0] := ADR(DummyWorkStopMain);
+pBreakStop2[0] := ADR(DummyBreakStop2);
+
+// Call to traffic control logic.
+// Note that only InOut vars need to be explicitly populated here in the call.
+// Also supplying the In vars here but the outputs can be referenced directly in the rest of the code.
+fbTC.TargetReq :=
+	NOT pStn^.CycleAuto OR
+	Local.State = 0;
+fbTC(
+	pCmp := pCmp,
+	pWorkstop := pWorkstopMain,
+	pBreakStop2 := pBreakStop2,
+	Act => Act);
+
+tmrFaultClear(IN := oClearFault, PT := T#500MS);
+
+//PostSwitchBuffer purge logic
+//Green lane
+tmrPurgeGrnLane(
+	IN := NOT iBreakStop2PuckPresent[cLaneSel.Green] AND
+			pCmp^.PurgeActive[cLaneSel.Green], 
+	PT := pCmp^.Config.PurgeGrnLaneTime);
+
+//No pucks detected in green lane for assigned time, so assume the buffer lane is empty
+IF tmrPurgeGrnLane.Q THEN
+	MEMSET(ADR(pCmp^.PostSwitchBuffer[cLaneSel.Green]),
+		0,
+		SIZEOF(pCmp^.PostSwitchBuffer[cLaneSel.Green]));
+	pCmp^.PurgeActive[cLaneSel.Green] := FALSE;
+END_IF
+
+//Red lane
+tmrPurgeRedLane(
+	IN := NOT iBreakStop2PuckPresent[cLaneSel.Red] AND
+			pCmp^.PurgeActive[cLaneSel.Red], 
+	PT := pCmp^.Config.PurgeRedLaneTime);
+
+//No pucks detected in red lane for assigned time, so assume the buffer lane is empty
+IF tmrPurgeRedLane.Q THEN
+	MEMSET(ADR(pCmp^.PostSwitchBuffer[cLaneSel.Red]),
+		0,
+		SIZEOF(pCmp^.PostSwitchBuffer[cLaneSel.Red]));
+	pCmp^.PurgeActive[cLaneSel.Red] := FALSE;
+END_IF
+
+//Blue lane
+tmrPurgeBluLane(
+	IN := NOT iBreakStop2PuckPresent[cLaneSel.Blue] AND
+			pCmp^.PurgeActive[cLaneSel.Blue], 
+	PT := pCmp^.Config.PurgeBluLaneTime);
+
+//No pucks detected in blue lane for assigned time, so assume the buffer lane is empty
+IF tmrPurgeBluLane.Q THEN
+	MEMSET(ADR(pCmp^.PostSwitchBuffer[cLaneSel.Blue]),
+		0,
+		SIZEOF(pCmp^.PostSwitchBuffer[cLaneSel.Blue]));
+	pCmp^.PurgeActive[cLaneSel.Blue] := FALSE;
+END_IF
+
+pCmp^.BoschInfeedConvRunning := 
+	oBoschInfeedConvRun AND
+	iBoschInfeedVFDNotFaulted AND
+	iBoschInfeedMtrDiscOK AND
+	NOT iBoschInfeedVFDNotRunning;
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for Something to Do*)
+		
+		(*On entry only clearing parameters used to generate pointers, not the
+		pointers themselves. Pointers will be update at top of next scan.
+		On exit populating local target and making immediate call to pointer generation FB to
+		be sure pointers and other data matches immediately even on exit scan.  This FB is also
+		called cyclicly in housekeeping.*);
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT pStn^.StopRequest AND
+				fbTC.TargetReq THEN
+			IF NOT iMachineReady AND
+					NOT pCmp^.Sim.IgnoreMachineReady THEN
+				Local.NextState := 1;
+			ELSIF (iMachineReady OR
+					pCmp^.Sim.IgnoreMachineReady) AND
+					(NOT pCmp^.Sim.GateActionMode OR
+					pCmp^.Sim.GateProceedWithSingleAction) THEN
+				IF Act.OkTo_ReleasePuck AND
+						((NOT pCmp^.PurgeActive[cLaneSel.Green] AND
+						Act.Target_Lane = cLaneSel.Green) OR
+						(NOT pCmp^.PurgeActive[cLaneSel.Red] AND
+						Act.Target_Lane = cLaneSel.Red) OR
+						(NOT pCmp^.PurgeActive[cLaneSel.Blue] AND
+						Act.Target_Lane = cLaneSel.Blue)) AND
+						tmrReleaseDelay.Q THEN
+					Local.NextState := 100;
+				ELSIF Act.OkTo_Fault THEN
+					Local.NextState := 300;
+				END_IF
+			END_IF
+		END_IF
+	
+	1: (*Fault: 3 Lane Switch Shows Not Ready*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxInfeedConvRun := FALSE; 
+			oIntraloxOutfeedConv1Run := FALSE;
+			oIntraloxOutfeedConv2Run := FALSE;
+			oDornerOutfeedConvRun := FALSE;
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	100: (*Puck depart database transaction to take place there*)
+		
+		Local.NextState := 110;
+	
+	110: (*Copy necessary data to PreSwitchBufferInput*)
+		
+		IF Local.FirstEntry THEN
+			//Set the Location State
+			pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.TransferStage := 1;
+			
+			//Determine the correct infeed belt
+			IF Act.Target_Workstop = cLaneSel.Green THEN
+				pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.InfeedBelt := pCmp^.Config.InGreenLine;
+			END_IF
+			IF Act.Target_Workstop = cLaneSel.Red THEN
+				pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.InfeedBelt := pCmp^.Config.InRedLine;
+			END_IF
+			IF Act.Target_Workstop = cLaneSel.Blue THEN
+				pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.InfeedBelt := pCmp^.Config.InBlueLine;
+			END_IF
+			
+			//Determine the correct outfeed belt
+			//This comes from traffic control not from the component
+			IF Act.Target_Lane = cLaneSel.Green THEN
+				pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.OutfeedDivert := pCmp^.Config.OutGreenLine;
+			END_IF
+			IF Act.Target_Lane = cLaneSel.Red THEN
+				pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.OutfeedDivert := pCmp^.Config.OutRedLine;
+			END_IF
+			IF Act.Target_Lane = cLaneSel.Blue THEN
+				pWorkStopMain[Act.Target_Workstop]^.PuckLnSw.OutfeedDivert := pCmp^.Config.OutBlueLine;
+			END_IF
+		END_IF
+		
+		Local.NextState := 120;
+	
+	120: (*Transfer data and Release Puck*)
+		
+		IF Local.FirstEntry THEN
+			MEMCPY(ADR(pCmp^.PreSwitchBuffer[cPreSwitchBufferSize]),ADR(pWorkStopMain[Act.Target_Workstop]^.PuckLnSw),SIZEOF(pCmp^.PreSwitchBuffer[cPreSwitchBufferSize]));
+			MEMSET(ADR(pWorkStopMain[Act.Target_Workstop]^.PuckLnSw),0,SIZEOF(pWorkStopMain[Act.Target_Workstop]^.PuckLnSw));
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		Local.NextState := 130;
+	
+	130: (*Transfer data and Release Puck*)
+		
+		IF Local.FirstEntry THEN
+			pWorkStopMain[Act.Target_Workstop]^.WorkCmp := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT pWorkStopMain[Act.Target_Workstop]^.WorkReq THEN
+			Local.NextState := 0;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pWorkStopMain[Act.Target_Workstop]^.WorkCmp := FALSE;
+		END_IF
+	
+	300: (*Determine Reason for Faulting*)
+		
+		IF Act.Target_FaultCode = 1 THEN
+			Local.NextState := 301;
+		END_IF
+	
+	301: (*Fault:*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			ManualCycleStationEnable := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			pWorkStopMain[1]^.Framework.ResetStart := FALSE;
+			pWorkStopMain[2]^.Framework.ResetStart := FALSE;
+			pWorkStopMain[3]^.Framework.ResetStart := FALSE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			//Clear handshakes
+			pWorkStopMain[1]^.WorkCmp := FALSE;
+			pWorkStopMain[2]^.WorkCmp := FALSE;
+			pWorkStopMain[3]^.WorkCmp := FALSE;
+			
+			pCmp^.PurgeActive[cLaneSel.Green] := TRUE;
+			pCmp^.PurgeActive[cLaneSel.Red] := TRUE;
+			pCmp^.PurgeActive[cLaneSel.Blue] := TRUE;
+			
+			//Set reentry state
+			Local.ReentryState := 0;
+		END_IF
+		
+		Local.NextState := 5020;
+	
+	5020: (*Check Bosch infeed conveyor*)
+		
+		IF iBoschInfeedVFDNotFaulted AND
+				iBoschInfeedMtrDiscOK AND
+				NOT iBoschInfeedVFDNotRunning THEN
+			Local.NextState := 5060;
+		ELSE
+			IF NOT iBoschInfeedVFDNotFaulted THEN
+				Local.NextState := 5030;
+			ELSE
+				Local.NextState := 5050;
+			END_IF
+		END_IF
+	
+	5030: (*Check to see if Bosch infeed is faulted*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oBoschInfeedConvRun := FALSE;
+		END_IF
+		
+		Local.NextState := 5040;
+	
+	5040: (*Reset the Bosch infeed VFD fault*)
+		
+		IF Local.FirstEntry THEN
+			oBoschInfeedConvFltRst := TRUE;
+		END_IF
+		
+		IF iBoschInfeedVFDNotFaulted THEN
+			Local.NextState := 5050;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oBoschInfeedConvFltRst := FALSE;
+		END_IF
+	
+	5050: (*Start the Bosch infeed VFD*)
+		
+		IF Local.FirstEntry THEN
+			oBoschInfeedConvRun := TRUE;
+		END_IF
+		
+		IF iBoschInfeedVFDNotFaulted AND
+				iBoschInfeedMtrDiscOK AND
+				NOT iBoschInfeedVFDNotRunning THEN
+			Local.NextState := 5060;
+		END_IF
+	
+	5060: (*Check Intralox infeed conveyor*)
+		
+		IF iIntraloxInfeedVFDNotFaulted AND
+				iIntraloxInfeedMtrDiscOK AND
+				NOT iIntraloxInfeedVFDNotRunning THEN
+			Local.NextState := 5100;
+		ELSE
+			IF NOT iIntraloxInfeedVFDNotFaulted THEN
+				Local.NextState := 5070;
+			ELSE
+				Local.NextState := 5090;
+			END_IF
+		END_IF
+	
+	5070: (*Check to see if Intralox infeed is faulted*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oIntraloxInfeedConvRun := FALSE;
+		END_IF
+		
+		Local.NextState := 5080;
+	
+	5080: (*Reset the Intralox infeed VFD fault*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxInfeedConvFltRst := TRUE;
+		END_IF
+		
+		IF iIntraloxInfeedVFDNotFaulted THEN
+			Local.NextState := 5090;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oIntraloxInfeedConvFltRst := FALSE;
+		END_IF
+	
+	5090: (*Start the Intralox infeed VFD*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxInfeedConvRun := TRUE;
+		END_IF
+		
+		IF iIntraloxInfeedVFDNotFaulted AND
+				iIntraloxInfeedMtrDiscOK AND
+				NOT iIntraloxInfeedVFDNotRunning THEN
+			Local.NextState := 5100;
+		END_IF
+	
+	5100: (*Check Intralox outfeed 1 conveyor*)
+		
+		IF iIntraloxOutfeedVFD1NotFaulted AND
+				iIntraloxOutfeedMtr1DiscOK AND
+				NOT iIntraloxOutfeedVFD1NotRunning THEN
+			Local.NextState := 5140;
+		ELSE
+			IF NOT iIntraloxOutfeedVFD1NotFaulted THEN
+				Local.NextState := 5110;
+			ELSE
+				Local.NextState := 5130;
+			END_IF
+		END_IF
+	
+	5110: (*Check to see if Intralox outfeed 1 is faulted*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oIntraloxOutfeedConv1Run := FALSE;
+		END_IF
+		
+		Local.NextState := 5120;
+	
+	5120: (*Reset the Intralox outfeed 1 VFD fault*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxOutfeedConv1FltRst := TRUE;
+		END_IF
+		
+		IF iIntraloxOutfeedVFD1NotFaulted THEN
+			Local.NextState := 5130;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oIntraloxOutfeedConv1FltRst := FALSE;
+		END_IF
+	
+	5130: (*Start the Intralox outfeed 1 VFD*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxOutfeedConv1Run := TRUE;
+		END_IF
+		
+		IF iIntraloxOutfeedVFD1NotFaulted AND
+				iIntraloxOutfeedMtr1DiscOK AND
+				NOT iIntraloxOutfeedVFD1NotRunning THEN
+			Local.NextState := 5140;
+		END_IF
+	
+	5140: (*Check Intralox outfeed 2 conveyor*)
+		
+		IF iIntraloxOutfeedVFD2NotFaulted AND
+				iIntraloxOutfeedMtr2DiscOK AND
+				NOT iIntraloxOutfeedVFD2NotRunning THEN
+			Local.NextState := 5180;
+		ELSE
+			IF NOT iIntraloxOutfeedVFD2NotFaulted THEN
+				Local.NextState := 5150;
+			ELSE
+				Local.NextState := 5170;
+			END_IF
+		END_IF
+	
+	5150: (*Check to see if Intralox outfeed 2 is faulted*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oIntraloxOutfeedConv2Run := FALSE;
+		END_IF
+		
+		Local.NextState := 5160;
+	
+	5160: (*Reset the Intralox outfeed 2 VFD fault*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxOutfeedConv2FltRst := TRUE;
+		END_IF
+		
+		IF iIntraloxOutfeedVFD2NotFaulted THEN
+			Local.NextState := 5170;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oIntraloxOutfeedConv2FltRst := FALSE;
+		END_IF
+	
+	5170: (*Start the Intralox outfeed 2 VFD*)
+		
+		IF Local.FirstEntry THEN
+			oIntraloxOutfeedConv2Run := TRUE;
+		END_IF
+		
+		IF iIntraloxOutfeedVFD2NotFaulted AND
+				iIntraloxOutfeedMtr2DiscOK AND
+				NOT iIntraloxOutfeedVFD2NotRunning THEN
+			Local.NextState := 5180;
+		END_IF
+	
+	5180: (*Check Bosch outfeed conveyor*)
+		
+		IF iDornerOutfeedVFDNotFaulted AND
+				iDornerOutfeedMtrDiscOK AND
+				NOT iDornerOutfeedVFDNotRunning THEN
+			Local.NextState := 5220;
+		ELSE
+			IF NOT iDornerOutfeedVFDNotFaulted THEN
+				Local.NextState := 5190;
+			ELSE
+				Local.NextState := 5210;
+			END_IF
+		END_IF
+	
+	5190: (*Check to see if Bosch outfeed is faulted*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oDornerOutfeedConvRun := FALSE;
+		END_IF
+		
+		Local.NextState := 5200;
+	
+	5200: (*Reset the Bosch outfeed VFD fault*)
+		
+		IF Local.FirstEntry THEN
+			oDornerOutfeedConvFltRst := TRUE;
+		END_IF
+		
+		IF iDornerOutfeedVFDNotFaulted THEN
+			Local.NextState := 5210;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oDornerOutfeedConvFltRst := FALSE;
+		END_IF
+	
+	5210: (*Start the Bosch outfeed VFD*)
+		
+		IF Local.FirstEntry THEN
+			oDornerOutfeedConvRun := TRUE;
+		END_IF
+		
+		IF iDornerOutfeedVFDNotFaulted AND
+				iDornerOutfeedMtrDiscOK AND
+				NOT iDornerOutfeedVFDNotRunning THEN
+			Local.NextState := 5220;
+		END_IF
+	
+	5220: (*Wait for ready signal to come on*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 5230;
+		ELSIF iMachineReady THEN
+			Local.NextState := 5300;
+		END_IF
+	
+	5230: (*Attemp to reset fault*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oMotorsRunning := FALSE;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 5240;
+		END_IF
+	
+	5240: (*Attemp to reset fault*)
+		
+		IF Local.FirstEntry THEN
+			oClearFault := TRUE;
+		END_IF
+		
+		IF iMachineReady THEN
+			Local.NextState := 5250;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oClearFault := FALSE;
+		END_IF
+	
+	5250: (*Run the motores again*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#1500MS;
+			oMotorsRunning := TRUE;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			IF iMachineReady THEN
+				Local.NextState := 5300;
+			END_IF
+		END_IF
+	
+	5300: (*Wait for pucks to clear 3 Lane Switch	 *)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#7S;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 5310;
+		END_IF
+	
+	5310: (*Clear PreSwitchBuffer*)
+		
+		IF Local.FirstEntry THEN
+			MEMSET(ADR(pCmp^.PreSwitchBuffer), 0, SIZEOF(pcmp^.PreSwitchBuffer));
+		END_IF
+		
+		Local.NextState := 5320;
+	
+	5320: (*Verify the machine is still ready*)
+		
+		IF iMachineReady THEN
+			Local.NextState := 5900;
+		END_IF
+	
+	5900: (*Verify TransactionHandler not busy*)
+		
+		IF NOT pTransactionHandler^.Busy AND
+				NOT pTransactionHandler^.Done AND
+				NOT pTransactionHandler^.Error THEN
+			Local.NextState := 5910;
+		END_IF
+	
+	5910: (*Execute DBGetStationData*)
+		
+		IF Local.FirstEntry THEN
+			MEMSET(ADR(GetStationData),0,SIZEOF(GetStationData));
+			GetStationData.inStationNum := pCmp^.Config.DBStationNum;
+		END_IF
+		
+		pTransactionHandler^.ExecuteSP(
+			bForeground := TRUE,
+			sSPName := 'uspGetStationData',
+			pData := ADR(GetStationData),
+			nDataSize :=SIZEOF(GetStationData));
+		
+		IF pTransactionHandler^.Done THEN
+			IF NOT pTransactionHandler^.Error THEN
+				IF GetStationData.outReturnCode = 
+						cDBReturnCode.Success THEN
+					Local.NextState := 5920;
+				ELSE
+					Local.NextState := 5912;
+				END_IF
+			ELSE
+				Local.NextState := 5911;
+			END_IF
+		END_IF
+	
+	5911: (*FAULT: DBServer reported error*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	5912: (*FAULT: DBGetStationData*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	5920: (*Update station status*)
+		
+		IF Local.FirstEntry THEN
+			pStn^.Enabled := GetStationData.outEnabled;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - check LastAutoState*)
+		
+		IF Local.LastAutoState = 110 THEN
+			Local.NextState := 6010;
+		ELSE
+			Local.NextState := 9000;
+		END_IF
+	
+	6010: (*Retry Last State*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 0;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 6000;
+	
+	8000: (*Manual cycle request*)
+		
+		IF ManualCycleStationEnable OR
+				ManualCycleStationDisable THEN
+			Local.NextState := 8900;
+		ELSE
+			Local.NextState := 9999;
+		END_IF
+	
+	8900: (*Verify TransactionHandler not busy*)
+		
+		IF NOT pTransactionHandler^.Busy AND
+				NOT pTransactionHandler^.Done AND
+				NOT pTransactionHandler^.Error THEN
+			Local.NextState := 8910;
+		END_IF
+	
+	8910: (*Execute DBSetStationData*)
+		
+		IF Local.FirstEntry THEN
+			MEMSET(ADR(SetStationData),0,SIZEOF(SetStationData));
+			
+			SetStationData.inStationNum := pCmp^.Config.DBStationNum;
+			SetStationData.inEnabled := pStn^.Enabled;
+			
+			IF ManualCycleStationEnable THEN
+				SetStationData.inEnabled := TRUE;
+			ELSIF ManualCycleStationDisable THEN
+				SetStationData.inEnabled := FALSE;
+			END_IF
+		END_IF
+		
+		pTransactionHandler^.ExecuteSP(
+			bForeground := TRUE,
+			sSPName := 'uspSetStationData',
+			pData := ADR(SetStationData),
+			nDataSize :=SIZEOF(SetStationData));
+		
+		IF pTransactionHandler^.Done THEN
+			IF NOT pTransactionHandler^.Error THEN
+				IF SetStationData.outReturnCode = 
+						cDBReturnCode.Success THEN
+					Local.NextState := 8920;
+				ELSE
+					Local.NextState := 8912;
+				END_IF
+			ELSE
+				Local.NextState := 8911;
+			END_IF
+		END_IF
+	
+	8911: (*FAULT: DBServer reported error*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	8912: (*FAULT: DBSetStationData*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	8920: (*Update station status*)
+		
+		IF Local.FirstEntry THEN
+			// Gets read on full init but go ahead and set anyway here
+			pStn^.Enabled := SetStationData.inEnabled;
+		END_IF
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset - Reset Conv Stops*)
+		
+		IF Local.FirstEntry THEN
+			pWorkStopMain[1]^.Framework.ResetStart := TRUE;
+			pWorkStopMain[2]^.Framework.ResetStart := TRUE;
+			pWorkStopMain[3]^.Framework.ResetStart := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF pWorkStopMain[1]^.Framework.ResetDone AND
+				pWorkStopMain[2]^.Framework.ResetDone AND
+				pWorkStopMain[3]^.Framework.ResetDone THEN
+			Local.NextState := 9998;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pWorkStopMain[1]^.Framework.ResetStart := FALSE;
+			pWorkStopMain[2]^.Framework.ResetStart := FALSE;
+			pWorkStopMain[3]^.Framework.ResetStart := FALSE;
+		END_IF
+	
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit(s)
+hoAttention_StationDisable := NOT pStn^.Enabled;
+hoAttention_GreenLineDisable := NOT pCmp^.LaneEnabled[cLaneSel.Green];
+hoAttention_RedLineDisable := NOT pCmp^.LaneEnabled[cLaneSel.Red];
+hoAttention_BlueLineDisable := NOT pCmp^.LaneEnabled[cLaneSel.Blue];
+
+Local.Attention :=
+	hoAttention_StationDisable OR
+	hoAttention_GreenLineDisable OR
+	hoAttention_RedLineDisable OR
+	hoAttention_BlueLineDisable;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := 
+	ManualCycleStationEnable OR
+	ManualCycleStationDisable;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF pCmp^.Sim.ReallyLongFaultTime THEN
+	Local.FaultTimePreset := T#10M;
+ELSE
+	IF Local.LongFaultState THEN
+		Local.FaultTimePreset := Local.FaultTimeLong;
+	ELSE
+		Local.FaultTimePreset := Local.FaultTimeShort;
+	END_IF
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+(*#### Manual operation ####*)
+
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+
+	IF hiDivertConvRun THEN
+		oMotorsRunning := NOT oMotorsRunning;
+	END_IF
+
+	IF hiClearFault THEN
+		oClearFault := TRUE;	
+	END_IF
+
+	IF hiClearPostSwitchBuffer[pCmp^.Config.OutGreenLine] THEN
+		MEMSET(ADR(pCmp^.PostSwitchBuffer[pCmp^.Config.OutGreenLine]),
+			0,
+			SIZEOF(pCmp^.PostSwitchBuffer[pCmp^.Config.OutGreenLine]));
+	END_IF
+
+	IF hiClearPostSwitchBuffer[pCmp^.Config.OutRedLine] THEN
+		MEMSET(ADR(pCmp^.PostSwitchBuffer[pCmp^.Config.OutRedLine]),
+			0,
+			SIZEOF(pCmp^.PostSwitchBuffer[pCmp^.Config.OutRedLine]));
+	END_IF
+
+	IF hiClearPostSwitchBuffer[pCmp^.Config.OutBlueLine] THEN
+		MEMSET(ADR(pCmp^.PostSwitchBuffer[pCmp^.Config.OutBlueLine]),
+			0,
+			SIZEOF(pCmp^.PostSwitchBuffer[3]));
+	END_IF
+
+	IF hiBoschInfeedConvRun THEN
+		oBoschInfeedConvRun := NOT oBoschInfeedConvRun;
+	END_IF
+
+	IF hiIntraloxInfeedConvRun THEN
+		oIntraloxInfeedConvRun := NOT oIntraloxInfeedConvRun;
+	END_IF
+
+	IF hiIntraloxOutfeedConv1Run THEN
+		oIntraloxOutfeedConv1Run := NOT oIntraloxOutfeedConv1Run;
+	END_IF
+
+	IF hiIntraloxOutfeedConv2Run THEN
+		oIntraloxOutfeedConv2Run := NOT oIntraloxOutfeedConv2Run;
+	END_IF
+
+	IF hiDornerOutfeedConvRun THEN
+		oDornerOutfeedConvRun := NOT oDornerOutfeedConvRun;
+	END_IF
+	IF hiGreenLineEnable THEN
+		pCmp^.LaneEnabled[cLaneSel.Green] := TRUE;
+	ELSIF hiGreenLineDisable THEN
+		pCmp^.LaneEnabled[cLaneSel.Green] := FALSE;
+	END_IF
+
+	IF hiRedLineEnable THEN
+		pCmp^.LaneEnabled[cLaneSel.Red] := TRUE;
+	ELSIF hiRedLineDisable THEN
+		pCmp^.LaneEnabled[cLaneSel.Red] := FALSE;
+	END_IF
+
+	IF hiBlueLineEnable THEN
+		pCmp^.LaneEnabled[cLaneSel.Blue] := TRUE;
+	ELSIF hiBlueLineDisable THEN
+		pCmp^.LaneEnabled[cLaneSel.Blue] := FALSE;
+	END_IF
+
+END_IF
+
+IF oClearFault THEN
+
+	IF iMachineReady AND tmrFaultClear.Q THEN
+		oClearFault := FALSE;
+	END_IF
+
+END_IF
+
+(*#### Manual cycle ####*)
+
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+
+	IF pStn^.hiEnable THEN
+		ManualCycleStationEnable := TRUE;
+	ELSIF pStn^.hiDisable THEN
+		ManualCycleStationDisable := TRUE;
+	END_IF
+
+END_IF
+(*#### Always turn off hi requests ####*)
+
+hiDivertConvRun := FALSE;
+hiClearFault := FALSE;
+pStn^.hiEnable := FALSE;
+pStn^.hiDisable := FALSE;
+hiGreenLineEnable := FALSE;
+hiGreenLineDisable := FALSE;
+hiRedLineEnable := FALSE;
+hiRedLineDisable := FALSE;
+hiBlueLineEnable := FALSE;
+hiBlueLineDisable := FALSE;
+MEMSET(
+	ADR(hiClearPostSwitchBuffer),
+	0,
+	SIZEOF(hiClearPostSwitchBuffer));
+hiBoschInfeedConvRun := FALSE;
+hiIntraloxInfeedConvRun := FALSE;
+hiIntraloxOutfeedConv1Run := FALSE;
+hiIntraloxOutfeedConv2Run := FALSE;
+hiDornerOutfeedConvRun := FALSE;
+
+(*### Simulation Logic ###*)
+
+pCmp^.Sim.GateProceedWithSingleAction := FALSE;
+
+IF pCmp^.Sim.AutoPurgePostSwitch THEN
+	MEMSET(ADR(pCmp^.PostSwitchBuffer),0,SIZEOF(pCmp^.PostSwitchBuffer));
+END_IF
+
+IF pCmp^.Sim.SimMode <> 0 THEN
+	pWorkStopMain[cLaneSel.Green]^.Sim.ForceRFID := pCmp^.Sim.ForceRFID;
+	pWorkStopMain[cLaneSel.Red]^.Sim.ForceRFID := pCmp^.Sim.ForceRFID;
+	pWorkStopMain[cLaneSel.Blue]^.Sim.ForceRFID := pCmp^.Sim.ForceRFID;
+END_IF
+
+IF pCmp^.Sim.DBBypass THEN
+	pWorkStopMain[cLaneSel.Green]^.Sim.DBBypass := pCmp^.Sim.DBBypass;
+	pWorkStopMain[cLaneSel.Red]^.Sim.DBBypass := pCmp^.Sim.DBBypass;
+	pWorkStopMain[cLaneSel.Blue]^.Sim.DBBypass := pCmp^.Sim.DBBypass;
+END_IF
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{85c170aa-75e5-47f0-9852-a055835893f2}">
+      <Implementation>
+        <ST><![CDATA[Local.MsgArray[0].Id := 11;
+Local.MsgArray[0].Text := '3 Lane Switch shows not ready';
+Local.MsgArray[0].AltText := 'No Alt Text';
+Local.MsgArray[1].Id := 1001;
+Local.MsgArray[1].Text := 'Robot handshake not cleared';
+Local.MsgArray[1].AltText := 'No Alt Text';
+Local.MsgArray[2].Id := 1201;
+Local.MsgArray[2].Text := 'Work stop handshake did not complete';
+Local.MsgArray[2].AltText := 'No Alt Text';
+Local.MsgArray[3].Id := 1301;
+Local.MsgArray[3].Text := 'Work stop handshake did not complete';
+Local.MsgArray[3].AltText := 'No Alt Text';
+Local.MsgArray[4].Id := 3001;
+Local.MsgArray[4].Text := 'TC faulted with no valid code';
+Local.MsgArray[4].AltText := 'No Alt Text';
+Local.MsgArray[5].Id := 50401;
+Local.MsgArray[5].Text := 'Bosch infeed conveyor fault did not reset';
+Local.MsgArray[5].AltText := 'No Alt Text';
+Local.MsgArray[6].Id := 50501;
+Local.MsgArray[6].Text := 'Did not get Bosch infeed VFD running input';
+Local.MsgArray[6].AltText := 'No Alt Text';
+Local.MsgArray[7].Id := 50801;
+Local.MsgArray[7].Text := 'Intralox infeed conveyor fault did not reset';
+Local.MsgArray[7].AltText := 'No Alt Text';
+Local.MsgArray[8].Id := 50901;
+Local.MsgArray[8].Text := 'Did not get Intralox infeed VFD running input';
+Local.MsgArray[8].AltText := 'No Alt Text';
+Local.MsgArray[9].Id := 51201;
+Local.MsgArray[9].Text := 'Intralox outfeed conveyor 1 fault did not reset';
+Local.MsgArray[9].AltText := 'No Alt Text';
+Local.MsgArray[10].Id := 51301;
+Local.MsgArray[10].Text := 'Did not get Intralox outfeed 1 VFD running input';
+Local.MsgArray[10].AltText := 'No Alt Text';
+Local.MsgArray[11].Id := 51601;
+Local.MsgArray[11].Text := 'Intralox outfeed conveyor 2 fault did not reset';
+Local.MsgArray[11].AltText := 'No Alt Text';
+Local.MsgArray[12].Id := 51701;
+Local.MsgArray[12].Text := 'Did not get Intralox outfeed 2 VFD running input';
+Local.MsgArray[12].AltText := 'No Alt Text';
+Local.MsgArray[13].Id := 52001;
+Local.MsgArray[13].Text := 'Bosch outfeed conveyor fault did not reset';
+Local.MsgArray[13].AltText := 'No Alt Text';
+Local.MsgArray[14].Id := 52101;
+Local.MsgArray[14].Text := 'Did not get Bosch outfeed VFD running input';
+Local.MsgArray[14].AltText := 'No Alt Text';
+Local.MsgArray[15].Id := 52401;
+Local.MsgArray[15].Text := 'Machine does not show ready';
+Local.MsgArray[15].AltText := 'No Alt Text';
+Local.MsgArray[16].Id := 52501;
+Local.MsgArray[16].Text := '3 Lane Switch does not show machine ready';
+Local.MsgArray[16].AltText := 'No Alt Text';
+Local.MsgArray[17].Id := 53201;
+Local.MsgArray[17].Text := 'Switch does not show ready after attempting to clear switch';
+Local.MsgArray[17].AltText := 'No Alt Text';
+Local.MsgArray[18].Id := 59001;
+Local.MsgArray[18].Text := 'Timed out waiting for TransactionHandler not busy.';
+Local.MsgArray[18].AltText := 'No Alt Text';
+Local.MsgArray[19].Id := 59101;
+Local.MsgArray[19].Text := 'Timed out waiting for GetStationData transaction to complete.';
+Local.MsgArray[19].AltText := 'No Alt Text';
+Local.MsgArray[20].Id := 59111;
+Local.MsgArray[20].Text := 'DBServer error during GetStationData transaction.';
+Local.MsgArray[20].AltText := 'No Alt Text';
+Local.MsgArray[21].Id := 59121;
+Local.MsgArray[21].Text := 'DB GetStationData transaction failed.';
+Local.MsgArray[21].AltText := 'No Alt Text';
+Local.MsgArray[22].Id := 89001;
+Local.MsgArray[22].Text := 'Timed out waiting for TransactionHandler not busy.';
+Local.MsgArray[22].AltText := 'No Alt Text';
+Local.MsgArray[23].Id := 89101;
+Local.MsgArray[23].Text := 'Timed out waiting for SetStationData transaction to complete.';
+Local.MsgArray[23].AltText := 'No Alt Text';
+Local.MsgArray[24].Id := 89111;
+Local.MsgArray[24].Text := 'DBServer error during SetStationData transaction.';
+Local.MsgArray[24].AltText := 'No Alt Text';
+Local.MsgArray[25].Id := 89121;
+Local.MsgArray[25].Text := 'DB SetStationData transaction failed.';
+Local.MsgArray[25].AltText := 'No Alt Text';
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_3LaneSwitchMain">
+      <LineId Id="3" Count="1119" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_3LaneSwitchMain.DfnMessages">
+      <LineId Id="2" Count="77" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

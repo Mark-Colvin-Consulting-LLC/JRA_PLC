@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn055_57_StorageBypassSpurMergePrestopBlu" Id="{2ff64724-f28c-4a65-984a-3d1c33e534cd}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn055_57_StorageBypassSpurMergePrestopBlu
+VAR
+	{attribute 'TcLinkToOSO' := '.iPuckPresent   :=  <0,1,4>TIIB[N12S00 (AL1332)]^N12S01 (AL2341)^TxPDO^input byte 0;
+								 .iBufferFull  :=  <0,1,3>TIIB[N12S00 (AL1332)]^N12S05 (AL2341)^TxPDO^input byte 2;
+								 .oStopLower   :=  <0,1,5>TIIB[N12S00 (AL1332)]^N12S02 (EX260)^RxPDO^output byte 2'}
+	fbConvStop: FB_ConvStop;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn055_57_StorageBypassSpurMergePrestopBlu.ConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc051Mtr04;
+
+fbConvStop(
+	pStn := ADR(gStn055),
+	pCmp := ADR(gStn055_57_StorageBypassSpurMergePrestopBlu),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn055_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn055_StateTraceFifo),
+	pStats := ADR(gStn055_02_Stats));	]]></ST>
+    </Implementation>
+    <LineIds Name="Stn055_57_StorageBypassSpurMergePrestopBlu">
+      <LineId Id="3" Count="2" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="8" Count="5" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,103 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="Global_Variables" Id="{69415091-413b-4a3c-b516-84d89f57a868}">
+    <Declaration><![CDATA[VAR_GLOBAL
+
+	gStn055 : Station;
+	gStn055_01_HMI : CmpHMI;
+	gStn055_02_Stats : Component_Stats;
+	
+	gStn055_05_StnMain : CmpCore;
+	gStn055_07_StorageLnSwFQAGateGrn : CmpWMxFQAGate;
+	gStn055_08_StorageLnSwFQAGateRed : CmpWMxFQAGate;
+	gStn055_09_StorageLnSwFQAGateBlu : CmpWMxFQAGate;
+	gStn055_10_StorageLnSwPrestopGrn		: CmpConvStop;
+	gStn055_11_StorageLnSwPrestopMainGrn	: CmpWorkStopMainLnSw;
+	gStn055_12_StorageLnSwPrestopRed		: CmpConvStop;
+	gStn055_13_StorageLnSwPrestopMainRed	: CmpWorkStopMainLnSw;
+	gStn055_14_StorageLnSwPrestopBlu		: CmpConvStop;
+	gStn055_15_StorageLnSwPrestopMainBlu	: CmpWorkStopMainLnSw;
+	gStn055_16_StorageLnSw			: Cmp3LaneSwitchMain;
+	
+	gStn055_20_StorageBreakStopsGrn : CmpConvBreakStopGroup;
+	gStn055_21_StorageBreakStopsRed : CmpConvBreakStopGroup;
+	gStn055_22_StorageBreakStopsBlu : CmpConvBreakStopGroup;
+	gStn055_25_StorageBypassDivertGrn : CmpConvDivert;
+	gStn055_26_StorageBypassMainMergePrestopGrn : CmpConvStop;
+	gStn055_27_StorageBypassSpurMergePrestopGrn : CmpConvStop;
+	gStn055_28_StorageBypassMergeGrn : CmpConvMerge;
+	gStn055_30_Stn411Divert : CmpConvDivert;
+	gStn055_31_Stn411MainMergePrestop : CmpConvStop;
+	gStn055_32_Stn411Merge : CmpConvMerge;
+	gStn055_40_StorageBypassDivertRed : CmpConvDivert;
+	gStn055_41_StorageBypassMainMergePrestopRed : CmpConvStop;
+	gStn055_42_StorageBypassSpurMergePrestopRed : CmpConvStop;
+	gStn055_43_StorageBypassMergeRed : CmpConvMerge;
+	gStn055_45_Stn511Divert : CmpConvDivert;
+	gStn055_46_Stn511MainMergePrestop : CmpConvStop;
+	gStn055_47_Stn511Merge : CmpConvMerge;
+	gStn055_50_Stn512Divert : CmpConvDivert;
+	gStn055_51_Stn512MainMergePrestop : CmpConvStop;
+	gStn055_52_Stn512Merge : CmpConvMerge;
+	gStn055_55_StorageBypassDivertBlu : CmpConvDivert;
+	gStn055_56_StorageBypassMainMergePrestopBlu : CmpConvStop;
+	gStn055_57_StorageBypassSpurMergePrestopBlu : CmpConvStop;
+	gStn055_58_StorageBypassMergeBlu : CmpConvMerge;
+	gStn055_60_Stn611Divert : CmpConvDivert;
+	gStn055_61_Stn611MainMergePrestop : CmpConvStop;
+	gStn055_62_Stn611Merge : CmpConvMerge;
+	
+	gStn055_StateTraceBuffer : TraceFIFOBuffer;
+	gStn055_StateTraceFifo : FIFO_StateTrace := (Overwrite := TRUE);
+	gStn055_HMIMessageBuffer : HMIMessageBuffer;
+	gStn055_HMIMessageFIFO : FIFO_HMIMessage := (Overwrite := TRUE);
+	
+	gStn411_30_MergeSpurPreStop : CmpConvStop;
+	gStn511_30_MergeSpurPreStop : CmpConvStop;
+	gStn512_30_MergeSpurPreStop : CmpConvStop;
+	gStn611_30_MergeSpurPreStop : CmpConvStop;
+	
+	gDBLocation_Station: STRING(30);
+	gDBLocation_Workstop: STRING(30);
+	gDBStationNumber: DINT;
+	gDBRouteToWork: STRING(30);
+	
+	gSimulate : BOOL := 0;
+	gInitialScanForce : BOOL := 0;
+
+	gConsumed_Stn411To055_OK : BOOL;
+	gConsumed_Stn511To055_OK : BOOL;
+	gConsumed_Stn512To055_OK : BOOL;
+	gConsumed_Stn611To055_OK : BOOL;
+	
+	gConsumed_Stn411To055 : Plc2PlcData_V3;
+	gProduced_Stn055To411 : Plc2PlcData_V3;
+	gConsumed_Stn511To055 : Plc2PlcData_V3;
+	gProduced_Stn055To511 : Plc2PlcData_V3;
+	gConsumed_Stn512To055 : Plc2PlcData_V3;
+	gProduced_Stn055To512 : Plc2PlcData_V3;
+	gConsumed_Stn611To055 : Plc2PlcData_V3;
+	gProduced_Stn055To611 : Plc2PlcData_V3;
+	
+	gProduced_Stn055ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_SafetyInterfaceConv : Plc2PlcDataSafetyPuckConv;
+	gConsumed_SafetyInterfaceTo055_OK : BOOL;
+		
+	gDatabaseBypass : BOOL;
+	gSimulateActive: BOOL;
+	gCallPous: BOOL;
+	gDbDummy1 : BOOL;
+	gDebug_ComponentCalls: Debug_ComponentCalls;
+	gProjectDBDefs : FB_DBDefs_CRTC();
+	gDBServer: FB_DBServer();
+	
+END_VAR
+VAR_GLOBAL CONSTANT
+	
+	cBreakStopGroupMaxInstance: INT := 50;
+	cPreSwitchBufferSize: UINT := 3;
+	cPostSwitchBufferSize: UINT := 15; // NOTE: This is zero based maximum buffer size for data/trackikng puposes but can be further restricted per lane via config variable.
+	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

@@ -1,0 +1,46 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FN_ResolveDBStatusRouteDevice" Id="{62c4c2fd-0002-4f8b-9be5-cb32a0b96208}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION FN_ResolveDBStatusRouteDevice : cResolvedDBStatusRoute
+VAR_IN_OUT
+	Device: DeviceData;
+END_VAR
+VAR_INPUT
+	RouteToWork: STRING(30);
+END_VAR
+VAR
+	tempResolved: cResolvedDBStatusRoute;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+//Deafault to none in case logic fails
+tempResolved := cResolvedDBStatusRoute.None;
+
+// Check satus indicates unknown device	
+IF Device.Status = cDBDeviceStatus.Unknown THEN
+	tempResolved := cResolvedDBStatusRoute.UnknownDevice;
+// Deal with normal status devices
+ELSIF Device.Status = cDBDeviceStatus.Normal THEN
+	IF Device.Route = cDBDetailRoute.PuckException THEN
+		tempResolved := cResolvedDBStatusRoute.Normal_RoutedException;
+	ELSIF Device.Route = cDBDetailRoute.Consolidation THEN
+		tempResolved := cResolvedDBStatusRoute.Normal_RoutedConsolidation;
+	ELSIF Device.Route = RouteToWork AND RouteToWork <> '' THEN
+		tempResolved := cResolvedDBStatusRoute.Normal_RoutedThisStation;
+	ELSE
+		tempResolved := cResolvedDBStatusRoute.Normal_RoutedOtherStation;
+	END_IF
+// Only thing left is non-normal devices which go to exception by default.
+ELSE
+	tempResolved := cResolvedDBStatusRoute.NonNormal_RoutedException;
+END_IF
+	
+FN_ResolveDBStatusRouteDevice := tempResolved;]]></ST>
+    </Implementation>
+    <LineIds Name="FN_ResolveDBStatusRouteDevice">
+      <LineId Id="3" Count="22" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

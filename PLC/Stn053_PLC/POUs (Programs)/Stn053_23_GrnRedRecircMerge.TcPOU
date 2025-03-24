@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_23_GrnRedRecircMerge" Id="{6f64c9d4-375c-4664-8452-90b6489ba00a}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_23_GrnRedRecircMerge
+VAR
+		//correct
+	{attribute 'TcLinkToOSO' := '.iBufferFull := <0,1,2>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 2'}	
+	fbConvMerge: FB_ConvMerge;
+	
+	{attribute 'TcLinkToOSO' := '<0,1,2>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull AT %I*: BOOL;
+	
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Enc55 and Enc56 inputs - Merge of Green High Friction conv from BS27 2A Elevated Mtr 8 and Red conv from 3LnSw - NOT an Elevated Puck Conveyor Merge 
+//EvalGRN RED Recirc Merge DS Buffer Full    H4423 - DS of Eval 3LnSw - Red Conv - Enc55  M2 H3
+
+//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+// This merge is NOT linked to any work cell
+
+gStn053_23_GrnRedRecircMerge.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn053_23_GrnRedRecircMerge.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr06; 
+gStn053_23_GrnRedRecircMerge.MainInAuto := gStn053.CycleAuto;
+
+gStn053_23_GrnRedRecircMerge.SpurHeartbeatOK := TRUE;  //because this PLC is Main
+gStn053_23_GrnRedRecircMerge.SpurConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr04;
+gStn053_23_GrnRedRecircMerge.SpurInAuto := gStn053.CycleAuto; 
+
+fbConvMerge(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_23_GrnRedRecircMerge),
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats),
+	pMain := ADR(gStn053_20_GrnRedRecircMergeMainPrestop),
+	pSpur := ADR(gStn053_19_GrnRedRecircMergeSpurPrestop)		
+);
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_23_GrnRedRecircMerge">
+      <LineId Id="38" Count="0" />
+      <LineId Id="4" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="5" Count="4" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="11" Count="2" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="15" Count="12" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

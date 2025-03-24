@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="DeviceLabel" Id="{fd253871-fbfc-4e59-8685-4e80aed3d68d}">
+    <Declaration><![CDATA[TYPE DeviceLabel :
+STRUCT
+
+	//Structure contains all field data on a device label,
+	//There are 4 fields in total, unclear what each field is	
+
+	SN : STRING(30);	//Electronic Serial Number
+	SKU : STRING(30);	//OEM SKU
+	MSN : STRING(30);	//Material Serial Number
+	PPN : STRING(30);	//Product part number (Apple only)
+	cERROR : STRING(30) := 'ERROR';
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TargetSystemConfig Crc="2151798558" Version="1.4">
+  <TargetSystemType>HSafetyPLC</TargetSystemType>
+  <TargetSystemSubType>EL6910</TargetSystemSubType>
+  <IsExternalDevice>false</IsExternalDevice>
+  <TargetSystemObjectId>50462767</TargetSystemObjectId>
+  <TargetSystemObjectName>N10S14 (EL6910)</TargetSystemObjectName>
+  <SoftwareVersion>04 (V01.11)     </SoftwareVersion>
+  <SerialNumber>2837765</SerialNumber>
+  <ProjectCRC>59627</ProjectCRC>
+  <MapProjectCRC>true</MapProjectCRC>
+  <MapSerialNumber>false</MapSerialNumber>
+  <VersionNumber>1</VersionNumber>
+  <FSOEAddress>100</FSOEAddress>
+  <DipSwitch>100</DipSwitch>
+  <AmsNetID>0.0.0.0.2.1</AmsNetID>
+  <AmsPort>1018</AmsPort>
+  <ConnectionInfoDataConfigOld>false</ConnectionInfoDataConfigOld>
+  <TakeOverSafetyAliasDeviceNamesInProcessImage>true</TakeOverSafetyAliasDeviceNamesInProcessImage>
+  <TakeOverStandardAliasDeviceNamesInProcessImage>true</TakeOverStandardAliasDeviceNamesInProcessImage>
+  <BackupRestore Needed="0" Activated="false" RestoreUserAdministration="false" />
+</TargetSystemConfig>

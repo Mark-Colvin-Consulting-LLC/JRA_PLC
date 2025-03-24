@@ -1,0 +1,867 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn052_Config" Id="{e40c38a5-366b-4bf4-bc6b-98e9c5b119ef}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn052_Config
+VAR
+	pStn: POINTER TO Station;
+	pCmpMain: POINTER TO CmpCore;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFifo: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+	
+	FirstScan: R_TRIG;
+
+	pTransactionHandler : POINTER TO FB_DBTransactionHandler;
+	StoreFault : DBStoreFault;
+	StoreFaultDetails : StatsFault;
+	StoreStatsAggregate : DBStoreStatsAggregate;
+	StoreStatsAggregateDetails : StatsAggregateRecord;		
+	
+	hiAggregateIntervalMin: DINT := 10;
+	hiStartOfShift1Min: DINT := 0;
+	hiStartOfShift1Hour: DINT := 7;
+	hiStartOfShift2Min: DINT := 0;
+	hiStartOfShift2Hour: DINT := 15;
+	hiStartOfShift3Min: DINT := 0;
+	hiStartOfShift3Hour: DINT := 23;
+	hiPlannedDownTimeShift1Min: DINT := 5;
+	hiPlannedDownTimeShift2Min: DINT := 5;
+	hiPlannedDownTimeShift3Min: DINT := 5;
+	
+	HeartbeatMain: DINT;
+	HeartbeatStnSafety: DINT;
+	tmrStnHeartbeat121To052OK : TON;
+	cntLastStnHeartbeat121To052 : DINT;
+	tmrStnHeartbeat122To052OK : TON;
+	cntLastStnHeartbeat122To052 : DINT;
+	tmrStnHeartbeat123To052OK : TON;
+	cntLastStnHeartbeat123To052 : DINT;
+	tmrStnHeartbeat124To052OK : TON;
+	cntLastStnHeartbeat124To052 : DINT;
+	tmrStnHeartbeat125To052OK : TON;
+	cntLastStnHeartbeat126To052 : DINT;
+	tmrStnHeartbeat126To052OK : TON;
+	cntLastStnHeartbeatSafetyInterfaceTo052 : DINT;
+	tmrStnHeartbeatSafetyInterfaceTo052OK : TON;
+	cntLastStnHeartbeat : DINT;
+	
+	//Station 052 declaration for Plc2Plc comms- in Stn052_Config
+	fbReadAdsSybByName_Stn121To052 : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn122To052 : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn123To052 : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn124To052 : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn125To052 : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_Stn126To052 : FB_ReadAdsSymByName;
+	fbReadAdsSybByName_SafetyInterfaceTo052 : FB_ReadAdsSymByName;
+	tmrReadAds : TON; //100ms
+	tmrReadSafetyAds : TON; //50ms
+	
+	i : DINT;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[FirstScan(CLK:=TRUE);
+gFirstScan := FirstScan.Q OR gInitialScanForce;
+gInitialScanForce := FALSE;
+
+pStn := ADR(gStn052);
+pStateTraceBuffer := ADR(gStn052_StateTraceBuffer);
+pStateTraceFifo := ADR(gStn052_StateTraceFifo);
+pStats := ADR(gStn052_02_Stats);
+pCmpMain := ADR(gStn052_05_StnMain);
+
+// This must be called before any transaction handler call which is why it is above first scan
+// In global code call the DBServer instance every scan.
+// Pass in the JRSQL NetId, DatabaseId, and IProjectDBDefs instance
+// Provide for automatic DB reconnection attempt and local bits for debug.
+gDBServer(JRSQLNetID:='',ProjectDBDefs:=gProjectDBDefs);
+
+IF gFirstScan THEN
+	(*initalize all Fifo's to avoid Access Violation execption*)
+	pStateTraceFifo^.INIT(pFIFO := pStateTraceBuffer);
+	pStn^.AttentionRequiredFIFO.INIT(pFIFO := ADR(pStn^.AttentionRequiredFIFOBuffer));
+	pStn^.NotOKtoStopFIFO.INIT(pFIFO := ADR(pStn^.NotOKToStopFIFOBuffer));
+	pStn^.FaultedFIFO.INIT(pFIFO := ADR(pStn^.FaultedFIFOBuffer));
+	pStn^.HMIMessageFIFO.INIT(pFIFO := ADR(pStn^.HMIMessageBuffer));
+
+	(* Set Time Zone --- see comments below about using UCT*)
+	gTimeZoneOffsetFromUTC := 0;
+	
+	// On first scan (only) acquire a local transaction handler from DBServer
+	pTransactionHandler := gDBServer.GetTransactionHandler();	
+	
+END_IF
+
+// This fucnction which is part of the JR Autolmation util library uses UTC and value of gTimeZoneOfffsetFrom UTC
+//   to get the "always non-daylight savings time" for that offset... Offset 0 for UTC, -5 for EST, -6 for CST
+gCurrentTime := F_GetTimeStamp();
+
+(*Set Reset Start and Done hooks for component that controls the station reset logic*)
+pCmpMain^.Framework.ResetStart := pStn^.CycleReset;
+IF pCmpMain^.Framework.ResetDone THEN
+	pStn^.ResetDone := TRUE;
+ELSE
+	pStn^.ResetDone := FALSE;
+END_IF
+
+
+(*Set Component Information*)
+
+
+gStn052.StationID := 052;
+gDBStationNumber := 051;
+	
+gStn052_05_StnMain.Framework.ComponentIDRecord.ID := 5;
+gStn052_05_StnMain.Framework.ComponentIDRecord.Name := 'StnMain';
+gStn052_05_StnMain.Framework.Behavior := 0;
+gStn052_05_StnMain.Framework.EnableFreeRun := FALSE;
+
+gStn052_10_ReceivingLnSwPrestopGrn.Framework.ComponentIDRecord.ID := 10;
+gStn052_10_ReceivingLnSwPrestopGrn.Framework.ComponentIDRecord.Name := 'ReceiveLnSwPrestopGrn';
+gStn052_10_ReceivingLnSwPrestopGrn.Framework.Behavior := 0;
+gStn052_10_ReceivingLnSwPrestopGrn.Framework.EnableFreeRun := FALSE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.BufferArrivalFault := FALSE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.DoesWorkRequest := TRUE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.HandshakeDownstream := FALSE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.HandshakeUpstream := FALSE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.HasLocate := FALSE;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.PuckSensorOnTime := T#50MS;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.PuckSensorOffTime := T#50MS;
+gStn052_10_ReceivingLnSwPrestopGrn.Config.DepartStopFaultTime := T#350MS;
+
+gStn052_11_ReceivingLnSwPrestopMainGrn.Framework.ComponentIDRecord.ID := 11;
+gStn052_11_ReceivingLnSwPrestopMainGrn.Framework.ComponentIDRecord.Name := 'ReceiveLnSwPrestopMainGrn';
+gStn052_11_ReceivingLnSwPrestopMainGrn.Framework.Behavior := 0;
+gStn052_11_ReceivingLnSwPrestopMainGrn.Framework.EnableFreeRun := FALSE;
+gStn052_11_ReceivingLnSwPrestopMainGrn.Config.DBLocation := cDBLocation.Receiving3LaneSwitchGreen;
+
+gStn052_12_ReceivingLnSwPrestopRed.Framework.ComponentIDRecord.ID := 12;
+gStn052_12_ReceivingLnSwPrestopRed.Framework.ComponentIDRecord.Name := 'ReceiveLnSwPrestopRed';
+gStn052_12_ReceivingLnSwPrestopRed.Framework.Behavior := 0;
+gStn052_12_ReceivingLnSwPrestopRed.Framework.EnableFreeRun := FALSE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.BufferArrivalFault := FALSE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.DoesWorkRequest := TRUE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.HandshakeDownstream := FALSE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.HandshakeUpstream := FALSE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.HasLocate := FALSE;
+gStn052_12_ReceivingLnSwPrestopRed.Config.PuckSensorOnTime := T#50MS;
+gStn052_12_ReceivingLnSwPrestopRed.Config.PuckSensorOffTime := T#50MS;
+gStn052_12_ReceivingLnSwPrestopRed.Config.DepartStopFaultTime := T#350MS;
+
+gStn052_13_ReceivingLnSwPrestopMainRed.Framework.ComponentIDRecord.ID := 13;
+gStn052_13_ReceivingLnSwPrestopMainRed.Framework.ComponentIDRecord.Name := 'ReceiveLnSwPrestopMainRed';
+gStn052_13_ReceivingLnSwPrestopMainRed.Framework.Behavior := 0;
+gStn052_13_ReceivingLnSwPrestopMainRed.Framework.EnableFreeRun := FALSE;
+gStn052_13_ReceivingLnSwPrestopMainRed.Config.DBLocation := cDBLocation.Receiving3LaneSwitchRed;
+
+gStn052_14_ReceivingLnSwPrestopBlu.Framework.ComponentIDRecord.ID := 14;
+gStn052_14_ReceivingLnSwPrestopBlu.Framework.ComponentIDRecord.Name := 'ReceiveLnSwPrestopBlu';
+gStn052_14_ReceivingLnSwPrestopBlu.Framework.Behavior := 0;
+gStn052_14_ReceivingLnSwPrestopBlu.Framework.EnableFreeRun := FALSE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.BufferArrivalFault := FALSE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.DoesWorkRequest := TRUE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.HandshakeDownstream := FALSE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.HandshakeUpstream := FALSE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.HasLocate := FALSE;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.PuckSensorOnTime := T#50MS;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.PuckSensorOffTime := T#50MS;
+gStn052_14_ReceivingLnSwPrestopBlu.Config.DepartStopFaultTime := T#350MS;
+
+gStn052_15_ReceivingLnSwPrestopMainBlu.Framework.ComponentIDRecord.ID := 15;
+gStn052_15_ReceivingLnSwPrestopMainBlu.Framework.ComponentIDRecord.Name := 'ReceiveLnSwPrestopMainBlu';
+gStn052_15_ReceivingLnSwPrestopMainBlu.Framework.Behavior := 0;
+gStn052_15_ReceivingLnSwPrestopMainBlu.Framework.EnableFreeRun := FALSE;
+gStn052_15_ReceivingLnSwPrestopMainBlu.Config.DBLocation := cDBLocation.Receiving3LaneSwitchBlue;
+
+gStn052_16_ReceivingLnSw.Framework.ComponentIDRecord.ID := 16;
+gStn052_16_ReceivingLnSw.Framework.ComponentIDRecord.Name := 'ReceiveLnSw';
+gStn052_16_ReceivingLnSw.Framework.Behavior := 0;
+gStn052_16_ReceivingLnSw.Framework.EnableFreeRun := FALSE;
+gStn052_16_ReceivingLnSw.Config.DBStationNum := gDBStationNumber;
+gStn052_16_ReceivingLnSw.Config.InBlueLine := 1;
+gStn052_16_ReceivingLnSw.Config.InRedLine := 2;
+gStn052_16_ReceivingLnSw.Config.InGreenLine := 3;
+gStn052_16_ReceivingLnSw.Config.OutBlueLine := 3;
+gStn052_16_ReceivingLnSw.Config.OutRedLine := 2;
+gStn052_16_ReceivingLnSw.Config.OutGreenLine := 1;
+gStn052_16_ReceivingLnSw.Config.PostSwitchLaneCapacity[cLaneSel.Green] := 15;
+gStn052_16_ReceivingLnSw.Config.PostSwitchLaneCapacity[cLaneSel.Red] := 15;
+gStn052_16_ReceivingLnSw.Config.PostSwitchLaneCapacity[cLaneSel.Blue] := 15;
+gStn052_16_ReceivingLnSw.Config.tReleaseGap := T#1.0S;		//from 1.0s
+gStn052_16_ReceivingLnSw.Config.PurgeGrnLaneTime := T#25S;
+gStn052_16_ReceivingLnSw.Config.PurgeRedLaneTime := T#25S;
+gStn052_16_ReceivingLnSw.Config.PurgeBluLaneTime := T#25S;
+
+//Break Stops
+//BreakStopGroup ReceivingBreakStopsGrn
+gStn052_20_ReceivingBreakStopsGrn.Framework.ComponentIDRecord.ID := 20;
+gStn052_20_ReceivingBreakStopsGrn.Framework.ComponentIDRecord.Name := 'ReceivingBreakStopsGrn';
+gStn052_20_ReceivingBreakStopsGrn.Framework.Behavior := 0;
+gStn052_20_ReceivingBreakStopsGrn.Framework.EnableFreeRun := FALSE;
+gStn052_20_ReceivingBreakStopsGrn.Config.NumberStops := 33;
+// common config for all stops in this group		
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.MaxTimeLeavingStop := T#700MS;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.DebounceTimePuckPresentOn  := T#100MS;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.DebounceTimePuckPresentOff  := T#100MS;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.DebounceTimeBufferFullOn  := T#1400MS;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.DebounceTimeBufferFullOff  := T#500MS;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.EnableBufferArrivalFault := TRUE;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.TimeSpacingMinimum := T#2.5S;
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault.BufferArrivalFaultTime := T#20S;
+// populating all stop with default can be overridden below
+FOR i := 1 TO MIN(gStn052_20_ReceivingBreakStopsGrn.Config.NumberStops, cBreakStopGroupMaxInstance) DO
+ 	gStn052_20_ReceivingBreakStopsGrn.Config.BreakStops[i]:= gStn052_20_ReceivingBreakStopsGrn.Config.BreakStopDefault;
+END_FOR
+// example of overridden default value
+gStn052_20_ReceivingBreakStopsGrn.Config.BreakStops[1].TimeSpacingMinimum := T#4.0S;
+
+//BreakStopGroup ReceivingBreakStopsRed
+gStn052_21_ReceivingBreakStopsRed.Framework.ComponentIDRecord.ID := 21;
+gStn052_21_ReceivingBreakStopsRed.Framework.ComponentIDRecord.Name := 'ReceivingBreakStopsRed';
+gStn052_21_ReceivingBreakStopsRed.Framework.Behavior := 0;
+gStn052_21_ReceivingBreakStopsRed.Framework.EnableFreeRun := FALSE;
+gStn052_21_ReceivingBreakStopsRed.Config.NumberStops := 33;
+// common config for all stops in this group		
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.MaxTimeLeavingStop := T#700MS;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.DebounceTimePuckPresentOn  := T#100MS;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.DebounceTimePuckPresentOff  := T#100MS;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.DebounceTimeBufferFullOn  := T#1400MS;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.DebounceTimeBufferFullOff  := T#500MS;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.EnableBufferArrivalFault := TRUE;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.TimeSpacingMinimum := T#2.5S;
+gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault.BufferArrivalFaultTime := T#20S;
+// populating all stop with default can be overridden below
+FOR i := 1 TO MIN(gStn052_21_ReceivingBreakStopsRed.Config.NumberStops, cBreakStopGroupMaxInstance) DO
+ 	gStn052_21_ReceivingBreakStopsRed.Config.BreakStops[i]:= gStn052_21_ReceivingBreakStopsRed.Config.BreakStopDefault;
+END_FOR
+
+//BreakStopGroup ReturnBreakStopsBlu
+gStn052_22_ReceivingBreakStopsBlu.Framework.ComponentIDRecord.ID := 22;
+gStn052_22_ReceivingBreakStopsBlu.Framework.ComponentIDRecord.Name := 'ReceivingBreakStopsBlu';
+gStn052_22_ReceivingBreakStopsBlu.Framework.Behavior := 0;
+gStn052_22_ReceivingBreakStopsBlu.Framework.EnableFreeRun := FALSE;
+gStn052_22_ReceivingBreakStopsBlu.Config.NumberStops := 34;
+// common config for all stops in this group		
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.MaxTimeLeavingStop := T#1700MS;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.DebounceTimePuckPresentOn  := T#100MS;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.DebounceTimePuckPresentOff  := T#100MS;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.DebounceTimeBufferFullOn  := T#1400MS;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.DebounceTimeBufferFullOff  := T#500MS;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.EnableBufferArrivalFault := TRUE;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.TimeSpacingMinimum := T#2.5S;
+gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault.BufferArrivalFaultTime := T#20S;
+// populating all stop with default can be overridden below
+FOR i := 1 TO MIN(gStn052_22_ReceivingBreakStopsBlu.Config.NumberStops, cBreakStopGroupMaxInstance) DO
+ 	gStn052_22_ReceivingBreakStopsBlu.Config.BreakStops[i]:= gStn052_22_ReceivingBreakStopsBlu.Config.BreakStopDefault;
+END_FOR
+
+// Divert - 121 
+gStn052_25_Stn121Divert.Framework.ComponentIDRecord.ID := 25;
+gStn052_25_Stn121Divert.Framework.ComponentIDRecord.Name := 'Stn121Divert';
+gStn052_25_Stn121Divert.Framework.EnableFreeRun := TRUE;
+gStn052_25_Stn121Divert.Config.MainBufferSensorOffTime := T#250mS;
+gStn052_25_Stn121Divert.Config.MainBufferSensorOnTime := T#1400mS;
+gStn052_25_Stn121Divert.Config.SpurBufferSensorOffTime := T#250mS;
+gStn052_25_Stn121Divert.Config.SpurBufferSensorOnTime := T#1400mS;
+gStn052_25_Stn121Divert.Config.NumberOfNoRfidDataToFault := 3;
+gStn052_25_Stn121Divert.Config.MainPuckClearDivertTime := T#2S;
+gStn052_25_Stn121Divert.Config.NumberOfNoDBDataToFault := 3;
+gStn052_25_Stn121Divert.Config.SpurPuckClearDivertTime := T#2S;
+gStn052_25_Stn121Divert.Config.MainPuckPresentOnTime := T#100mS;
+gStn052_25_Stn121Divert.Config.MainPuckPresentOffTime := T#100mS;
+gStn052_25_Stn121Divert.Config.TransitTimeMain := T#5S;
+gStn052_25_Stn121Divert.Config.TransitTimeSpur := T#10S;
+gStn052_25_Stn121Divert.Config.DivertMainTimeSpacing := T#2.2s;
+gStn052_25_Stn121Divert.Config.DivertSpurTimeSpacing := T#2.5s;
+gStn052_25_Stn121Divert.Config.DBLocation := cDBLocation.ReceivingDivert121;
+
+//Merge Prestop Main - 121
+gStn052_26_Stn121MainMergePrestop.Framework.ComponentIDRecord.ID := 26;
+gStn052_26_Stn121MainMergePrestop.Framework.ComponentIDRecord.Name := 'Stn121MainMergePrestop';
+gStn052_26_Stn121MainMergePrestop.Framework.Behavior := 0;
+gStn052_26_Stn121MainMergePrestop.Framework.EnableFreeRun := TRUE;
+gStn052_26_Stn121MainMergePrestop.Config.HandshakeUpstream := FALSE;
+gStn052_26_Stn121MainMergePrestop.Config.HasLocate := FALSE;
+gStn052_26_Stn121MainMergePrestop.Config.DoesWorkRequest := FALSE;
+gStn052_26_Stn121MainMergePrestop.Config.HandshakeDownstream := TRUE;
+gStn052_26_Stn121MainMergePrestop.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_26_Stn121MainMergePrestop.Config.BufferArrivalFault := TRUE;
+gStn052_26_Stn121MainMergePrestop.Config.RemoteBufferSensor := FALSE;
+gStn052_26_Stn121MainMergePrestop.Config.DepartStopFaultTime := T#700MS;
+gStn052_26_Stn121MainMergePrestop.Config.TimeSpacingMinimum := T#2.5S;
+gStn052_26_Stn121MainMergePrestop.Config.BufferArrivalFaultTime := T#15S;
+gStn052_26_Stn121MainMergePrestop.Config.PuckSensorOnTime := T#250MS;
+gStn052_26_Stn121MainMergePrestop.Config.PuckSensorOffTime := T#250MS;
+gStn052_26_Stn121MainMergePrestop.Config.LocateOpenedSensorOnTime := T#250MS;
+gStn052_26_Stn121MainMergePrestop.Config.LocateClosedSensorOnTime := T#250MS;
+gStn052_26_Stn121MainMergePrestop.Config.BufferSensorOnTime := T#1400MS;
+gStn052_26_Stn121MainMergePrestop.Config.BufferSensorOffTime := T#500MS;
+
+// Merge - 121
+gStn052_27_Stn121Merge.Framework.ComponentIDRecord.ID := 27;
+gStn052_27_Stn121Merge.Framework.ComponentIDRecord.Name := 'Stn121Merge';
+gStn052_27_Stn121Merge.Framework.EnableFreeRun := TRUE;
+gStn052_27_Stn121Merge.Config.BufferSensorOnTime := T#1400MS;
+gStn052_27_Stn121Merge.Config.BufferSensorOffTime := T#250MS;
+gStn052_27_Stn121Merge.Config.MergeTimeSpacing := T#2300MS;
+gStn052_27_Stn121Merge.Config.MergeTimeMainTravel := T#2600MS;
+gStn052_27_Stn121Merge.Config.MergeTimeSpurTravel := T#3400MS;
+gStn052_27_Stn121Merge.Config.UseReleaseRatio := TRUE;
+gStn052_27_Stn121Merge.Config.RatioMain := 1;
+gStn052_27_Stn121Merge.Config.RatioSpur := 1;
+
+// Divert - 122
+gStn052_30_Stn122Divert.Framework.ComponentIDRecord.ID := 30;
+gStn052_30_Stn122Divert.Framework.ComponentIDRecord.Name := 'Stn122Divert';
+gStn052_30_Stn122Divert.Framework.EnableFreeRun := TRUE;
+gStn052_30_Stn122Divert.Config.MainBufferSensorOffTime := T#250mS;
+gStn052_30_Stn122Divert.Config.MainBufferSensorOnTime := T#1400mS;
+gStn052_30_Stn122Divert.Config.SpurBufferSensorOffTime := T#250mS;
+gStn052_30_Stn122Divert.Config.SpurBufferSensorOnTime := T#1400mS;
+gStn052_30_Stn122Divert.Config.NumberOfNoRfidDataToFault := 3;
+gStn052_30_Stn122Divert.Config.MainPuckClearDivertTime := T#2S;
+gStn052_30_Stn122Divert.Config.NumberOfNoDBDataToFault := 3;
+gStn052_30_Stn122Divert.Config.SpurPuckClearDivertTime := T#2S;
+gStn052_30_Stn122Divert.Config.MainPuckPresentOnTime := T#100mS;
+gStn052_30_Stn122Divert.Config.MainPuckPresentOffTime := T#100mS;
+gStn052_30_Stn122Divert.Config.TransitTimeMain := T#5S;
+gStn052_30_Stn122Divert.Config.TransitTimeSpur := T#10S;
+gStn052_30_Stn122Divert.Config.DivertMainTimeSpacing := T#2.2s;
+gStn052_30_Stn122Divert.Config.DivertSpurTimeSpacing := T#2.5s;
+gStn052_30_Stn122Divert.Config.DBLocation := cDBLocation.ReceivingDivert122;
+
+//Merge Prestop Main - 122
+gStn052_31_Stn122MainMergePrestop.Framework.ComponentIDRecord.ID := 31;
+gStn052_31_Stn122MainMergePrestop.Framework.ComponentIDRecord.Name := 'Stn122MainMergePrestop';
+gStn052_31_Stn122MainMergePrestop.Framework.Behavior := 0;
+gStn052_31_Stn122MainMergePrestop.Framework.EnableFreeRun := TRUE;
+gStn052_31_Stn122MainMergePrestop.Config.HandshakeUpstream := FALSE;
+gStn052_31_Stn122MainMergePrestop.Config.HasLocate := FALSE;
+gStn052_31_Stn122MainMergePrestop.Config.DoesWorkRequest := FALSE;
+gStn052_31_Stn122MainMergePrestop.Config.HandshakeDownstream := TRUE;
+gStn052_31_Stn122MainMergePrestop.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_31_Stn122MainMergePrestop.Config.BufferArrivalFault := TRUE;
+gStn052_31_Stn122MainMergePrestop.Config.RemoteBufferSensor := FALSE;
+gStn052_31_Stn122MainMergePrestop.Config.DepartStopFaultTime := T#700MS;
+gStn052_31_Stn122MainMergePrestop.Config.TimeSpacingMinimum := T#2.5S;
+gStn052_31_Stn122MainMergePrestop.Config.BufferArrivalFaultTime := T#15S;
+gStn052_31_Stn122MainMergePrestop.Config.PuckSensorOnTime := T#250MS;
+gStn052_31_Stn122MainMergePrestop.Config.PuckSensorOffTime := T#250MS;
+gStn052_31_Stn122MainMergePrestop.Config.LocateOpenedSensorOnTime := T#250MS;
+gStn052_31_Stn122MainMergePrestop.Config.LocateClosedSensorOnTime := T#250MS;
+gStn052_31_Stn122MainMergePrestop.Config.BufferSensorOnTime := T#1400MS;
+gStn052_31_Stn122MainMergePrestop.Config.BufferSensorOffTime := T#500MS;
+
+// Merge - 122
+gStn052_32_Stn122Merge.Framework.ComponentIDRecord.ID := 32;
+gStn052_32_Stn122Merge.Framework.ComponentIDRecord.Name := 'Stn122Merge';
+gStn052_32_Stn122Merge.Framework.EnableFreeRun := TRUE;
+gStn052_32_Stn122Merge.Config.BufferSensorOnTime := T#1400MS;
+gStn052_32_Stn122Merge.Config.BufferSensorOffTime := T#250MS;
+gStn052_32_Stn122Merge.Config.MergeTimeSpacing := T#2300MS;
+gStn052_32_Stn122Merge.Config.MergeTimeMainTravel := T#2600MS;
+gStn052_32_Stn122Merge.Config.MergeTimeSpurTravel := T#3400MS;
+gStn052_32_Stn122Merge.Config.UseReleaseRatio := TRUE;
+gStn052_32_Stn122Merge.Config.RatioMain := 1;
+gStn052_32_Stn122Merge.Config.RatioSpur := 1;
+
+// Divert - 123
+gStn052_35_Stn123Divert.Framework.ComponentIDRecord.ID := 35;
+gStn052_35_Stn123Divert.Framework.ComponentIDRecord.Name := 'Stn123Divert';
+gStn052_35_Stn123Divert.Framework.EnableFreeRun := TRUE;
+gStn052_35_Stn123Divert.Config.MainBufferSensorOffTime := T#250mS;
+gStn052_35_Stn123Divert.Config.MainBufferSensorOnTime := T#1400mS;
+gStn052_35_Stn123Divert.Config.SpurBufferSensorOffTime := T#250mS;
+gStn052_35_Stn123Divert.Config.SpurBufferSensorOnTime := T#1400mS;
+gStn052_35_Stn123Divert.Config.NumberOfNoRfidDataToFault := 3;
+gStn052_35_Stn123Divert.Config.MainPuckClearDivertTime := T#2S;
+gStn052_35_Stn123Divert.Config.NumberOfNoDBDataToFault := 3;
+gStn052_35_Stn123Divert.Config.SpurPuckClearDivertTime := T#2S;
+gStn052_35_Stn123Divert.Config.MainPuckPresentOnTime := T#100mS;
+gStn052_35_Stn123Divert.Config.MainPuckPresentOffTime := T#100mS;
+gStn052_35_Stn123Divert.Config.TransitTimeMain := T#5S;
+gStn052_35_Stn123Divert.Config.TransitTimeSpur := T#10S;
+gStn052_35_Stn123Divert.Config.DivertMainTimeSpacing := T#2.2s;
+gStn052_35_Stn123Divert.Config.DivertSpurTimeSpacing := T#2.5s;
+gStn052_35_Stn123Divert.Config.DBLocation := cDBLocation.ReceivingDivert123;
+
+//Merge Prestop Main - 123
+gStn052_36_Stn123MainMergePrestop.Framework.ComponentIDRecord.ID := 36;
+gStn052_36_Stn123MainMergePrestop.Framework.ComponentIDRecord.Name := 'Stn123MainMergePrestop';
+gStn052_36_Stn123MainMergePrestop.Framework.Behavior := 0;
+gStn052_36_Stn123MainMergePrestop.Framework.EnableFreeRun := TRUE;
+gStn052_36_Stn123MainMergePrestop.Config.HandshakeUpstream := FALSE;
+gStn052_36_Stn123MainMergePrestop.Config.HasLocate := FALSE;
+gStn052_36_Stn123MainMergePrestop.Config.DoesWorkRequest := FALSE;
+gStn052_36_Stn123MainMergePrestop.Config.HandshakeDownstream := TRUE;
+gStn052_36_Stn123MainMergePrestop.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_36_Stn123MainMergePrestop.Config.BufferArrivalFault := TRUE;
+gStn052_36_Stn123MainMergePrestop.Config.RemoteBufferSensor := FALSE;
+gStn052_36_Stn123MainMergePrestop.Config.DepartStopFaultTime := T#700MS;
+gStn052_36_Stn123MainMergePrestop.Config.TimeSpacingMinimum := T#2.5S;
+gStn052_36_Stn123MainMergePrestop.Config.BufferArrivalFaultTime := T#15S;
+gStn052_36_Stn123MainMergePrestop.Config.PuckSensorOnTime := T#250MS;
+gStn052_36_Stn123MainMergePrestop.Config.PuckSensorOffTime := T#250MS;
+gStn052_36_Stn123MainMergePrestop.Config.LocateOpenedSensorOnTime := T#250MS;
+gStn052_36_Stn123MainMergePrestop.Config.LocateClosedSensorOnTime := T#250MS;
+gStn052_36_Stn123MainMergePrestop.Config.BufferSensorOnTime := T#1400MS;
+gStn052_36_Stn123MainMergePrestop.Config.BufferSensorOffTime := T#500MS;
+
+// Merge - 123
+gStn052_37_Stn123Merge.Framework.ComponentIDRecord.ID := 37;
+gStn052_37_Stn123Merge.Framework.ComponentIDRecord.Name := 'Stn123Merge';
+gStn052_37_Stn123Merge.Framework.EnableFreeRun := TRUE;
+gStn052_37_Stn123Merge.Config.BufferSensorOnTime := T#1400MS;
+gStn052_37_Stn123Merge.Config.BufferSensorOffTime := T#250MS;
+gStn052_37_Stn123Merge.Config.MergeTimeSpacing := T#2300MS;
+gStn052_37_Stn123Merge.Config.MergeTimeMainTravel := T#2600MS;
+gStn052_37_Stn123Merge.Config.MergeTimeSpurTravel := T#3400MS;
+gStn052_37_Stn123Merge.Config.UseReleaseRatio := TRUE;
+gStn052_37_Stn123Merge.Config.RatioMain := 1;
+gStn052_37_Stn123Merge.Config.RatioSpur := 1;
+
+// Divert - 124
+gStn052_40_Stn124Divert.Framework.ComponentIDRecord.ID := 40;
+gStn052_40_Stn124Divert.Framework.ComponentIDRecord.Name := 'Stn124Divert';
+gStn052_40_Stn124Divert.Framework.EnableFreeRun := TRUE;
+gStn052_40_Stn124Divert.Config.MainBufferSensorOffTime := T#250mS;
+gStn052_40_Stn124Divert.Config.MainBufferSensorOnTime := T#1400mS;
+gStn052_40_Stn124Divert.Config.SpurBufferSensorOffTime := T#250mS;
+gStn052_40_Stn124Divert.Config.SpurBufferSensorOnTime := T#1400mS;
+gStn052_40_Stn124Divert.Config.NumberOfNoRfidDataToFault := 3;
+gStn052_40_Stn124Divert.Config.MainPuckClearDivertTime := T#2S;
+gStn052_40_Stn124Divert.Config.NumberOfNoDBDataToFault := 3;
+gStn052_40_Stn124Divert.Config.SpurPuckClearDivertTime := T#2S;
+gStn052_40_Stn124Divert.Config.MainPuckPresentOnTime := T#100mS;
+gStn052_40_Stn124Divert.Config.MainPuckPresentOffTime := T#100mS;
+gStn052_40_Stn124Divert.Config.TransitTimeMain := T#5S;
+gStn052_40_Stn124Divert.Config.TransitTimeSpur := T#10S;
+gStn052_40_Stn124Divert.Config.DivertMainTimeSpacing := T#2.2s;
+gStn052_40_Stn124Divert.Config.DivertSpurTimeSpacing := T#2.5s;
+gStn052_40_Stn124Divert.Config.DBLocation := cDBLocation.ReceivingDivert124;
+
+//Merge Prestop Main - 124
+gStn052_41_Stn124MainMergePrestop.Framework.ComponentIDRecord.ID := 41;
+gStn052_41_Stn124MainMergePrestop.Framework.ComponentIDRecord.Name := 'Stn124MainMergePrestop';
+gStn052_41_Stn124MainMergePrestop.Framework.Behavior := 0;
+gStn052_41_Stn124MainMergePrestop.Framework.EnableFreeRun := TRUE;
+gStn052_41_Stn124MainMergePrestop.Config.HandshakeUpstream := FALSE;
+gStn052_41_Stn124MainMergePrestop.Config.HasLocate := FALSE;
+gStn052_41_Stn124MainMergePrestop.Config.DoesWorkRequest := FALSE;
+gStn052_41_Stn124MainMergePrestop.Config.HandshakeDownstream := TRUE;
+gStn052_41_Stn124MainMergePrestop.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_41_Stn124MainMergePrestop.Config.BufferArrivalFault := TRUE;
+gStn052_41_Stn124MainMergePrestop.Config.RemoteBufferSensor := FALSE;
+gStn052_41_Stn124MainMergePrestop.Config.DepartStopFaultTime := T#700MS;
+gStn052_41_Stn124MainMergePrestop.Config.TimeSpacingMinimum := T#2.5S;
+gStn052_41_Stn124MainMergePrestop.Config.BufferArrivalFaultTime := T#15S;
+gStn052_41_Stn124MainMergePrestop.Config.PuckSensorOnTime := T#250MS;
+gStn052_41_Stn124MainMergePrestop.Config.PuckSensorOffTime := T#250MS;
+gStn052_41_Stn124MainMergePrestop.Config.LocateOpenedSensorOnTime := T#250MS;
+gStn052_41_Stn124MainMergePrestop.Config.LocateClosedSensorOnTime := T#250MS;
+gStn052_41_Stn124MainMergePrestop.Config.BufferSensorOnTime := T#1400MS;
+gStn052_41_Stn124MainMergePrestop.Config.BufferSensorOffTime := T#500MS;
+
+// Merge - 124
+gStn052_42_Stn124Merge.Framework.ComponentIDRecord.ID := 42;
+gStn052_42_Stn124Merge.Framework.ComponentIDRecord.Name := 'Stn124Merge';
+gStn052_42_Stn124Merge.Framework.EnableFreeRun := TRUE;
+gStn052_42_Stn124Merge.Config.BufferSensorOnTime := T#1400MS;
+gStn052_42_Stn124Merge.Config.BufferSensorOffTime := T#250MS;
+gStn052_42_Stn124Merge.Config.MergeTimeSpacing := T#2300MS;
+gStn052_42_Stn124Merge.Config.MergeTimeMainTravel := T#2600MS;
+gStn052_42_Stn124Merge.Config.MergeTimeSpurTravel := T#3400MS;
+gStn052_42_Stn124Merge.Config.UseReleaseRatio := TRUE;
+gStn052_42_Stn124Merge.Config.RatioMain := 1;
+gStn052_42_Stn124Merge.Config.RatioSpur := 1;
+
+// Divert - 125
+gStn052_45_Stn125Divert.Framework.ComponentIDRecord.ID := 45;
+gStn052_45_Stn125Divert.Framework.ComponentIDRecord.Name := 'Stn125Divert';
+gStn052_45_Stn125Divert.Framework.EnableFreeRun := TRUE;
+gStn052_45_Stn125Divert.Config.MainBufferSensorOffTime := T#250mS;
+gStn052_45_Stn125Divert.Config.MainBufferSensorOnTime := T#1400mS;
+gStn052_45_Stn125Divert.Config.SpurBufferSensorOffTime := T#250mS;
+gStn052_45_Stn125Divert.Config.SpurBufferSensorOnTime := T#1400mS;
+gStn052_45_Stn125Divert.Config.NumberOfNoRfidDataToFault := 3;
+gStn052_45_Stn125Divert.Config.MainPuckClearDivertTime := T#2S;
+gStn052_45_Stn125Divert.Config.NumberOfNoDBDataToFault := 3;
+gStn052_45_Stn125Divert.Config.SpurPuckClearDivertTime := T#2S;
+gStn052_45_Stn125Divert.Config.MainPuckPresentOnTime := T#100mS;
+gStn052_45_Stn125Divert.Config.MainPuckPresentOffTime := T#100mS;
+gStn052_45_Stn125Divert.Config.TransitTimeMain := T#5S;
+gStn052_45_Stn125Divert.Config.TransitTimeSpur := T#10S;
+gStn052_45_Stn125Divert.Config.DivertMainTimeSpacing := T#2.2s;
+gStn052_45_Stn125Divert.Config.DivertSpurTimeSpacing := T#2.5s;
+gStn052_45_Stn125Divert.Config.DBLocation := cDBLocation.ReceivingDivert125;
+
+//Merge Prestop Main - 125
+gStn052_46_Stn125MainMergePrestop.Framework.ComponentIDRecord.ID := 46;
+gStn052_46_Stn125MainMergePrestop.Framework.ComponentIDRecord.Name := 'Stn125MainMergePrestop';
+gStn052_46_Stn125MainMergePrestop.Framework.Behavior := 0;
+gStn052_46_Stn125MainMergePrestop.Framework.EnableFreeRun := TRUE;
+gStn052_46_Stn125MainMergePrestop.Config.HandshakeUpstream := FALSE;
+gStn052_46_Stn125MainMergePrestop.Config.HasLocate := FALSE;
+gStn052_46_Stn125MainMergePrestop.Config.DoesWorkRequest := FALSE;
+gStn052_46_Stn125MainMergePrestop.Config.HandshakeDownstream := TRUE;
+gStn052_46_Stn125MainMergePrestop.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_46_Stn125MainMergePrestop.Config.BufferArrivalFault := TRUE;
+gStn052_46_Stn125MainMergePrestop.Config.RemoteBufferSensor := FALSE;
+gStn052_46_Stn125MainMergePrestop.Config.DepartStopFaultTime := T#700MS;
+gStn052_46_Stn125MainMergePrestop.Config.TimeSpacingMinimum := T#2.5S;
+gStn052_46_Stn125MainMergePrestop.Config.BufferArrivalFaultTime := T#15S;
+gStn052_46_Stn125MainMergePrestop.Config.PuckSensorOnTime := T#250MS;
+gStn052_46_Stn125MainMergePrestop.Config.PuckSensorOffTime := T#250MS;
+gStn052_46_Stn125MainMergePrestop.Config.LocateOpenedSensorOnTime := T#250MS;
+gStn052_46_Stn125MainMergePrestop.Config.LocateClosedSensorOnTime := T#250MS;
+gStn052_46_Stn125MainMergePrestop.Config.BufferSensorOnTime := T#1400MS;
+gStn052_46_Stn125MainMergePrestop.Config.BufferSensorOffTime := T#500MS;
+
+// Merge - 125
+gStn052_47_Stn125Merge.Framework.ComponentIDRecord.ID := 47;
+gStn052_47_Stn125Merge.Framework.ComponentIDRecord.Name := 'Stn125Merge';
+gStn052_47_Stn125Merge.Framework.EnableFreeRun := TRUE;
+gStn052_47_Stn125Merge.Config.BufferSensorOnTime := T#1400MS;
+gStn052_47_Stn125Merge.Config.BufferSensorOffTime := T#250MS;
+gStn052_47_Stn125Merge.Config.MergeTimeSpacing := T#2300MS;
+gStn052_47_Stn125Merge.Config.MergeTimeMainTravel := T#2600MS;
+gStn052_47_Stn125Merge.Config.MergeTimeSpurTravel := T#3400MS;
+gStn052_47_Stn125Merge.Config.UseReleaseRatio := TRUE;
+gStn052_47_Stn125Merge.Config.RatioMain := 1;
+gStn052_47_Stn125Merge.Config.RatioSpur := 1;
+
+// Divert - 126
+gStn052_50_Stn126Divert.Framework.ComponentIDRecord.ID := 50;
+gStn052_50_Stn126Divert.Framework.ComponentIDRecord.Name := 'Stn126Divert';
+gStn052_50_Stn126Divert.Framework.EnableFreeRun := TRUE;
+gStn052_50_Stn126Divert.Config.MainBufferSensorOffTime := T#250mS;
+gStn052_50_Stn126Divert.Config.MainBufferSensorOnTime := T#1400mS;
+gStn052_50_Stn126Divert.Config.SpurBufferSensorOffTime := T#250mS;
+gStn052_50_Stn126Divert.Config.SpurBufferSensorOnTime := T#1400mS;
+gStn052_50_Stn126Divert.Config.NumberOfNoRfidDataToFault := 3;
+gStn052_50_Stn126Divert.Config.MainPuckClearDivertTime := T#2S;
+gStn052_50_Stn126Divert.Config.NumberOfNoDBDataToFault := 3;
+gStn052_50_Stn126Divert.Config.SpurPuckClearDivertTime := T#2S;
+gStn052_50_Stn126Divert.Config.MainPuckPresentOnTime := T#100mS;
+gStn052_50_Stn126Divert.Config.MainPuckPresentOffTime := T#100mS;
+gStn052_50_Stn126Divert.Config.TransitTimeMain := T#5S;
+gStn052_50_Stn126Divert.Config.TransitTimeSpur := T#10S;
+gStn052_50_Stn126Divert.Config.DivertMainTimeSpacing := T#2.2s;
+gStn052_50_Stn126Divert.Config.DivertSpurTimeSpacing := T#2.5s;
+gStn052_50_Stn126Divert.Config.DBLocation := cDBLocation.ReceivingDivert126;
+
+//Merge Prestop Main - 126
+gStn052_51_Stn126MainMergePrestop.Framework.ComponentIDRecord.ID := 51;
+gStn052_51_Stn126MainMergePrestop.Framework.ComponentIDRecord.Name := 'Stn126MainMergePrestop';
+gStn052_51_Stn126MainMergePrestop.Framework.Behavior := 0;
+gStn052_51_Stn126MainMergePrestop.Framework.EnableFreeRun := TRUE;
+gStn052_51_Stn126MainMergePrestop.Config.HandshakeUpstream := FALSE;
+gStn052_51_Stn126MainMergePrestop.Config.HasLocate := FALSE;
+gStn052_51_Stn126MainMergePrestop.Config.DoesWorkRequest := FALSE;
+gStn052_51_Stn126MainMergePrestop.Config.HandshakeDownstream := TRUE;
+gStn052_51_Stn126MainMergePrestop.Config.BufferOnlyOneInMotion := FALSE;
+gStn052_51_Stn126MainMergePrestop.Config.BufferArrivalFault := TRUE;
+gStn052_51_Stn126MainMergePrestop.Config.RemoteBufferSensor := FALSE;
+gStn052_51_Stn126MainMergePrestop.Config.DepartStopFaultTime := T#700MS;
+gStn052_51_Stn126MainMergePrestop.Config.TimeSpacingMinimum := T#2.5S;
+gStn052_51_Stn126MainMergePrestop.Config.BufferArrivalFaultTime := T#15S;
+gStn052_51_Stn126MainMergePrestop.Config.PuckSensorOnTime := T#250MS;
+gStn052_51_Stn126MainMergePrestop.Config.PuckSensorOffTime := T#250MS;
+gStn052_51_Stn126MainMergePrestop.Config.LocateOpenedSensorOnTime := T#250MS;
+gStn052_51_Stn126MainMergePrestop.Config.LocateClosedSensorOnTime := T#250MS;
+gStn052_51_Stn126MainMergePrestop.Config.BufferSensorOnTime := T#1400MS;
+gStn052_51_Stn126MainMergePrestop.Config.BufferSensorOffTime := T#500MS;
+
+// Merge - 126
+gStn052_52_Stn126Merge.Framework.ComponentIDRecord.ID := 52;
+gStn052_52_Stn126Merge.Framework.ComponentIDRecord.Name := 'Stn126Merge';
+gStn052_52_Stn126Merge.Framework.EnableFreeRun := TRUE;
+gStn052_52_Stn126Merge.Config.BufferSensorOnTime := T#1400MS;
+gStn052_52_Stn126Merge.Config.BufferSensorOffTime := T#250MS;
+gStn052_52_Stn126Merge.Config.MergeTimeSpacing := T#2300MS;
+gStn052_52_Stn126Merge.Config.MergeTimeMainTravel := T#2600MS;
+gStn052_52_Stn126Merge.Config.MergeTimeSpurTravel := T#3400MS;
+gStn052_52_Stn126Merge.Config.UseReleaseRatio := TRUE;
+gStn052_52_Stn126Merge.Config.RatioMain := 1;
+gStn052_52_Stn126Merge.Config.RatioSpur := 1;
+
+(*STATS*)
+pStats^.IdealCycleTime := 7.2; (*time in seconds*)
+IF pStats^.IdealCycleTime <= 0 THEN
+	pStats^.IdealCycleTime := 5;
+END_IF
+pStats^.AggregateInterval := hiAggregateIntervalMin; (*aggregate time in minutes*)
+IF pStats^.AggregateInterval < 3 THEN
+	pStats^.AggregateInterval := 3;
+END_IF
+
+pStats^.StartOfShift[0,0] := hiStartOfShift1Min; (*1st shift - min*)
+pStats^.StartOfShift[0,1] := hiStartOfShift1Hour; (*1st shift - hour*)
+pStats^.StartOfShift[1,0] := hiStartOfShift2Min; (*2nd shift*)
+pStats^.StartOfShift[1,1] := hiStartOfShift2Hour;
+pStats^.StartOfShift[2,0] := hiStartOfShift3Min; (*3rd shift*)
+pStats^.StartOfShift[2,1] := hiStartOfShift3Hour;
+pStats^.PlannedDowntime[0] := hiPlannedDownTimeShift1Min; (*1st shift planned downtime in minutes*)
+pStats^.PlannedDowntime[1] := hiPlannedDownTimeShift2Min;
+pStats^.PlannedDowntime[2] := hiPlannedDownTimeShift3Min;
+
+// Station paired with 052 - produced - copy into Stn052_Config
+// setup parameters and call the ADS read function to grab produced data from other PLC 
+tmrReadAds(in := NOT tmrReadAds.Q, PT := T#100MS); // use this line once per station - comment out or delete
+tmrReadSafetyAds(in := NOT tmrReadSafetyAds.Q, PT := T#50MS); // use this line once per station - comment out or delete
+
+fbReadAdsSybByName_Stn121To052.bRead := tmrReadAds.Q AND NOT fbReadAdsSybByName_Stn121To052.bBusy;
+fbReadAdsSybByName_Stn121To052.sNetID := '172.24.140.131.1.1';  // Empty ID assumes local device - 121 ?
+fbReadAdsSybByName_Stn121To052.nPort := 851;  // Stn121 PLC port
+fbReadAdsSybByName_Stn121To052.sVarName := 'Global_Variables.gProduced_Stn121To052';
+fbReadAdsSybByName_Stn121To052.nDestAddr := ADR(gConsumed_Stn121To052);
+fbReadAdsSybByName_Stn121To052.nLen := SIZEOF(gConsumed_Stn121To052);
+fbReadAdsSybByName_Stn121To052.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn121To052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn121To052();
+
+// set global var HeartbeatOK - 20220927 reversed to Stn elements
+tmrStnHeartbeat121To052OK(IN:= cntLastStnHeartbeat121To052 = gConsumed_Stn121To052.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat121To052OK.Q AND (cntLastStnHeartbeat121To052 = gConsumed_Stn121To052.HeartbeatMain) THEN
+	gConsumed_Stn121To052_OK := FALSE;
+ELSE
+	gConsumed_Stn121To052_OK := TRUE;
+END_IF
+cntLastStnHeartbeat121To052 := gConsumed_Stn121To052.HeartbeatStn;
+
+tmrStnHeartbeat122To052OK(IN:= cntLastStnHeartbeat122To052 = gConsumed_Stn122To052.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat122To052OK.Q AND (cntLastStnHeartbeat122To052 = gConsumed_Stn122To052.HeartbeatMain) THEN
+	gConsumed_Stn122To052_OK := FALSE;
+ELSE
+	gConsumed_Stn122To052_OK := TRUE;
+END_IF
+cntLastStnHeartbeat122To052 := gConsumed_Stn122To052.HeartbeatStn;
+
+tmrStnHeartbeat123To052OK(IN:= cntLastStnHeartbeat123To052 = gConsumed_Stn123To052.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat123To052OK.Q AND (cntLastStnHeartbeat123To052 = gConsumed_Stn123To052.HeartbeatMain) THEN
+	gConsumed_Stn123To052_OK := FALSE;
+ELSE
+	gConsumed_Stn123To052_OK := TRUE;
+END_IF
+cntLastStnHeartbeat123To052 := gConsumed_Stn123To052.HeartbeatStn;
+
+tmrStnHeartbeat124To052OK(IN:= cntLastStnHeartbeat124To052 = gConsumed_Stn124To052.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat124To052OK.Q AND (cntLastStnHeartbeat124To052 = gConsumed_Stn124To052.HeartbeatMain) THEN
+	gConsumed_Stn124To052_OK := FALSE;
+ELSE
+	gConsumed_Stn124To052_OK := TRUE;
+END_IF
+cntLastStnHeartbeat124To052 := gConsumed_Stn124To052.HeartbeatStn;
+
+tmrStnHeartbeat126To052OK(IN:= cntLastStnHeartbeat126To052 = gConsumed_Stn126To052.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat126To052OK.Q AND (cntLastStnHeartbeat126To052 = gConsumed_Stn126To052.HeartbeatMain) THEN
+	gConsumed_Stn126To052_OK := FALSE;
+ELSE
+	gConsumed_Stn126To052_OK := TRUE;
+END_IF
+cntLastStnHeartbeat126To052 := gConsumed_Stn126To052.HeartbeatStn;
+
+// set global var HeartbeatOK - 20220927 reversed to Stn elements
+tmrStnHeartbeat125To052OK(IN:= cntLastStnHeartbeat = gConsumed_Stn125To052.HeartbeatStn,PT:= T#4S);
+IF tmrStnHeartbeat125To052OK.Q AND (cntLastStnHeartbeat = gConsumed_Stn125To052.HeartbeatMain) THEN
+	gConsumed_Stn125To052_OK := FALSE;
+ELSE
+	gConsumed_Stn125To052_OK := TRUE;
+END_IF
+cntLastStnHeartbeat := gConsumed_Stn125To052.HeartbeatStn;
+
+fbReadAdsSybByName_Stn122To052.bRead := tmrReadAds.Q AND NOT fbReadAdsSybByName_Stn122To052.bBusy;
+fbReadAdsSybByName_Stn122To052.sNetID := '172.24.140.131.1.1';  // Empty ID assumes local device - 122
+fbReadAdsSybByName_Stn122To052.nPort := 852;  // Stn122 PLC port
+fbReadAdsSybByName_Stn122To052.sVarName := 'Global_Variables.gProduced_Stn122To052';
+fbReadAdsSybByName_Stn122To052.nDestAddr := ADR(gConsumed_Stn122To052);
+fbReadAdsSybByName_Stn122To052.nLen := SIZEOF(gConsumed_Stn122To052);
+fbReadAdsSybByName_Stn122To052.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn122To052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn122To052();
+
+fbReadAdsSybByName_Stn123To052.bRead := tmrReadAds.Q AND NOT fbReadAdsSybByName_Stn123To052.bBusy;
+fbReadAdsSybByName_Stn123To052.sNetID := '172.24.140.151.1.1';  // Empty ID assumes local device - 123
+fbReadAdsSybByName_Stn123To052.nPort := 851;  // Stn123 PLC port
+fbReadAdsSybByName_Stn123To052.sVarName := 'Global_Variables.gProduced_Stn123To052';
+fbReadAdsSybByName_Stn123To052.nDestAddr := ADR(gConsumed_Stn123To052);
+fbReadAdsSybByName_Stn123To052.nLen := SIZEOF(gConsumed_Stn123To052);
+fbReadAdsSybByName_Stn123To052.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn125To052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn123To052();
+
+fbReadAdsSybByName_Stn124To052.bRead := tmrReadAds.Q AND NOT fbReadAdsSybByName_Stn124To052.bBusy;
+fbReadAdsSybByName_Stn124To052.sNetID := '172.24.140.151.1.1';  // Empty ID assumes local device - 124
+fbReadAdsSybByName_Stn124To052.nPort := 852;  // Stn124 PLC port
+fbReadAdsSybByName_Stn124To052.sVarName := 'Global_Variables.gProduced_Stn124To052';
+fbReadAdsSybByName_Stn124To052.nDestAddr := ADR(gConsumed_Stn124To052);
+fbReadAdsSybByName_Stn124To052.nLen := SIZEOF(gConsumed_Stn124To052);
+fbReadAdsSybByName_Stn124To052.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn124To052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn124To052();
+
+fbReadAdsSybByName_Stn125To052.bRead := tmrReadAds.Q AND NOT fbReadAdsSybByName_Stn125To052.bBusy;
+fbReadAdsSybByName_Stn125To052.sNetID := '172.24.140.171.1.1';  // Empty ID assumes local device - 125
+fbReadAdsSybByName_Stn125To052.nPort := 851;  // Stn125 PLC port
+fbReadAdsSybByName_Stn125To052.sVarName := 'Global_Variables.gProduced_Stn125To052';
+fbReadAdsSybByName_Stn125To052.nDestAddr := ADR(gConsumed_Stn125To052);
+fbReadAdsSybByName_Stn125To052.nLen := SIZEOF(gConsumed_Stn125To052);
+fbReadAdsSybByName_Stn125To052.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn125To052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn125To052();
+
+fbReadAdsSybByName_Stn126To052.bRead := tmrReadAds.Q AND NOT fbReadAdsSybByName_Stn126To052.bBusy;
+fbReadAdsSybByName_Stn126To052.sNetID := '172.24.140.171.1.1';  // Empty ID assumes local device - 126
+fbReadAdsSybByName_Stn126To052.nPort := 852;  // Stn126 PLC port
+fbReadAdsSybByName_Stn126To052.sVarName := 'Global_Variables.gProduced_Stn126To052';
+fbReadAdsSybByName_Stn126To052.nDestAddr := ADR(gConsumed_Stn126To052);
+fbReadAdsSybByName_Stn126To052.nLen := SIZEOF(gConsumed_Stn126To052);
+fbReadAdsSybByName_Stn126To052.tTimeout := T#250MS;
+fbReadAdsSybByName_Stn126To052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_Stn126To052();
+
+// Generate a heartbeat for 052To121,122,123,124,125,126 produced data
+IF tmrReadAds.Q THEN
+	HeartbeatMain := HeartbeatMain + 1;
+	IF HeartbeatMain > 20000 THEN
+		HeartbeatMain := 0;
+	END_IF
+	
+	gProduced_Stn052To121.HeartbeatMain := HeartbeatMain;
+	gProduced_Stn052To122.HeartbeatMain := HeartbeatMain;
+	gProduced_Stn052To123.HeartbeatMain := HeartbeatMain;
+	gProduced_Stn052To124.HeartbeatMain := HeartbeatMain;
+	gProduced_Stn052To125.HeartbeatMain := HeartbeatMain;
+	gProduced_Stn052To126.HeartbeatMain := HeartbeatMain;
+END_IF
+
+//SafetyInterface - In same PC
+fbReadAdsSybByName_SafetyInterfaceTo052.bRead := tmrReadSafetyAds.Q AND NOT fbReadAdsSybByName_SafetyInterfaceTo052.bBusy;
+fbReadAdsSybByName_SafetyInterfaceTo052.sNetID := '';  // Empty ID assumes local device
+fbReadAdsSybByName_SafetyInterfaceTo052.nPort := 856;  // SafetyInterface PLC port
+fbReadAdsSybByName_SafetyInterfaceTo052.sVarName := 'Global_Variables.gProduced_SafetyInterfaceConv';
+fbReadAdsSybByName_SafetyInterfaceTo052.nDestAddr := ADR(gConsumed_SafetyInterfaceConv);
+fbReadAdsSybByName_SafetyInterfaceTo052.nLen := SIZEOF(gConsumed_SafetyInterfaceConv);
+fbReadAdsSybByName_SafetyInterfaceTo052.tTimeout := T#250MS;
+fbReadAdsSybByName_SafetyInterfaceTo052.eComMode := E_AdsComMode.eAdsComModeFastCom;
+fbReadAdsSybByName_SafetyInterfaceTo052();
+
+//SafetyInterfaceTo051
+tmrStnHeartbeatSafetyInterfaceTo052OK(IN:= cntLastStnHeartbeatSafetyInterfaceTo052 = gConsumed_SafetyInterfaceConv.HeartbeatMain,PT:= T#4S);
+IF tmrStnHeartbeatSafetyInterfaceTo052OK.Q AND (cntLastStnHeartbeatSafetyInterfaceTo052 = gConsumed_SafetyInterfaceConv.HeartbeatMain) THEN
+	gConsumed_SafetyInterfaceTo052_OK := FALSE;
+ELSE
+	gConsumed_SafetyInterfaceTo052_OK := TRUE;
+END_IF
+cntLastStnHeartbeatSafetyInterfaceTo052 := gConsumed_SafetyInterfaceConv.HeartbeatMain;
+
+// Generate a heartbeat for produced data w. Stn051 as Stn for Safety as Main
+IF tmrReadSafetyAds.Q THEN
+	HeartbeatStnSafety := HeartbeatStnSafety + 2;
+	IF HeartbeatStnSafety > 20000 THEN
+		HeartbeatStnSafety := 0;
+	END_IF
+	
+	gProduced_Stn052ToSafetyInterface.HeartbeatStn := HeartbeatStnSafety;
+END_IF
+
+// Unload fault log FIFO and prep DB transaction
+IF 	pStats^.StatsFaultLog.Count > 0 THEN
+	MEMSET(ADR(StoreFault),0,SIZEOF(StoreFault));
+	pStats^.StatsFaultLog.UNLOAD(pFIFO:=ADR(pStats^.StatsFaultLogBuffer),out=> StoreFaultDetails);	
+	StoreFault.inStationID := StoreFaultDetails.StationID;
+	StoreFault.inFaultCode := StoreFaultDetails.FaultID;
+	StoreFault.inFaultText := LEFT(StoreFaultDetails.StringData[0],(SIZEOF(StoreFault.inFaultText)-1));
+	StoreFault.inTimestamp := SYSTEMTIME_TO_DT(StoreFaultDetails.TimeStamp.DateTime);
+	StoreFault.inAcknowledgeTime := StoreFaultDetails.AcknowledgeTime;
+	StoreFault.inDuration := StoreFaultDetails.Duration;
+	StoreFault.inData1 := StoreFaultDetails.Data[0];
+	StoreFault.inData2 := StoreFaultDetails.Data[1];
+	StoreFault.inData3 := StoreFaultDetails.Data[2];
+	StoreFault.inStringData1 := LEFT(StoreFaultDetails.StringData[1],(SIZEOF(StoreFault.inStringData1)-1));
+	StoreFault.inStringData2 := LEFT(StoreFaultDetails.StringData[2],(SIZEOF(StoreFault.inStringData2)-1));
+	StoreFault.inStringData3 := LEFT(StoreFaultDetails.StringData[3],(SIZEOF(StoreFault.inStringData3)-1));
+	
+	pTransactionHandler^.ExecuteSP(
+		bForeground := FALSE,
+		sSPName := 'uspStoreFault',
+		pData := ADR(StoreFault),
+		nDataSize := SIZEOF(StoreFault));
+END_IF
+
+// Unload OEE aggregate FIFO and prep DB transaction
+IF 	pStats^.StatsAggregateFIFO.Count > 0 THEN
+	MEMSET(ADR(StoreStatsAggregate),0,SIZEOF(StoreStatsAggregate));
+	pStats^.StatsAggregateFIFO.UNLOAD(pFIFO:=ADR(pStats^.StatsAggregateBuffer),out=> StoreStatsAggregateDetails);	
+	StoreStatsAggregate.inStationID := pStn^.StationID;
+	StoreStatsAggregate.inTimestamp := SYSTEMTIME_TO_DT(StoreStatsAggregateDetails.TimeStamp.DateTime);
+	StoreStatsAggregate.inOperatorStopTime := StoreStatsAggregateDetails.OperatorStopTime;
+	StoreStatsAggregate.inOperatorStopCount := StoreStatsAggregateDetails.OperatorStopCount;
+	StoreStatsAggregate.inAutoStopTime := StoreStatsAggregateDetails.AutoStopTime;
+	StoreStatsAggregate.inAutoStopCount := StoreStatsAggregateDetails.AutoStopCount;
+	StoreStatsAggregate.inWorkTime := StoreStatsAggregateDetails.WorkTime;
+	StoreStatsAggregate.inWorkCount := StoreStatsAggregateDetails.WorkCount;
+	StoreStatsAggregate.inBypassTime := StoreStatsAggregateDetails.BypassTime;
+	StoreStatsAggregate.inBypassCount := StoreStatsAggregateDetails.BypassCount;
+	StoreStatsAggregate.inBlockTime := StoreStatsAggregateDetails.BlockTime;
+	StoreStatsAggregate.inBlockCount := StoreStatsAggregateDetails.BlockCount;
+	StoreStatsAggregate.inStarveTime := StoreStatsAggregateDetails.StarveTime;
+	StoreStatsAggregate.inStarveCount := StoreStatsAggregateDetails.StarveCount;
+	StoreStatsAggregate.inFaultTime := StoreStatsAggregateDetails.FaultTime;
+	StoreStatsAggregate.inFaultCount := StoreStatsAggregateDetails.FaultCount;
+	StoreStatsAggregate.inEmptyTime := StoreStatsAggregateDetails.EmptyTime;
+	StoreStatsAggregate.inEmptyCount := StoreStatsAggregateDetails.EmptyCount;
+	StoreStatsAggregate.inRetryTime := StoreStatsAggregateDetails.RetryTime;
+	StoreStatsAggregate.inRetryCount := StoreStatsAggregateDetails.RetryCount;
+	StoreStatsAggregate.inMasterTime := StoreStatsAggregateDetails.MasterTime;
+	StoreStatsAggregate.inMasterCount := StoreStatsAggregateDetails.MasterCount;
+	StoreStatsAggregate.inOtherTime := StoreStatsAggregateDetails.OtherTime;
+	StoreStatsAggregate.inOtherCount := StoreStatsAggregateDetails.OtherCount;
+	StoreStatsAggregate.inRejectCount := StoreStatsAggregateDetails.RejectCount;
+	StoreStatsAggregate.inGoodCount := StoreStatsAggregateDetails.GoodCount;
+	StoreStatsAggregate.inFirstTimeGoodCount := StoreStatsAggregateDetails.FirstTimeGoodCount;
+	StoreStatsAggregate.inFirstTimeStartCount := StoreStatsAggregateDetails.FirstTimeStartCount;
+	StoreStatsAggregate.inGoodCycleTime := StoreStatsAggregateDetails.GoodCycleTime;
+	StoreStatsAggregate.inInitCount := StoreStatsAggregateDetails.InitCount;
+	StoreStatsAggregate.inPartsForCurrentCycleTime := StoreStatsAggregateDetails.PartsForCurrentCycleTime;
+	StoreStatsAggregate.inShift := StoreStatsAggregateDetails.Shift;
+	
+	pTransactionHandler^.ExecuteSP(
+		bForeground := FALSE,
+		sSPName := 'uspStoreStatsAggregate',
+		pData := ADR(StoreStatsAggregate),
+		nDataSize := SIZEOF(StoreStatsAggregate));
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="Stn052_Config">
+      <LineId Id="9650" Count="48" />
+      <LineId Id="9701" Count="0" />
+      <LineId Id="9703" Count="76" />
+      <LineId Id="10695" Count="1" />
+      <LineId Id="9780" Count="1" />
+      <LineId Id="10635" Count="2" />
+      <LineId Id="9783" Count="63" />
+      <LineId Id="10084" Count="54" />
+      <LineId Id="10379" Count="54" />
+      <LineId Id="10139" Count="218" />
+      <LineId Id="9847" Count="23" />
+      <LineId Id="10566" Count="0" />
+      <LineId Id="9871" Count="43" />
+      <LineId Id="10500" Count="7" />
+      <LineId Id="9915" Count="48" />
+      <LineId Id="10487" Count="9" />
+      <LineId Id="9964" Count="11" />
+      <LineId Id="10508" Count="0" />
+      <LineId Id="9976" Count="1" />
+      <LineId Id="9987" Count="9" />
+      <LineId Id="10570" Count="7" />
+      <LineId Id="10569" Count="0" />
+      <LineId Id="9997" Count="9" />
+      <LineId Id="10017" Count="66" />
+      <LineId Id="336" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

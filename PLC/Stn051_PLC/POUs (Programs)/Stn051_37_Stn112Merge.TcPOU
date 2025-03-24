@@ -1,0 +1,49 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn051_37_Stn112Merge" Id="{48c6569b-6a3c-46a1-9f6a-7bd92a014728}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn051_37_Stn112Merge
+VAR
+//correct
+	{attribute 'TcLinkToOSO' := '.iBufferFull := <0,1,2>TIIB[N24S00 (AL1332)]^N24S03 (AL2341)^TxPDO^input byte 3'}
+	fbConvMerge: FB_ConvMerge;
+	
+	{attribute 'TcLinkToOSO' := '<0,1,2>TIIB[N24S00 (AL1332)]^N24S03 (AL2341)^TxPDO^input byte 3'}
+	iBufferFull AT %I*: BOOL;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn051_37_Stn112Merge.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn051_37_Stn112Merge.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc053Mtr05;
+gStn051_37_Stn112Merge.MainInAuto := gStn051.CycleAuto;
+
+gStn051_37_Stn112Merge.SpurHeartbeatOK := gConsumed_Stn112To051_OK;
+gStn051_37_Stn112Merge.SpurConvRunning := gConsumed_Stn112To051.SpurConvRunning;
+gStn051_37_Stn112Merge.SpurInAuto := gConsumed_Stn112To051.ScratchPad[0].1;
+
+gStn112_30_MergeSpurPreStop.Available := gConsumed_Stn112To051.Available;
+
+
+fbConvMerge(
+	pStn := ADR(gStn051),
+	pCmp := ADR(gStn051_37_Stn112Merge),
+	pStateTraceBuffer := ADR(gStn051_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn051_StateTraceFifo),
+	pStats := ADR(gStn051_02_Stats),
+	pMain := ADR(gStn051_36_Stn112MainMergePrestop),
+	pSpur := ADR(gStn112_30_MergeSpurPreStop)		
+);
+
+gProduced_Stn051To112.Release := gStn112_30_MergeSpurPreStop.Release;
+gProduced_Stn051To112.iBufferFull := iBufferFull;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn051_37_Stn112Merge">
+      <LineId Id="16" Count="9" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="28" Count="13" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

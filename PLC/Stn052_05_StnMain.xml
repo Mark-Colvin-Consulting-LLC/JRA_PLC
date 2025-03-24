@@ -1,0 +1,1129 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<project xmlns="http://www.plcopen.org/xml/tc6_0200">
+  <fileHeader companyName="Beckhoff Automation GmbH" productName="TwinCAT PLC Control" productVersion="3.5.13.20" creationDateTime="2022-11-16T10:05:50.7956102" />
+  <contentHeader name="Stn052_PLC" modificationDateTime="2022-11-16T10:05:50.8106128">
+    <coordinateInfo>
+      <fbd>
+        <scaling x="1" y="1" />
+      </fbd>
+      <ld>
+        <scaling x="1" y="1" />
+      </ld>
+      <sfc>
+        <scaling x="1" y="1" />
+      </sfc>
+    </coordinateInfo>
+    <addData>
+      <data name="http://www.3s-software.com/plcopenxml/projectinformation" handleUnknown="implementation">
+        <ProjectInformation />
+      </data>
+    </addData>
+  </contentHeader>
+  <types>
+    <dataTypes />
+    <pous>
+      <pou name="Stn052_05_StnMain" pouType="program">
+        <interface>
+          <localVars>
+            <variable name="pStn">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="Station" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pCmp">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpCore" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="Local">
+              <type>
+                <derived name="FrameworkLocal" />
+              </type>
+            </variable>
+            <variable name="Framework">
+              <type>
+                <derived name="FB_Framework" />
+              </type>
+            </variable>
+            <variable name="dummyCmpcore">
+              <type>
+                <derived name="CmpCore" />
+              </type>
+            </variable>
+            <variable name="pCartonLoadMain">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpCore" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pCartonConvMain">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpCore" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pPrintMain">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpCore" />
+                  </baseType>
+                </pointer>
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">Currently a dummy main</xhtml>
+              </documentation>
+            </variable>
+            <variable name="pReceivingLnSwPrestopMainGrn">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpWorkStopMainLnSw" />
+                  </baseType>
+                </pointer>
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">Receiving</xhtml>
+              </documentation>
+            </variable>
+            <variable name="pReceivingLnSwPrestopMainRed">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpWorkStopMainLnSw" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pReceivingLnSwPrestopMainBlu">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpWorkStopMainLnSw" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pReceivingLnSw">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="Cmp3LaneSwitchMain" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pReceivingBreakStopsGrn">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvBreakStopGroup" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pReceivingBreakStopsRed">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvBreakStopGroup" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pReceivingBreakStopsBlu">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvBreakStopGroup" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn121Divert">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvDivert" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn121MainMergePrestop">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvStop" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn121Merge">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvMerge" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn122Divert">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvDivert" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn122MainMergePrestop">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvStop" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn122Merge">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvMerge" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn123Divert">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvDivert" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn123MainMergePrestop">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvStop" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn123Merge">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvMerge" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn124Divert">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvDivert" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn124MainMergePrestop">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvStop" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn124Merge">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvMerge" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn125Divert">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvDivert" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn125MainMergePrestop">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvStop" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn125Merge">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvMerge" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn126Divert">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvDivert" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn126MainMergePrestop">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvStop" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="pStn126Merge">
+              <type>
+                <pointer>
+                  <baseType>
+                    <derived name="CmpConvMerge" />
+                  </baseType>
+                </pointer>
+              </type>
+            </variable>
+            <variable name="MtrNOKtoRun">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">TODO need pragmas for the EncXX signals - see Stn051_PLC
+		MtrCtrls : ConvMtrCtrlsStn052;	
+iStnConvLocalDisconnectOk AT %I*: BOOL;
+iStnConvOverloadTripped AT %I*: BOOL;
+iStnConvRunning AT %I*: BOOL;	
+oStnConvRun AT %Q*: BOOL;</xhtml>
+              </documentation>
+            </variable>
+            <variable name="cntMotorStartIndex">
+              <type>
+                <DINT />
+              </type>
+            </variable>
+            <variable name="tmrMotorStartIndex">
+              <type>
+                <derived name="TON" />
+              </type>
+            </variable>
+            <variable name="MtrCtrls">
+              <type>
+                <derived name="ConvMtrCtrlsStn052" />
+              </type>
+              <addData>
+                <data name="http://www.3s-software.com/plcopenxml/attributes" handleUnknown="implementation">
+                  <Attributes>
+                    <Attribute Name="TcLinkToOSO" Value="	&#xD;&#xA;		.Enc055Mtr01.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N31S00 (AL1332)]^N31S05 (AL2341)^TxPDO^input byte 1;&#xD;&#xA;		.Enc055Mtr02.iDisconnectOk :=  &lt;0,1,2&gt;TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc055Mtr03.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N31S00 (AL1332)]^N31S07 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc055Mtr04.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 1;&#xD;&#xA;		.Enc055Mtr05.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N31S00 (AL1332)]^N31S05 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc055Mtr06.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc054Mtr01.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N26S00 (AL1332)]^N26S04 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc054Mtr02.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc054Mtr03.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc054Mtr04.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N26S00 (AL1332)]^N26S04 (AL2341)^TxPDO^input byte 1;&#xD;&#xA;		.Enc054Mtr05.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 1;&#xD;&#xA;		.Enc054Mtr06.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N28S00 (AL1332)]^N28S04 (AL2341)^TxPDO^input byte 1;&#xD;&#xA;		.Enc054Mtr07.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N26S00 (AL1332)]^N26S04 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc054Mtr08.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 3;&#xD;&#xA;		.Enc054Mtr09.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N28S00 (AL1332)]^N28S04 (AL2341)^TxPDO^input byte 3" />
+                    <Attribute Name="TcLinkTo" Value="	&#xD;&#xA;		.Enc055Mtr01.iOverloadTripped := TIIB[N30S06 (EL1008)]^Channel 6^Input;&#xD;&#xA;		.Enc055Mtr02.iOverloadTripped := TIIB[N30S06 (EL1008)]^Channel 8^Input;&#xD;&#xA;		.Enc055Mtr03.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 2^Input;&#xD;&#xA;		.Enc055Mtr04.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 4^Input;&#xD;&#xA;		.Enc055Mtr05.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 6^Input;&#xD;&#xA;		.Enc055Mtr06.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 8^Input;&#xD;&#xA;		.Enc054Mtr01.iOverloadTripped := TIIB[N25S06 (EL1008)]^Channel 6^Input;&#xD;&#xA;		.Enc054Mtr02.iOverloadTripped := TIIB[N25S06 (EL1008)]^Channel 8^Input;&#xD;&#xA;		.Enc054Mtr03.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 2^Input;&#xD;&#xA;		.Enc054Mtr04.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 4^Input;&#xD;&#xA;		.Enc054Mtr05.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 6^Input;&#xD;&#xA;		.Enc054Mtr06.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 8^Input;&#xD;&#xA;		.Enc054Mtr07.iOverloadTripped := TIIB[N25S08 (EL1008)]^Channel 2^Input;&#xD;&#xA;		.Enc054Mtr08.iOverloadTripped := TIIB[N25S08 (EL1008)]^Channel 4^Input;&#xD;&#xA;		.Enc054Mtr09.iOverloadTripped := TIIB[N25S08 (EL1008)]^Channel 6^Input;&#xD;&#xA;		.Enc055Mtr01.iRunning := TIIB[N30S06 (EL1008)]^Channel 5^Input;&#xD;&#xA;		.Enc055Mtr02.iRunning := TIIB[N30S06 (EL1008)]^Channel 7^Input;&#xD;&#xA;		.Enc055Mtr03.iRunning := TIIB[N30S07 (EL1008)]^Channel 1^Input;&#xD;&#xA;		.Enc055Mtr04.iRunning := TIIB[N30S07 (EL1008)]^Channel 3^Input;&#xD;&#xA;		.Enc055Mtr05.iRunning := TIIB[N30S07 (EL1008)]^Channel 5^Input;&#xD;&#xA;		.Enc055Mtr06.iRunning := TIIB[N30S07 (EL1008)]^Channel 7^Input;&#xD;&#xA;		.Enc054Mtr01.iRunning := TIIB[N25S06 (EL1008)]^Channel 5^Input;&#xD;&#xA;		.Enc054Mtr02.iRunning := TIIB[N25S06 (EL1008)]^Channel 7^Input;&#xD;&#xA;		.Enc054Mtr03.iRunning := TIIB[N25S07 (EL1008)]^Channel 1^Input;&#xD;&#xA;		.Enc054Mtr04.iRunning := TIIB[N25S07 (EL1008)]^Channel 3^Input;&#xD;&#xA;		.Enc054Mtr05.iRunning := TIIB[N25S07 (EL1008)]^Channel 5^Input;&#xD;&#xA;		.Enc054Mtr06.iRunning := TIIB[N25S07 (EL1008)]^Channel 7^Input;&#xD;&#xA;		.Enc054Mtr07.iRunning := TIIB[N25S08 (EL1008)]^Channel 1^Input;&#xD;&#xA;		.Enc054Mtr08.iRunning := TIIB[N25S08 (EL1008)]^Channel 3^Input;&#xD;&#xA;		.Enc054Mtr09.iRunning := TIIB[N25S08 (EL1008)]^Channel 5^Input;&#xD;&#xA;		.Enc055Mtr01.oRun := TIIB[N30S12 (EL2008)]^Channel 4^Output;&#xD;&#xA;		.Enc055Mtr02.oRun := TIIB[N30S12 (EL2008)]^Channel 5^Output;&#xD;&#xA;		.Enc055Mtr03.oRun := TIIB[N30S12 (EL2008)]^Channel 6^Output;&#xD;&#xA;		.Enc055Mtr04.oRun := TIIB[N30S12 (EL2008)]^Channel 7^Output;&#xD;&#xA;		.Enc055Mtr05.oRun := TIIB[N30S12 (EL2008)]^Channel 8^Output;&#xD;&#xA;		.Enc055Mtr06.oRun := TIIB[N30S13 (EL2008)]^Channel 1^Output;&#xD;&#xA;		.Enc054Mtr01.oRun := TIIB[N25S12 (EL2008)]^Channel 5^Output;&#xD;&#xA;		.Enc054Mtr02.oRun := TIIB[N25S12 (EL2008)]^Channel 6^Output;&#xD;&#xA;		.Enc054Mtr03.oRun := TIIB[N25S12 (EL2008)]^Channel 7^Output;&#xD;&#xA;		.Enc054Mtr04.oRun := TIIB[N25S12 (EL2008)]^Channel 8^Output;&#xD;&#xA;		.Enc054Mtr05.oRun := TIIB[N25S13 (EL2008)]^Channel 1^Output;&#xD;&#xA;		.Enc054Mtr06.oRun := TIIB[N25S13 (EL2008)]^Channel 2^Output;&#xD;&#xA;		.Enc054Mtr07.oRun := TIIB[N25S13 (EL2008)]^Channel 3^Output;&#xD;&#xA;		.Enc054Mtr08.oRun := TIIB[N25S13 (EL2008)]^Channel 4^Output;&#xD;&#xA;		.Enc054Mtr09.oRun := TIIB[N25S13 (EL2008)]^Channel 5^Output" />
+                  </Attributes>
+                </data>
+              </addData>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">		
+		.Enc053Mtr01.iDisconnectOk :=  &lt;0,1,2&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 3;
+		.Enc053Mtr02.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr03.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr04.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr05.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N24S00 (AL1332)]^N24S05 (AL2341)^TxPDO^input byte 3;
+		.Enc053Mtr06.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr01.iOverloadTripped := TIIB[N20S06 (EL1008)]^Channel 6^Input;
+		.Enc053Mtr02.iOverloadTripped := TIIB[N20S06 (EL1008)]^Channel 8^Input;
+		.Enc053Mtr03.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 2^Input;
+		.Enc053Mtr04.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 4^Input;
+		.Enc053Mtr05.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 6^Input;
+		.Enc053Mtr06.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 8^Input;
+		.Enc053Mtr01.iRunning := TIIB[N20S06 (EL1008)]^Channel 5^Input;
+		.Enc053Mtr02.iRunning := TIIB[N20S06 (EL1008)]^Channel 7^Input;
+		.Enc053Mtr03.iRunning := TIIB[N20S07 (EL1008)]^Channel 1^Input;
+		.Enc053Mtr04.iRunning := TIIB[N20S07 (EL1008)]^Channel 3^Input;
+		.Enc053Mtr05.iRunning := TIIB[N20S07 (EL1008)]^Channel 5^Input;
+		.Enc053Mtr06.iRunning := TIIB[N20S07 (EL1008)]^Channel 7^Input;
+		.Enc053Mtr01.oRun := TIIB[N20S12 (EL2008)]^Channel 4^Output;
+		.Enc053Mtr02.oRun := TIIB[N20S12 (EL2008)]^Channel 5^Output;
+		.Enc053Mtr03.oRun := TIIB[N20S12 (EL2008)]^Channel 6^Output;
+		.Enc053Mtr04.oRun := TIIB[N20S12 (EL2008)]^Channel 7^Output;
+		.Enc053Mtr05.oRun := TIIB[N20S12 (EL2008)]^Channel 8^Output;
+		.Enc053Mtr06.oRun := TIIB[N20S13 (EL2008)]^Channel 1^Output;
+</xhtml>
+              </documentation>
+            </variable>
+            <variable name="ForceBootUpdate">
+              <type>
+                <BOOL />
+              </type>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">hiStnConvStart: BOOL;
+hiStnConvStop: BOOL;</xhtml>
+              </documentation>
+            </variable>
+          </localVars>
+          <localVars constant="true">
+            <variable name="cMaxMotorStartIndex">
+              <type>
+                <DINT />
+              </type>
+              <initialValue>
+                <simpleValue value="9" />
+              </initialValue>
+              <documentation>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">If starting pairs of motors  adjust to max number of motors "per enclosure" /2</xhtml>
+              </documentation>
+            </variable>
+          </localVars>
+        </interface>
+        <actions>
+          <action name="DfnMessages">
+            <body>
+              <ST>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml" />
+              </ST>
+            </body>
+            <addData>
+              <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+                <ObjectId>7541713c-ebee-498f-acf9-df5d8148f5bf</ObjectId>
+              </data>
+            </addData>
+          </action>
+          <action name="MotorCtrl">
+            <body>
+              <ST>
+                <xhtml xmlns="http://www.w3.org/1999/xhtml">// Stn052_05_StnMain.MotorCtrl
+// Update the station and naming to first motor the station is controlling	
+//	StartIndexThisMotor to sequential number that allows two motors at a time "per enclosure"  to start (see max index limit above)
+//	hoMtrName to appropriate enclosure and motor number
+//	gMtrRunning.EncXXXMtrYYY to appropriate member of the running DUT
+
+//TODO remove when switching to real motor control
+gMainConvRunning := TRUE;
+
+// Call to motor control function block for each main line motor	
+
+(*
+MtrCtrls.Enc053Mtr01(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc053-Mtr1',
+	MtrRunning =&gt; gMtrRunning.Enc053Mtr01);
+
+MtrCtrls.Enc053Mtr02(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc053-Mtr2',
+	MtrRunning =&gt; gMtrRunning.Enc053Mtr02);
+
+MtrCtrls.Enc053Mtr03(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc053-Mtr3',
+	MtrRunning =&gt; gMtrRunning.Enc053Mtr03);
+
+MtrCtrls.Enc053Mtr04(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc053-Mtr4',
+	MtrRunning =&gt; gMtrRunning.Enc053Mtr04);
+
+MtrCtrls.Enc053Mtr05(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc053-Mtr5',
+	MtrRunning =&gt; gMtrRunning.Enc053Mtr05);
+
+MtrCtrls.Enc053Mtr06(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc053-Mtr6',
+	MtrRunning =&gt; gMtrRunning.Enc053Mtr06);
+*)
+MtrCtrls.Enc054Mtr01(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr1',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr01);
+
+MtrCtrls.Enc054Mtr02(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr2',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr02);
+
+MtrCtrls.Enc054Mtr03(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr3',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr03);
+
+MtrCtrls.Enc054Mtr04(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr4',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr04);
+
+MtrCtrls.Enc054Mtr05(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr5',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr05);
+
+MtrCtrls.Enc054Mtr06(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr6',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr06);
+
+MtrCtrls.Enc054Mtr07(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 4,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr7',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr07);
+
+MtrCtrls.Enc054Mtr08(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 4,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr8',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr08);
+
+MtrCtrls.Enc054Mtr09(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 5,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc054-Mtr9',
+	MtrRunning =&gt; gMtrRunning.Enc054Mtr09);
+
+MtrCtrls.Enc055Mtr01(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc055-Mtr1',
+	MtrRunning =&gt; gMtrRunning.Enc055Mtr01);
+
+MtrCtrls.Enc055Mtr02(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc055-Mtr2',
+	MtrRunning =&gt; gMtrRunning.Enc055Mtr02);
+
+MtrCtrls.Enc055Mtr03(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc055-Mtr3',
+	MtrRunning =&gt; gMtrRunning.Enc055Mtr03);
+
+MtrCtrls.Enc055Mtr04(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc055-Mtr4',
+	MtrRunning =&gt; gMtrRunning.Enc055Mtr04);
+
+MtrCtrls.Enc055Mtr05(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc055-Mtr5',
+	MtrRunning =&gt; gMtrRunning.Enc055Mtr05);
+
+MtrCtrls.Enc055Mtr06(	
+	pStn := pStn,
+	NOKtoRun := MtrNOKtoRun,
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc055-Mtr6',
+	MtrRunning =&gt; gMtrRunning.Enc055Mtr06);
+
+//For each motor that the station needs running information but NOT actually controlling the output… 
+//(populate the running bit from the produced consumed logic)
+
+// Populate motor running for motors controlled (outputs linked) by other stations
+//gMtrRunning.Enc062Mtr07 := gConsumed_Stn901To902.ScratchPad[10].0;
+</xhtml>
+              </ST>
+            </body>
+            <addData>
+              <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+                <ObjectId>823fce93-ec60-4cc6-a49d-1fe7eb59f6c8</ObjectId>
+              </data>
+            </addData>
+          </action>
+        </actions>
+        <body>
+          <ST>
+            <xhtml xmlns="http://www.w3.org/1999/xhtml">
+// This is a "do nothing" main but does respond to reset start from station mode control.
+//  Will allow station to be reset and put into cycle until real statoin main is integrated.
+
+pStn := ADR(gStn052);
+pCmp := ADR(gStn052_05_StnMain);
+pCartonLoadMain := ADR(dummyCmpcore);
+pCartonConvMain := ADR(dummyCmpcore);
+pPrintMain  := ADR(dummyCmpcore);
+
+Local.pStateTraceBuffer := ADR(gStn052_StateTraceBuffer);
+Local.pStateTraceFifo := ADR(gStn052_StateTraceFifo);
+Local.pStats := ADR(gStn052_02_Stats);
+
+IF gFirstScan THEN
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000MS;
+
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+
+// Call action code block that does call for each main line motor		
+MotorCtrl();		
+		
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for action*)
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			pReceivingLnSwPrestopMainGrn^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainRed^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainBlu^.Framework.ResetStart := FALSE;
+			pReceivingLnSw^.Framework.ResetStart := FALSE;		
+			pReceivingBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsRed^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsBlu^.Framework.ResetStart := FALSE;
+			pStn121Divert^.Framework.ResetStart := FALSE;
+			pStn121MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn121Merge^.Framework.ResetStart := FALSE;
+			pStn122Divert^.Framework.ResetStart := FALSE;
+			pStn122MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn122Merge^.Framework.ResetStart := FALSE;
+			pStn123Divert^.Framework.ResetStart := FALSE;
+			pStn123MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn123Merge^.Framework.ResetStart := FALSE;
+			pStn124Divert^.Framework.ResetStart := FALSE;
+			pStn124MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn124Merge^.Framework.ResetStart := FALSE;
+			pStn125Divert^.Framework.ResetStart := FALSE;
+			pStn125MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn125Merge^.Framework.ResetStart := FALSE;
+			pStn126Divert^.Framework.ResetStart := FALSE;
+			pStn126MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn126Merge^.Framework.ResetStart := FALSE;
+			pCartonLoadMain^.Framework.ResetStart := FALSE;
+			pCartonConvMain^.Framework.ResetStart := FALSE;
+			pPrintMain^.Framework.ResetStart := FALSE;
+			
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 0;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - check LastAutoState*)
+		
+		Local.NextState := 9000;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 6000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset robot first*)
+		
+		IF Local.FirstEntry THEN
+			pReceivingLnSwPrestopMainGrn^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainRed^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainBlu^.Framework.ResetStart := FALSE;
+			pReceivingLnSw^.Framework.ResetStart := FALSE;		
+			pReceivingBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsRed^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsBlu^.Framework.ResetStart := FALSE;
+			pStn121Divert^.Framework.ResetStart := FALSE;
+			pStn121MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn121Merge^.Framework.ResetStart := FALSE;
+			pStn122Divert^.Framework.ResetStart := FALSE;
+			pStn122MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn122Merge^.Framework.ResetStart := FALSE;
+			pStn123Divert^.Framework.ResetStart := FALSE;
+			pStn123MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn123Merge^.Framework.ResetStart := FALSE;
+			pStn124Divert^.Framework.ResetStart := FALSE;
+			pStn124MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn124Merge^.Framework.ResetStart := FALSE;
+			pStn125Divert^.Framework.ResetStart := FALSE;
+			pStn125MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn125Merge^.Framework.ResetStart := FALSE;
+			pStn126Divert^.Framework.ResetStart := FALSE;
+			pStn126MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn126Merge^.Framework.ResetStart := FALSE;
+			pCartonLoadMain^.Framework.ResetStart := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF 	pCartonLoadMain^.Framework.ResetDone THEN
+			Local.NextState := 9010;
+		END_IF
+		
+		IF Local.State &lt;&gt; Local.NextState THEN
+			pReceivingLnSwPrestopMainGrn^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainRed^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainBlu^.Framework.ResetStart := FALSE;
+			pReceivingLnSw^.Framework.ResetStart := FALSE;		
+			pReceivingBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsRed^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsBlu^.Framework.ResetStart := FALSE;
+			pStn121Divert^.Framework.ResetStart := FALSE;
+			pStn121MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn121Merge^.Framework.ResetStart := FALSE;
+			pStn122Divert^.Framework.ResetStart := FALSE;
+			pStn122MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn122Merge^.Framework.ResetStart := FALSE;
+			pStn123Divert^.Framework.ResetStart := FALSE;
+			pStn123MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn123Merge^.Framework.ResetStart := FALSE;
+			pStn124Divert^.Framework.ResetStart := FALSE;
+			pStn124MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn124Merge^.Framework.ResetStart := FALSE;
+			pStn125Divert^.Framework.ResetStart := FALSE;
+			pStn125MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn125Merge^.Framework.ResetStart := FALSE;
+			pStn126Divert^.Framework.ResetStart := FALSE;
+			pStn126MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn126Merge^.Framework.ResetStart := FALSE;
+			pCartonLoadMain^.Framework.ResetStart := FALSE;
+		END_IF
+		
+	9010: (*Coordinated reset*)
+		
+		IF Local.FirstEntry THEN
+			pCartonConvMain^.Framework.ResetStart := TRUE;
+			pPrintMain^.Framework.ResetStart := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF 	pCartonConvMain^.Framework.ResetDone AND
+			pPrintMain^.Framework.ResetDone THEN
+			Local.NextState := 9998;
+		END_IF
+		
+		IF Local.State &lt;&gt; Local.NextState THEN
+			pReceivingLnSwPrestopMainGrn^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainRed^.Framework.ResetStart := FALSE;
+			pReceivingLnSwPrestopMainBlu^.Framework.ResetStart := FALSE;
+			pReceivingLnSw^.Framework.ResetStart := FALSE;		
+			pReceivingBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsRed^.Framework.ResetStart := FALSE;
+			pReceivingBreakStopsBlu^.Framework.ResetStart := FALSE;
+			pStn121Divert^.Framework.ResetStart := FALSE;
+			pStn121MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn121Merge^.Framework.ResetStart := FALSE;
+			pStn122Divert^.Framework.ResetStart := FALSE;
+			pStn122MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn122Merge^.Framework.ResetStart := FALSE;
+			pStn123Divert^.Framework.ResetStart := FALSE;
+			pStn123MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn123Merge^.Framework.ResetStart := FALSE;
+			pStn124Divert^.Framework.ResetStart := FALSE;
+			pStn124MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn124Merge^.Framework.ResetStart := FALSE;
+			pStn125Divert^.Framework.ResetStart := FALSE;
+			pStn125MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn125Merge^.Framework.ResetStart := FALSE;
+			pStn126Divert^.Framework.ResetStart := FALSE;
+			pStn126MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn126Merge^.Framework.ResetStart := FALSE;
+			pCartonConvMain^.Framework.ResetStart := FALSE;
+			pPrintMain^.Framework.ResetStart := FALSE;
+		END_IF
+	
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+    ;
+END_IF
+
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*#### Always turn off hi requests ####*)
+	;
+
+(*### Simulation Logic ###*)
+
+ForceBootUpdate := FALSE;
+
+
+</xhtml>
+          </ST>
+        </body>
+        <addData>
+          <data name="http://www.3s-software.com/plcopenxml/interfaceasplaintext" handleUnknown="implementation">
+            <InterfaceAsPlainText>
+              <xhtml xmlns="http://www.w3.org/1999/xhtml">PROGRAM Stn052_05_StnMain
+VAR
+	
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpCore;
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+	dummyCmpcore : CmpCore;
+	pCartonLoadMain: POINTER TO CmpCore;
+	pCartonConvMain: POINTER TO CmpCore;
+	pPrintMain : POINTER TO CmpCore; //Currently a dummy main
+
+//Receiving
+	pReceivingLnSwPrestopMainGrn: POINTER TO CmpWorkStopMainLnSw;
+	pReceivingLnSwPrestopMainRed: POINTER TO CmpWorkStopMainLnSw;
+	pReceivingLnSwPrestopMainBlu: POINTER TO CmpWorkStopMainLnSw;
+	pReceivingLnSw: POINTER TO Cmp3LaneSwitchMain;
+	
+	pReceivingBreakStopsGrn	: POINTER TO CmpConvBreakStopGroup;
+	pReceivingBreakStopsRed	: POINTER TO CmpConvBreakStopGroup;
+	pReceivingBreakStopsBlu 	: POINTER TO CmpConvBreakStopGroup;
+	pStn121Divert			: POINTER TO CmpConvDivert;
+	pStn121MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn121Merge 			: POINTER TO CmpConvMerge;
+	pStn122Divert			: POINTER TO CmpConvDivert;
+	pStn122MainMergePrestop : POINTER TO CmpConvStop;
+	pStn122Merge			: POINTER TO CmpConvMerge;
+	pStn123Divert			: POINTER TO CmpConvDivert;
+	pStn123MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn123Merge			: POINTER TO CmpConvMerge;
+	pStn124Divert			: POINTER TO CmpConvDivert;
+	pStn124MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn124Merge			: POINTER TO CmpConvMerge;
+	pStn125Divert			: POINTER TO CmpConvDivert;
+	pStn125MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn125Merge			: POINTER TO CmpConvMerge;
+	pStn126Divert			: POINTER TO CmpConvDivert;
+	pStn126MainMergePrestop	: POINTER TO CmpConvStop;
+	pStn126Merge			: POINTER TO CmpConvMerge;
+
+
+	//TODO need pragmas for the EncXX signals - see Stn051_PLC
+	//		MtrCtrls : ConvMtrCtrlsStn052;	
+	//iStnConvLocalDisconnectOk AT %I*: BOOL;
+	//iStnConvOverloadTripped AT %I*: BOOL;
+	//iStnConvRunning AT %I*: BOOL;	
+	//oStnConvRun AT %Q*: BOOL;
+	
+	MtrNOKtoRun : BOOL;	
+	cntMotorStartIndex: DINT;	
+	tmrMotorStartIndex: TON;	
+(*		
+		.Enc053Mtr01.iDisconnectOk :=  &lt;0,1,2&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 3;
+		.Enc053Mtr02.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr03.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr04.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr05.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N24S00 (AL1332)]^N24S05 (AL2341)^TxPDO^input byte 3;
+		.Enc053Mtr06.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.Enc053Mtr01.iOverloadTripped := TIIB[N20S06 (EL1008)]^Channel 6^Input;
+		.Enc053Mtr02.iOverloadTripped := TIIB[N20S06 (EL1008)]^Channel 8^Input;
+		.Enc053Mtr03.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 2^Input;
+		.Enc053Mtr04.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 4^Input;
+		.Enc053Mtr05.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 6^Input;
+		.Enc053Mtr06.iOverloadTripped := TIIB[N20S07 (EL1008)]^Channel 8^Input;
+		.Enc053Mtr01.iRunning := TIIB[N20S06 (EL1008)]^Channel 5^Input;
+		.Enc053Mtr02.iRunning := TIIB[N20S06 (EL1008)]^Channel 7^Input;
+		.Enc053Mtr03.iRunning := TIIB[N20S07 (EL1008)]^Channel 1^Input;
+		.Enc053Mtr04.iRunning := TIIB[N20S07 (EL1008)]^Channel 3^Input;
+		.Enc053Mtr05.iRunning := TIIB[N20S07 (EL1008)]^Channel 5^Input;
+		.Enc053Mtr06.iRunning := TIIB[N20S07 (EL1008)]^Channel 7^Input;
+		.Enc053Mtr01.oRun := TIIB[N20S12 (EL2008)]^Channel 4^Output;
+		.Enc053Mtr02.oRun := TIIB[N20S12 (EL2008)]^Channel 5^Output;
+		.Enc053Mtr03.oRun := TIIB[N20S12 (EL2008)]^Channel 6^Output;
+		.Enc053Mtr04.oRun := TIIB[N20S12 (EL2008)]^Channel 7^Output;
+		.Enc053Mtr05.oRun := TIIB[N20S12 (EL2008)]^Channel 8^Output;
+		.Enc053Mtr06.oRun := TIIB[N20S13 (EL2008)]^Channel 1^Output;
+*)
+	{attribute 'TcLinkToOSO':= '	
+		.Enc055Mtr01.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N31S00 (AL1332)]^N31S05 (AL2341)^TxPDO^input byte 1;
+		.Enc055Mtr02.iDisconnectOk :=  &lt;0,1,2&gt;TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 3;
+		.Enc055Mtr03.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N31S00 (AL1332)]^N31S07 (AL2341)^TxPDO^input byte 3;
+		.Enc055Mtr04.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 1;
+		.Enc055Mtr05.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N31S00 (AL1332)]^N31S05 (AL2341)^TxPDO^input byte 3;
+		.Enc055Mtr06.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 3;
+		.Enc054Mtr01.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N26S00 (AL1332)]^N26S04 (AL2341)^TxPDO^input byte 3;
+		.Enc054Mtr02.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 3;
+		.Enc054Mtr03.iDisconnectOk :=  &lt;0,1,3&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 3;
+		.Enc054Mtr04.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N26S00 (AL1332)]^N26S04 (AL2341)^TxPDO^input byte 1;
+		.Enc054Mtr05.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 1;
+		.Enc054Mtr06.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N28S00 (AL1332)]^N28S04 (AL2341)^TxPDO^input byte 1;
+		.Enc054Mtr07.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N26S00 (AL1332)]^N26S04 (AL2341)^TxPDO^input byte 3;
+		.Enc054Mtr08.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N27S00 (AL1332)]^N27S04 (AL2341)^TxPDO^input byte 3;
+		.Enc054Mtr09.iDisconnectOk :=  &lt;0,1,4&gt;TIIB[N28S00 (AL1332)]^N28S04 (AL2341)^TxPDO^input byte 3'}
+	{attribute 'TcLinkTo':= '	
+		.Enc055Mtr01.iOverloadTripped := TIIB[N30S06 (EL1008)]^Channel 6^Input;
+		.Enc055Mtr02.iOverloadTripped := TIIB[N30S06 (EL1008)]^Channel 8^Input;
+		.Enc055Mtr03.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 2^Input;
+		.Enc055Mtr04.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 4^Input;
+		.Enc055Mtr05.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 6^Input;
+		.Enc055Mtr06.iOverloadTripped := TIIB[N30S07 (EL1008)]^Channel 8^Input;
+		.Enc054Mtr01.iOverloadTripped := TIIB[N25S06 (EL1008)]^Channel 6^Input;
+		.Enc054Mtr02.iOverloadTripped := TIIB[N25S06 (EL1008)]^Channel 8^Input;
+		.Enc054Mtr03.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 2^Input;
+		.Enc054Mtr04.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 4^Input;
+		.Enc054Mtr05.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 6^Input;
+		.Enc054Mtr06.iOverloadTripped := TIIB[N25S07 (EL1008)]^Channel 8^Input;
+		.Enc054Mtr07.iOverloadTripped := TIIB[N25S08 (EL1008)]^Channel 2^Input;
+		.Enc054Mtr08.iOverloadTripped := TIIB[N25S08 (EL1008)]^Channel 4^Input;
+		.Enc054Mtr09.iOverloadTripped := TIIB[N25S08 (EL1008)]^Channel 6^Input;
+		.Enc055Mtr01.iRunning := TIIB[N30S06 (EL1008)]^Channel 5^Input;
+		.Enc055Mtr02.iRunning := TIIB[N30S06 (EL1008)]^Channel 7^Input;
+		.Enc055Mtr03.iRunning := TIIB[N30S07 (EL1008)]^Channel 1^Input;
+		.Enc055Mtr04.iRunning := TIIB[N30S07 (EL1008)]^Channel 3^Input;
+		.Enc055Mtr05.iRunning := TIIB[N30S07 (EL1008)]^Channel 5^Input;
+		.Enc055Mtr06.iRunning := TIIB[N30S07 (EL1008)]^Channel 7^Input;
+		.Enc054Mtr01.iRunning := TIIB[N25S06 (EL1008)]^Channel 5^Input;
+		.Enc054Mtr02.iRunning := TIIB[N25S06 (EL1008)]^Channel 7^Input;
+		.Enc054Mtr03.iRunning := TIIB[N25S07 (EL1008)]^Channel 1^Input;
+		.Enc054Mtr04.iRunning := TIIB[N25S07 (EL1008)]^Channel 3^Input;
+		.Enc054Mtr05.iRunning := TIIB[N25S07 (EL1008)]^Channel 5^Input;
+		.Enc054Mtr06.iRunning := TIIB[N25S07 (EL1008)]^Channel 7^Input;
+		.Enc054Mtr07.iRunning := TIIB[N25S08 (EL1008)]^Channel 1^Input;
+		.Enc054Mtr08.iRunning := TIIB[N25S08 (EL1008)]^Channel 3^Input;
+		.Enc054Mtr09.iRunning := TIIB[N25S08 (EL1008)]^Channel 5^Input;
+		.Enc055Mtr01.oRun := TIIB[N30S12 (EL2008)]^Channel 4^Output;
+		.Enc055Mtr02.oRun := TIIB[N30S12 (EL2008)]^Channel 5^Output;
+		.Enc055Mtr03.oRun := TIIB[N30S12 (EL2008)]^Channel 6^Output;
+		.Enc055Mtr04.oRun := TIIB[N30S12 (EL2008)]^Channel 7^Output;
+		.Enc055Mtr05.oRun := TIIB[N30S12 (EL2008)]^Channel 8^Output;
+		.Enc055Mtr06.oRun := TIIB[N30S13 (EL2008)]^Channel 1^Output;
+		.Enc054Mtr01.oRun := TIIB[N25S12 (EL2008)]^Channel 5^Output;
+		.Enc054Mtr02.oRun := TIIB[N25S12 (EL2008)]^Channel 6^Output;
+		.Enc054Mtr03.oRun := TIIB[N25S12 (EL2008)]^Channel 7^Output;
+		.Enc054Mtr04.oRun := TIIB[N25S12 (EL2008)]^Channel 8^Output;
+		.Enc054Mtr05.oRun := TIIB[N25S13 (EL2008)]^Channel 1^Output;
+		.Enc054Mtr06.oRun := TIIB[N25S13 (EL2008)]^Channel 2^Output;
+		.Enc054Mtr07.oRun := TIIB[N25S13 (EL2008)]^Channel 3^Output;
+		.Enc054Mtr08.oRun := TIIB[N25S13 (EL2008)]^Channel 4^Output;
+		.Enc054Mtr09.oRun := TIIB[N25S13 (EL2008)]^Channel 5^Output'}
+	MtrCtrls : ConvMtrCtrlsStn052;	
+    //
+	//hiStnConvStart: BOOL;
+	//hiStnConvStop: BOOL;
+
+	ForceBootUpdate: BOOL;
+	
+END_VAR
+VAR CONSTANT	
+	
+	cMaxMotorStartIndex :DINT := 9;  //If starting pairs of motors  adjust to max number of motors "per enclosure" /2
+	
+END_VAR	
+</xhtml>
+            </InterfaceAsPlainText>
+          </data>
+          <data name="http://www.3s-software.com/plcopenxml/objectid" handleUnknown="discard">
+            <ObjectId>98f307c5-0e75-459f-9ab3-88693c953c32</ObjectId>
+          </data>
+        </addData>
+      </pou>
+    </pous>
+  </types>
+  <instances>
+    <configurations />
+  </instances>
+  <addData>
+    <data name="http://www.3s-software.com/plcopenxml/projectstructure" handleUnknown="discard">
+      <ProjectStructure>
+        <Object Name="Stn052_05_StnMain" ObjectId="98f307c5-0e75-459f-9ab3-88693c953c32">
+          <Object Name="DfnMessages" ObjectId="7541713c-ebee-498f-acf9-df5d8148f5bf" />
+          <Object Name="MotorCtrl" ObjectId="823fce93-ec60-4cc6-a49d-1fe7eb59f6c8" />
+        </Object>
+      </ProjectStructure>
+    </data>
+  </addData>
+</project>

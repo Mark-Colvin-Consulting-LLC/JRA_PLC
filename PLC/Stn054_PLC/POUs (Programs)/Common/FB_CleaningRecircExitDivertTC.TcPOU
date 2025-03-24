@@ -1,0 +1,144 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_CleaningRecircExitDivertTC" Id="{6246ab14-9a93-40f9-ba7d-83f8739e84de}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_CleaningRecircExitDivertTC
+VAR_INPUT
+	pCmp: POINTER TO CmpConvDivert;
+END_VAR
+VAR
+	MainRunning: BOOL;
+	SpurRunning: BOOL;
+	onsPuckReady: R_TRIG;
+	ResolvedDBStatusRouteBufferRed: cResolvedDBStatusRoute;
+	ResolvedDBStatusRouteCleaningRed: cResolvedDBStatusRoute;
+	ResolvedDBStatusRouteGradingRed: cResolvedDBStatusRoute;
+	ResolvedDBStatusRoutePrepRed: cResolvedDBStatusRoute;
+	ResolvedDBStatusRouteTestRed: cResolvedDBStatusRoute;
+	DBRouteToSpur_Empty: BOOL;
+	DBRouteToSpur_Full: BOOL;
+	RouteToSpur: BOOL;
+	ReleaseToNotBlockMain: BOOL;
+	Debug_DivertAllToMain: BOOL;
+	Debug_DivertAllToSpur: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Traffic control for specific dirvert - CleaningRecirc
+// 
+// Currently each divert has independent/unique function block as it is expected that they will
+//   eventually need to be tweeked for specific application
+
+// Sum of main/spur running conditions... don't release if not running
+MainRunning :=
+	pCmp^.MainHeartbeatOK AND
+	pCmp^.MainConvRunning;
+
+SpurRunning :=
+	pCmp^.SpurHeartbeatOK AND
+	pCmp^.SpurConvRunning;
+
+
+// Use DB supplied status (and route as needed) to determine if puck should go to spur
+// This is evaluated every scan so is always current to respond to changing conditions.
+// Generally will release to main line if not routed to this spur but may release to main even if
+//   routed to this spur so downstream station is not starved
+
+
+// On rising edege of puck ready interperate the puck/device data to see if it should be diverted to spur
+onsPuckReady(CLK:=pCmp^.PuckReady);
+IF onsPuckReady.Q THEN 	
+	// Call function to turn DB puck/device status/route into single readable resolution
+	ResolvedDBStatusRouteBufferRed :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.BufferRed);
+	ResolvedDBStatusRouteCleaningRed :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.CleaningRed);
+	ResolvedDBStatusRouteGradingRed :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.GradingRed);
+	ResolvedDBStatusRoutePrepRed :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.PrepRed);
+	ResolvedDBStatusRouteTestRed :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.TestRed);		
+	// Use DB route and other possible line status to determine if puck should go to spur
+	DBRouteToSpur_Empty := FALSE;
+	
+	DBRouteToSpur_Full := 
+		ResolvedDBStatusRouteBufferRed = cResolvedDBStatusRoute.Normal_RoutedThisStation OR
+		ResolvedDBStatusRouteCleaningRed = cResolvedDBStatusRoute.Normal_RoutedThisStation OR
+		ResolvedDBStatusRouteGradingRed = cResolvedDBStatusRoute.Normal_RoutedThisStation OR
+		ResolvedDBStatusRoutePrepRed = cResolvedDBStatusRoute.Normal_RoutedThisStation OR
+		ResolvedDBStatusRouteTestRed = cResolvedDBStatusRoute.Normal_RoutedThisStation;
+END_IF
+
+//  Note that only "full" puck receving as determined above are headed to exception which only occurs on pilot)
+//    Also only for pilot allow the station to request blcoking empties/only divet fulls if idle so exception have easy room to come off)
+RouteToSpur := DBRouteToSpur_Full OR DBRouteToSpur_Empty;
+
+
+ReleaseToNotBlockMain := 
+	NOT SpurRunning OR
+	NOT pCmp^.senSpurBufferFullOff;
+	
+	
+// Release main if DB route is not to spur, or even if it is to spur when this station is bypassed,
+//   or release to not block main line traffic, or if CRTC1 to release eveey other spur heading puck downstream
+//   for partner station to have work.
+pCmp^.PuckReleaseMain := 
+	pCmp^.PuckReady AND
+	MainRunning AND
+	((NOT RouteToSpur OR
+	(RouteToSpur AND 
+	ReleaseToNotBlockMain )) OR
+	Debug_DivertAllToMain) AND
+	NOT Debug_DivertAllToSpur;
+
+// Release to spur if that is route and it is available.
+//    and not trying to keep downstream station fed.
+pCmp^.PuckReleaseSpur :=
+	pCmp^.PuckReady AND
+	MainRunning AND
+	SpurRunning AND
+	(RouteToSpur  OR
+	Debug_DivertAllToSpur) AND
+	NOT Debug_DivertAllToMain;
+	]]></ST>
+    </Implementation>
+    <LineIds Name="FB_CleaningRecircExitDivertTC">
+      <LineId Id="3" Count="12" />
+      <LineId Id="24" Count="4" />
+      <LineId Id="178" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="51" Count="8" />
+      <LineId Id="198" Count="2" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="203" Count="2" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="207" Count="2" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="211" Count="2" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="61" Count="0" />
+      <LineId Id="65" Count="1" />
+      <LineId Id="214" Count="4" />
+      <LineId Id="71" Count="4" />
+      <LineId Id="81" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="88" Count="4" />
+      <LineId Id="120" Count="3" />
+      <LineId Id="181" Count="6" />
+      <LineId Id="133" Count="3" />
+      <LineId Id="188" Count="5" />
+      <LineId Id="145" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

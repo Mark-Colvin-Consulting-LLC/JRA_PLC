@@ -1,0 +1,145 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="Global_Variables" Id="{00b1a60a-dbe1-4068-8069-83963ac4497e}">
+    <Declaration><![CDATA[VAR_GLOBAL
+
+	gStn053 : Station;
+	gStn053_01_HMI : CmpHMI;
+	gStn053_02_Stats : Component_Stats;
+	
+	gStn053_05_StnMain : CmpCore;
+	gStn053_10_EvalLnSwPrestopGrn		: CmpConvStop;
+	gStn053_11_EvalLnSwPrestopMainGrn	: CmpWorkStopMainLnSw;
+	gStn053_12_EvalLnSwPrestopRed		: CmpConvStop;
+	gStn053_13_EvalLnSwPrestopMainRed	: CmpWorkStopMainLnSw;
+	gStn053_14_EvalLnSwPrestopBlu		: CmpConvStop;
+	gStn053_15_EvalLnSwPrestopMainBlu	: CmpWorkStopMainLnSw;
+	gStn053_16_EvalLnSw			: Cmp3LaneSwitchMain;
+	gStn053_19_GrnRedRecircMergeSpurPrestop	: CmpConvStop;
+	gStn053_20_GrnRedRecircMergeMainPrestop	: CmpConvStop;
+	gStn053_21_EvalBreakStopsRed	: CmpConvBreakStopGroup;
+	gStn053_22_EvalBreakStopsBlu 	: CmpConvBreakStopGroup;
+	gStn053_23_GrnRedRecircMerge : CmpConvMerge;
+	gStn053_24_EmptyPuckStorageDivertRed	: CmpConvDivert;
+	gStn053_25_EmptyPuckStorageBreakStop1Red	: CmpConvStop;
+	gStn053_26_EmptyPuckStorageBreakStop2Red : CmpConvStop;
+	gStn053_27_EmptyPuckStorageMainMergePrestopRed : CmpConvStop;
+	gStn053_28_EmptyPuckStorageSpurMergePrestopRed : CmpConvStop;
+	gStn053_29_EmptyPuckStorageMergeRed 			: CmpConvMerge;
+	gStn053_30_Stn211Divert			: CmpConvDivert;
+	gStn053_31_Stn211MergePrestop 	: CmpConvStop;
+	gStn053_32_Stn211Merge			: CmpConvMerge;
+	gStn053_40_BufferRecircEntryDivertRed			: CmpConvDivert;
+	gStn053_41_BufferRecircMainMergePrestopRed 	: CmpConvStop;
+	gStn053_42_BufferRecircSpurMergePrestopRed 	: CmpConvStop;
+	gStn053_43_BufferRecircMergeRed			: CmpConvMerge;
+	gStn053_45_CleaningRecircExitDivertRed			: CmpConvDivert;
+	gStn053_46_CleaningRecircExitMainMergePrestopRed	: CmpConvStop;
+	gStn053_47_CleaningRecircExitSpurMergePrestopRed : CmpConvStop;
+	gStn053_48_CleaningRecircExitMergeRed			: CmpConvMerge;
+	gStn053_50_Stn221Divert			: CmpConvDivert;
+	gStn053_51_Stn221MainMergePrestop	: CmpConvStop;
+	gStn053_52_Stn221Merge			: CmpConvMerge;
+	gStn053_55_Stn222Divert			: CmpConvDivert;
+	gStn053_56_Stn222MainMergePrestop	: CmpConvStop;
+	gStn053_57_Stn222Merge			: CmpConvMerge;
+	gStn053_60_Stn231Divert : CmpConvDivert;
+	gStn053_61_Stn231MainMergePrestop	: CmpConvStop;
+	gStn053_62_Stn231Merge	: CmpConvMerge;
+	gStn053_65_Stn232Divert		: CmpConvDivert;
+	gStn053_66_Stn232MainMergePrestop	: CmpConvStop;
+	gStn053_67_Stn232Merge	: CmpConvMerge;
+	gStn053_75_GradingRecircEntryDivertRed 	: CmpConvDivert;
+	gStn053_76_TestRecircExitMainMergePrestopRed	: CmpConvStop;
+	gStn053_77_TestRecircExitSpurMergePrestopRed	: CmpConvStop;
+	gStn053_78_TestRecircExitMergeRed	: CmpConvMerge;
+	gStn053_80_Stn241Divert	: CmpConvDivert;
+	gStn053_81_Stn241MainMergePrestop	: CmpConvStop;
+	gStn053_82_Stn241Merge	: CmpConvMerge;
+	gStn053_88_Stn251Divert	: CmpConvDivert;
+	gStn053_89_Stn251MainMergePrestop	: CmpConvStop;
+	gStn053_90_Stn251Merge	: CmpConvMerge;
+	gStn053_91_Stn252Divert	: CmpConvDivert;
+	gStn053_92_Stn252MainMergePrestop	: CmpConvStop;
+	gStn053_93_Stn252Merge	: CmpConvMerge;
+	gStn053_95_TestRecircEntryDivertRed	: CmpConvDivert;
+	gStn053_96_EvalRecircBreakStopsRed	: CmpConvBreakStopGroup;
+	gStn053_98_ReceivingBypassExitMergeMainPrestopBlu	: CmpConvStop;
+	gStn053_99_ReceivingBypassExitMergeBlu	: CmpConvMerge;
+	
+	gStn051_57_ReceivingBypassMergeSpurPrestopBlu: CmpConvStop;
+	gStn211_30_MergeSpurPreStop : CmpConvStop;	//TODO MAC 20221110 - do these really need to be pointers to work cell components???
+	gStn221_30_MergeSpurPreStop : CmpConvStop;
+	gStn222_30_MergeSpurPreStop : CmpConvStop;
+	gStn231_30_MergeSpurPreStop : CmpConvStop;
+	gStn232_30_MergeSpurPreStop : CmpConvStop;
+	gStn241_30_MergeSpurPreStop : CmpConvStop;
+	gStn251_30_MergeSpurPreStop : CmpConvStop;
+	gStn252_30_MergeSpurPreStop : CmpConvStop;
+	
+	END_VAR
+	
+	VAR_GLOBAL
+	
+	gStn053_StateTraceBuffer : TraceFIFOBuffer;
+	gStn053_StateTraceFifo : FIFO_StateTrace := (Overwrite := TRUE);
+	gStn053_HMIMessageBuffer : HMIMessageBuffer;
+	gStn053_HMIMessageFIFO : FIFO_HMIMessage := (Overwrite := TRUE);
+	
+	gDBLocation_Station: STRING(30);
+	gDBLocation_Workstop: STRING(30);
+	gDBStationNumber: DINT;
+	gDBRouteToWork: STRING(30);
+	
+	gSimulate : BOOL := 0;
+	gInitialScanForce : BOOL := 0;
+	
+// PLC to PLC comms		
+	gConsumed_Stn211To053 : Plc2PlcData_V3;
+	gProduced_Stn053To211 : Plc2PlcData_V3;
+	gConsumed_Stn221To053 : Plc2PlcData_V3;
+	gProduced_Stn053To221 : Plc2PlcData_V3;
+	gConsumed_Stn222To053 : Plc2PlcData_V3;
+	gProduced_Stn053To222 : Plc2PlcData_V3;
+	gConsumed_Stn231To053 : Plc2PlcData_V3;
+	gProduced_Stn053To231 : Plc2PlcData_V3;
+	gConsumed_Stn232To053 : Plc2PlcData_V3;
+	gProduced_Stn053To232 : Plc2PlcData_V3;
+	gConsumed_Stn241To053 : Plc2PlcData_V3;
+	gProduced_Stn053To241 : Plc2PlcData_V3;
+	gConsumed_Stn251To053 : Plc2PlcData_V3;
+	gProduced_Stn053To251 : Plc2PlcData_V3;
+	gConsumed_Stn252To053 : Plc2PlcData_V3;
+	gProduced_Stn053To252 : Plc2PlcData_V3;
+// Heartbeats from Stations OK
+	gConsumed_Stn211To053_OK : BOOL;
+	gConsumed_Stn221To053_OK : BOOL;
+	gConsumed_Stn222To053_OK : BOOL;
+	gConsumed_Stn231To053_OK : BOOL;
+	gConsumed_Stn232To053_OK : BOOL;
+	gConsumed_Stn241To053_OK : BOOL;
+	gConsumed_Stn251To053_OK : BOOL;
+	gConsumed_Stn252To053_OK : BOOL;
+	
+	gProduced_Stn053ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_SafetyInterfaceConv : Plc2PlcDataSafetyPuckConv;
+	gConsumed_SafetyInterfaceTo053_OK : BOOL;
+		
+	gDatabaseBypass : BOOL;
+	gSimulateActive: BOOL := TRUE;
+	gCallPous: BOOL;
+	gDebug_ComponentCalls: Debug_ComponentCalls;
+	gDbDummy1 : BOOL;
+	gProjectDBDefs : FB_DBDefs_CRTC();
+	gDBServer: FB_DBServer();
+	
+END_VAR
+VAR_GLOBAL CONSTANT
+	
+	cBreakStopGroupMaxInstance: INT := 50;
+	cPreSwitchBufferSize: UINT := 3;
+	cPostSwitchBufferSize: UINT := 15; // NOTE: This is zero based maximum buffer size for data/trackikng puposes but can be further restricted per lane via config variable.
+	
+END_VAR]]></Declaration>
+  </GVL>
+</TcPlcObject>

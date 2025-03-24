@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn051_57_ReceivingBypassMergeSpurPrestopBlu" Id="{a9f263b2-c17b-47c1-addd-8441d2a2af16}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn051_57_ReceivingBypassMergeSpurPrestopBlu
+VAR
+//correct
+//BLU Receiving Bypass Merge Stop Puck Present
+//BLU Receiving Bypass Exit Merge Main Stop DS Buffer(enc57)
+//ReceivingBypassMergeSpurPrestopBlu  (15A)
+	{attribute 'TcLinkToOSO' := '.iPuckPresent   := <0,1,4>TIIB[N22S00 (AL1332)]^N22S03 (AL2341)^TxPDO^input byte 0;
+		.iBufferFull :=  <0,1,1>TIIB[N43S00 (AL1332)]^N43S03 (AL2341)^TxPDO^input byte 3;
+ 		.oStopLower :=  <0,1,4>TIIB[N22S00 (AL1332)]^N22S02 (EX260)^RxPDO^output byte 3'}
+	fbConvStop: FB_ConvStop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn051_57_ReceivingBypassMergeSpurPrestopBlu.ConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc052Mtr07;
+gStn051_57_ReceivingBypassMergeSpurPrestopBlu.RemoteBufferFull := gConsumed_SafetyInterfaceConv.Stn053PLCData[1].0 AND
+	gConsumed_SafetyInterfaceTo051_OK;
+gStn051_57_ReceivingBypassMergeSpurPrestopBlu.Release := gConsumed_SafetyInterfaceConv.Stn053PLCData[1].1 AND
+	gConsumed_SafetyInterfaceTo051_OK;
+
+fbConvStop(
+	pStn := ADR(gStn051),
+	pCmp := ADR(gStn051_57_ReceivingBypassMergeSpurPrestopBlu),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn051_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn051_StateTraceFifo),
+	pStats := ADR(gStn051_02_Stats));
+	
+gProduced_Stn051ToSafetyInterface.Stn051PLCData[1].0 := gStn051_57_ReceivingBypassMergeSpurPrestopBlu.Framework.CycleAutoFreeRunnning OR
+	gStn051_57_ReceivingBypassMergeSpurPrestopBlu.StatusInCycleAuto;
+gProduced_Stn051ToSafetyInterface.Stn051PLCData[1].1 := gStn051_57_ReceivingBypassMergeSpurPrestopBlu.Available;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn051_57_ReceivingBypassMergeSpurPrestopBlu">
+      <LineId Id="14" Count="1" />
+      <LineId Id="58" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="37" Count="0" />
+      <LineId Id="71" Count="0" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="72" Count="0" />
+      <LineId Id="16" Count="6" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="43" Count="3" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

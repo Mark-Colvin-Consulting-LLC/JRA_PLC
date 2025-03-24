@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_19_GrnRedRecircMergeSpurPrestop" Id="{b27251dc-e5eb-44b2-a7b5-8059706b9d47}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_19_GrnRedRecircMergeSpurPrestop
+VAR
+
+	{attribute 'TcLinkToOSO' := '.iPuckPresent := <0,1,0>TIIB[N46S00 (AL1332)]^N46S03 (AL2341)^TxPDO^input byte 0;
+								 .iBufferFull := <0,1,2>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 2;
+								 .oStopLower := <0,1,4>TIIB[N46S00 (AL1332)]^N46S02 (EX260)^RxPDO^output byte 0'}
+	fbConvStop: FB_ConvStop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//MergeGrntoRedMergeSpurPrestopGrn  (3A)  VB10 Enc56 near Mtr 3 & 4 - bottom of High Friction Green conveyor
+//GRNRED Recirc Merge GRN Stop Puck Present enc56 M1 H1  H3208
+//EvalGRN RED Recirc Merge DS Buffer Full    H4423  Red Conv - Enc55  M2 H3
+
+//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn053_19_GrnRedRecircMergeSpurPrestop.ConvRunning  := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr04;
+
+fbConvStop(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_19_GrnRedRecircMergeSpurPrestop),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats));
+
+
+	]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_19_GrnRedRecircMergeSpurPrestop">
+      <LineId Id="40" Count="0" />
+      <LineId Id="3" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="7" Count="1" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="10" Count="8" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

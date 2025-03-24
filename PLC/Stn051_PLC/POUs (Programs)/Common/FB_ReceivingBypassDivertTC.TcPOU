@@ -1,0 +1,104 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_ReceivingBypassDivertTC" Id="{8dc48456-293a-4865-a4f6-914cba39cd2f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ReceivingBypassDivertTC
+VAR_INPUT
+	
+	pCmp: POINTER TO CmpConvDivert;
+	
+END_VAR
+
+VAR
+	
+	MainRunning: BOOL;
+	SpurRunning: BOOL;
+	
+	onsPuckReady: R_TRIG;
+	ResolvedDBStatusRoute: cResolvedDBStatusRoute;
+	DBRouteToMain_Full: BOOL;
+	RouteToSpur: BOOL;
+	
+	ReleaseToNotBlockSpur: BOOL;
+		
+	Debug_DivertAllToMain: BOOL;
+	Debug_DivertAllToSpur: BOOL;
+		
+END_VAR
+
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Traffic control for specific dirvert - Stn111-114
+// 
+// Currently each divert has independent/unique function block as it is expected that they will
+//   eventually need to be tweeked for specific application
+
+// Sum of main/spur running conditions... don't release if not running
+MainRunning :=
+	pCmp^.MainHeartbeatOK AND
+	pCmp^.MainConvRunning;
+
+SpurRunning :=
+	pCmp^.SpurHeartbeatOK AND
+	pCmp^.SpurConvRunning;
+	
+// On rising edge of puck ready interpret the puck/device data to see if it should be diverted to spur
+onsPuckReady(CLK:=pCmp^.PuckReady);
+IF onsPuckReady.Q THEN 	
+	// Call function to turn DB puck/device status/route into single readable resolution
+	ResolvedDBStatusRoute :=
+		FN_ResolveDBStatusRoutePuck(
+			Puck := pCmp^.Puck,
+			RouteToWork := cDBDetailRoute.Rowa);
+		
+	DBRouteToMain_Full := 
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Normal_RoutedThisStation OR //"ThisStation" being the rowas
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Normal_RoutedConsolidation OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.Normal_RoutedException OR
+		ResolvedDBStatusRoute = cResolvedDBStatusRoute.UnknownDevice;
+END_IF
+
+//  Note that only "full" puck receving as determined above are headed to exception which only occurs on pilot)
+//    Also only for pilot allow the station to request blcoking empties/only divet fulls if idle so exception have easy room to come off)
+RouteToSpur := 
+	NOT DBRouteToMain_Full;
+
+(*
+//TODO - What the should the priority be at this divert?
+ReleaseToNotBlockSpur := 
+	NOT MainRunning OR
+	NOT pCmp^.senMainBufferFullOff;
+*)
+	
+// Release main if DB route is not to spur, or even if it is to spur when this station is bypassed,
+//   or release to not block main line traffic, or if CRTC1 to release eveey other spur heading puck downstream
+//   for partner station to have work.
+pCmp^.PuckReleaseMain := 
+	pCmp^.PuckReady AND
+	MainRunning AND
+	(NOT RouteToSpur OR
+	Debug_DivertAllToMain) AND
+	NOT Debug_DivertAllToSpur;
+
+// Release to spur if that is route and it is available.
+//    and not trying to keep downstream station fed.
+pCmp^.PuckReleaseSpur :=
+	pCmp^.PuckReady AND
+	MainRunning AND
+	SpurRunning AND
+	(RouteToSpur  OR
+	Debug_DivertAllToSpur) AND
+	NOT Debug_DivertAllToMain;
+	]]></ST>
+    </Implementation>
+    <LineIds Name="FB_ReceivingBypassDivertTC">
+      <LineId Id="466" Count="20" />
+      <LineId Id="591" Count="0" />
+      <LineId Id="488" Count="2" />
+      <LineId Id="595" Count="1" />
+      <LineId Id="598" Count="0" />
+      <LineId Id="491" Count="32" />
+      <LineId Id="9" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

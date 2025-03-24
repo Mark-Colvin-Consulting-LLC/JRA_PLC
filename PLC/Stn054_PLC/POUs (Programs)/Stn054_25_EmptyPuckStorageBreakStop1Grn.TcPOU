@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_25_EmptyPuckStorageBreakStop1Grn" Id="{ec98909c-eda5-40b9-b175-78467da7cd14}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_25_EmptyPuckStorageBreakStop1Grn
+VAR
+	{attribute 'TcLinkToOSO' := '
+		.iPuckPresent :=  <0,1,0>TIIB[N56S00 (AL1332)]^N56S05 (AL2341)^TxPDO^input byte 1;
+		.iBufferFull :=  <0,1,0>TIIB[N56S00 (AL1332)]^N56S05 (AL2341)^TxPDO^input byte 3;
+		.oStopLower :=  <0,1,4>TIIB[N56S00 (AL1332)]^N56S02 (EX260)^RxPDO^output byte 1'}
+	fbConvStop: FB_ConvStop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//EmptyPuckStorageBreakStop1GRN  (7A)
+//GRN Empty Puck Storage Break Stop 1 Puck Present
+//GRN Empty Puck Storage Break Stop 1 DS Buffer
+
+//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn054_25_EmptyPuckStorageBreakStop1Grn.ConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr03;
+
+fbConvStop(
+	pStn := ADR(gStn054),
+	pCmp := ADR(gStn054_25_EmptyPuckStorageBreakStop1Grn),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn054_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn054_StateTraceFifo),
+	pStats := ADR(gStn054_02_Stats));]]></ST>
+    </Implementation>
+    <LineIds Name="Stn054_25_EmptyPuckStorageBreakStop1Grn">
+      <LineId Id="22" Count="0" />
+      <LineId Id="24" Count="1" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="3" Count="10" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

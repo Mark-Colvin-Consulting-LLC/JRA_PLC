@@ -1,0 +1,43 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="SafetyInterface_Enc051" Id="{79f65b29-4871-4940-9378-070458956d01}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM SafetyInterface_Enc051
+VAR
+	
+//TODO - output for light should be here
+	{attribute 'TcLinkTo' := '
+		.iSafteyCtrlProjectCRC := TIIB[N10S14 (EL6910)]^Device Info Data^Project CRC;
+		.iSafetyGroup_State := TIIB[N10S14 (EL6910)]^TwinSAFE Group Info Data^Enc051_SafetyGroup Info Data^State;
+		.iSafetyGroup_Diag := TIIB[N10S14 (EL6910)]^TwinSAFE Group Info Data^Enc051_SafetyGroup Info Data^Diag;
+		.iSafetyGroup_ComErr := TIIB[N10S14 (EL6910)]^StandardInputs^Enc051_SafetyGroup.oGroup_ComErr_3;
+		.iSafetyGroup_ComInStartup := TIIB[N10S14 (EL6910)]^StandardInputs^Enc051_SafetyGroup.oGroup_ComInStartup_4;
+		.iSafetyGroup_FBErr := TIIB[N10S14 (EL6910)]^StandardInputs^Enc051_SafetyGroup.oGroup_FBErr_5;
+		.iSafetyGroup_FBInRun := TIIB[N10S14 (EL6910)]^StandardInputs^Enc051_SafetyGroup.oGroup_FBInRun_6;
+		.iSafetyGroup_InRun := TIIB[N10S14 (EL6910)]^StandardInputs^Enc051_SafetyGroup.oGroup_InRun_7;
+		.iSafetyGroup_OtherErr := TIIB[N10S14 (EL6910)]^StandardInputs^Enc051_SafetyGroup.oGroup_OtherErr_8;
+		.oSafetyGroup_ErrAck := TIIB[N10S14 (EL6910)]^StandardOutputs^Enc051_SafetyGroup.iGroup_ErrAck_1;
+		.oSafetyGroup_Run := TIIB[N10S14 (EL6910)]^StandardOutputs^Enc051_SafetyGroup.iGroup_Run_2;
+		.oControlPowerPBLight := TIIB[N10S09 (EL2008)]^Channel 1^Output;
+		.iSafetyResetPB := TIIB[N10S14 (EL6910)]^Connection Info Data^Enc051_SafetyGroup.N10S01 Digital 4 In (EL1904)_9 Info Data^Input Safe Data InputChannel3;
+		.iEstopPB1_CH1 := TIIB[N10S14 (EL6910)]^Connection Info Data^Enc051_SafetyGroup.N10S01 Digital 4 In (EL1904)_9 Info Data^Input Safe Data InputChannel1;
+		.iEstopPB1_CH2 := TIIB[N10S14 (EL6910)]^Connection Info Data^Enc051_SafetyGroup.N10S01 Digital 4 In (EL1904)_9 Info Data^Input Safe Data InputChannel2;
+		.iRelayNCContact_Estop := TIIB[N10S14 (EL6910)]^Connection Info Data^Enc051_SafetyGroup.N10S03 Digital 4 In (EL1904)_11 Info Data^Input Safe Data InputChannel1;
+		.iSafetyPowerOn_Estop_CH1 := TIIB[N10S14 (EL6910)]^Connection Info Data^Enc051_SafetyGroup.N10S04 Digital 4 Out (EL2904)_20 Info Data^Output Safe Data OutputChannel1;
+		.iSafetyPowerOn_Estop_CH2 := TIIB[N10S14 (EL6910)]^Connection Info Data^Enc051_SafetyGroup.N10S04 Digital 4 Out (EL2904)_20 Info Data^Output Safe Data OutputChannel2;
+		.iAirPressureOk := TIIB[N10S06 (EL1008)]^Channel 2^Input'}
+	fbSafetyInterface : FB_SafetyInterfaceConv;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+
+fbSafetyInterface(
+	pSafetyInterface := ADR(gProduced_SafetyInterfaceConv.Enc051));
+]]></ST>
+    </Implementation>
+    <LineIds Name="SafetyInterface_Enc051">
+      <LineId Id="319" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

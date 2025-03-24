@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvDivert" Id="{a2228585-83b1-46eb-a576-10392466b35b}">
+    <Declaration><![CDATA[TYPE CmpConvDivert :
+STRUCT
+	Framework: Framework;
+	PuckReady: BOOL;
+	Puck: PuckData;
+	UnknownPuck: BOOL;
+	MainHeartbeatOK: BOOL;
+	MainConvRunning: BOOL;
+	MainInAuto: BOOL;
+	MainBufferFull: BOOL;
+	PuckReleaseMain: BOOL;
+	PuckReleaseSpur: BOOL;
+	StatusInCycleAuto: BOOL;
+	FreeRunCycleStop: BOOL;
+	senMainBufferFullOff: BOOL;
+	senSpurBufferFullOff: BOOL;
+	senMainPuckPresentOff: BOOL;
+	senMainPuckPresentOn: BOOL;
+	SpurHeartbeatOK: BOOL;
+	SpurConvRunning: BOOL;
+	SpurInAuto: BOOL;
+	SpurBufferFull: BOOL;
+	SpurEmptyRequest: BOOL;
+	SpurPurgeMode: BOOL;
+	Config: CmpConvDivertConfig;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

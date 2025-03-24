@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="PuckData" Id="{f61fbeef-54d0-4b51-834c-13fe2344ccdb}">
+    <Declaration><![CDATA[TYPE PuckData :
+STRUCT
+	
+	RFID: DINT;
+	Status: cPuckStatusEval;
+	Device: DeviceData;
+	PuckOnlyRoute: STRING(30);
+	Side: STRING(30);
+	IsCleaningEligible: BOOL;
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

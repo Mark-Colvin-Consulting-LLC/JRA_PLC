@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_67_Stn332Merge" Id="{8f6fef42-1913-4375-a03d-18eb07adb5ee}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_67_Stn332Merge
+VAR
+	{attribute 'TcLinkToOSO' := '	
+			.iBufferFull  :=  <0,1,2>TIIB[N51S00 (AL1332)]^N51S03 (AL2341)^TxPDO^input byte 2'}
+	fbConvMerge: FB_ConvMerge_RemoteOutput;		
+	{attribute 'TcLinkToOSO' := '
+			<0,1,2>TIIB[N51S00 (AL1332)]^N51S03 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull AT %I*: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn054_67_Stn332Merge.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn054_67_Stn332Merge.MainConvRunning :=  gConsumed_SafetyInterfaceConv.MtrRunning.Enc059Mtr03;
+gStn054_67_Stn332Merge.MainInAuto := gStn054.CycleAuto;
+
+gStn054_67_Stn332Merge.SpurHeartbeatOK := gConsumed_Stn332To054_OK;
+gStn054_67_Stn332Merge.SpurConvRunning := gConsumed_Stn332To054.SpurConvRunning;
+gStn054_67_Stn332Merge.SpurInAuto := gConsumed_Stn332To054.ScratchPad[0].2;
+
+gStn332_30_MergeSpurPreStop.Available := gConsumed_Stn332To054.Available;
+
+
+fbConvMerge(
+	pStn := ADR(gStn054),
+	pCmp := ADR(gStn054_67_Stn332Merge),
+	pStateTraceBuffer := ADR(gStn054_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn054_StateTraceFifo),
+	pStats := ADR(gStn054_02_Stats),
+	pMain := ADR(gStn054_66_Stn332MainMergePrestop),
+	pSpur := ADR(gStn332_30_MergeSpurPreStop)		
+);
+
+gProduced_Stn054To332.Release := gStn332_30_MergeSpurPreStop.Release;
+gProduced_Stn054To332.iBufferFull := iBufferFull;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn054_67_Stn332Merge">
+      <LineId Id="3" Count="3" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="8" Count="4" />
+      <LineId Id="14" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

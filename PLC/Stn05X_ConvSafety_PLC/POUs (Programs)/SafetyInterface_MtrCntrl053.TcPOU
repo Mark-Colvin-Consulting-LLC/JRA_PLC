@@ -1,0 +1,525 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="SafetyInterface_MtrCntrl053" Id="{fdc4f0da-ed5a-4397-8894-cd435683c601}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM SafetyInterface_MtrCntrl053
+VAR
+	
+	
+	pMtrRunning: POINTER TO ConvMtrRunningPuck;
+	pSafety: POINTER TO Plc2PlcDataSafetyPuckConv;
+	
+// Stn053_05_StnMain.MotorCtrl
+// Blue eval -  Enc56:11            Enc57: 7,8,9,10     Enc60: 5,6
+// Red Eval -  Enc56: 5,6,7,8,9,10  Enc57: 1,2,3,4,5,6  Enc60: 3,4
+// Grn Eval - none
+	{attribute 'TcLinkToOSO':= '	
+		.Enc056Mtr05.iDisconnectOk  :=  <0,1,4>TIIB[N46S00 (AL1332)]^N46S05 (AL2341)^TxPDO^input byte 3;
+		.Enc056Mtr06.iDisconnectOk  :=  <0,1,4>TIIB[N47S00 (AL1332)]^N47S01 (AL2341)^TxPDO^input byte 3;
+		.Enc056Mtr07.iDisconnectOk  :=  <0,1,4>TIIB[N48S00 (AL1332)]^N48S01 (AL2341)^TxPDO^input byte 3;
+		.Enc056Mtr08.iDisconnectOk  :=  <0,1,4>TIIB[N48S00 (AL1332)]^N48S05 (AL2341)^TxPDO^input byte 3;
+		.Enc056Mtr09.iDisconnectOk  :=  <0,1,4>TIIB[N47S00 (AL1332)]^N47S03 (AL2341)^TxPDO^input byte 3;
+		.Enc056Mtr10.iDisconnectOk  :=  <0,1,4>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 3;
+		.Enc056Mtr11.iDisconnectOk  :=  <0,1,4>TIIB[N47S00 (AL1332)]^N47S05 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr01.iDisconnectOk  :=  <0,1,4>TIIB[N42S00 (AL1332)]^N42S01 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr02.iDisconnectOk  :=  <0,1,4>TIIB[N43S00 (AL1332)]^N43S03 (AL2341)^TxPDO^input byte 1;
+		.Enc057Mtr03.iDisconnectOk  :=  <0,1,4>TIIB[N43S00 (AL1332)]^N43S05 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr04.iDisconnectOk  :=  <0,1,4>TIIB[N43S00 (AL1332)]^N43S01 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr05.iDisconnectOk  :=  <0,1,4>TIIB[N41S00 (AL1332)]^N41S01 (AL2341)^TxPDO^input byte 1;
+		.Enc057Mtr06.iDisconnectOk  :=  <0,1,4>TIIB[N44S00 (AL1332)]^N44S05 (AL2341)^TxPDO^input byte 1;
+		.Enc057Mtr07.iDisconnectOk  :=  <0,1,4>TIIB[N41S00 (AL1332)]^N41S01 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr08.iDisconnectOk  :=  <0,1,4>TIIB[N43S00 (AL1332)]^N43S03 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr09.iDisconnectOk  :=  <0,1,4>TIIB[N44S00 (AL1332)]^N44S01 (AL2341)^TxPDO^input byte 3;
+		.Enc057Mtr10.iDisconnectOk  :=  <0,1,4>TIIB[N44S00 (AL1332)]^N44S05 (AL2341)^TxPDO^input byte 3;
+		.Enc060Mtr03.iDisconnectOk  :=  <0,1,4>TIIB[N61S00 (AL1332)]^N61S03 (AL2341)^TxPDO^input byte 1;
+		.Enc060Mtr04.iDisconnectOk  :=  <0,1,3>TIIB[N62S00 (AL1332)]^N62S01 (AL2341)^TxPDO^input byte 1;
+		.Enc060Mtr05.iDisconnectOk  :=  <0,1,4>TIIB[N61S00 (AL1332)]^N61S03 (AL2341)^TxPDO^input byte 1;
+		.Enc060Mtr06.iDisconnectOk  :=  <0,1,3>TIIB[N62S00 (AL1332)]^N62S01 (AL2341)^TxPDO^input byte 3'}
+	{attribute 'TcLinkTo':= '	
+		.Enc056Mtr05.iOverloadTripped := TIIB[N45S07 (EL1008)]^Channel 6^Input;
+		.Enc056Mtr06.iOverloadTripped := TIIB[N45S07 (EL1008)]^Channel 8^Input;
+		.Enc056Mtr07.iOverloadTripped := TIIB[N45S08 (EL1008)]^Channel 2^Input;
+		.Enc056Mtr08.iOverloadTripped := TIIB[N45S08 (EL1008)]^Channel 4^Input;
+		.Enc056Mtr09.iOverloadTripped := TIIB[N45S08 (EL1008)]^Channel 6^Input;
+		.Enc056Mtr10.iOverloadTripped := TIIB[N45S08 (EL1008)]^Channel 8^Input;
+		.Enc056Mtr11.iOverloadTripped := TIIB[N45S18 (EL1008)]^Channel 2^Input;
+		.Enc057Mtr01.iOverloadTripped := TIIB[N40S06 (EL1008)]^Channel 6^Input;
+		.Enc057Mtr02.iOverloadTripped := TIIB[N40S06 (EL1008)]^Channel 8^Input;
+		.Enc057Mtr03.iOverloadTripped := TIIB[N40S07 (EL1008)]^Channel 2^Input;
+		.Enc057Mtr04.iOverloadTripped := TIIB[N40S07 (EL1008)]^Channel 4^Input;
+		.Enc057Mtr05.iOverloadTripped := TIIB[N40S07 (EL1008)]^Channel 6^Input;
+		.Enc057Mtr06.iOverloadTripped := TIIB[N40S07 (EL1008)]^Channel 8^Input;
+		.Enc057Mtr07.iOverloadTripped := TIIB[N40S08 (EL1008)]^Channel 2^Input;
+		.Enc057Mtr08.iOverloadTripped := TIIB[N40S08 (EL1008)]^Channel 4^Input;
+		.Enc057Mtr09.iOverloadTripped := TIIB[N40S08 (EL1008)]^Channel 6^Input;
+		.Enc057Mtr10.iOverloadTripped := TIIB[N40S08 (EL1008)]^Channel 8^Input;
+		.Enc060Mtr03.iOverloadTripped := TIIB[N60S07 (EL1008)]^Channel 2^Input;
+		.Enc060Mtr04.iOverloadTripped := TIIB[N60S07 (EL1008)]^Channel 4^Input;
+		.Enc060Mtr05.iOverloadTripped := TIIB[N60S07 (EL1008)]^Channel 6^Input;
+		.Enc060Mtr06.iOverloadTripped := TIIB[N60S07 (EL1008)]^Channel 8^Input;
+		.Enc056Mtr05.iRunning := TIIB[N45S07 (EL1008)]^Channel 5^Input;
+		.Enc056Mtr06.iRunning := TIIB[N45S07 (EL1008)]^Channel 7^Input;
+		.Enc056Mtr07.iRunning := TIIB[N45S08 (EL1008)]^Channel 1^Input;
+		.Enc056Mtr08.iRunning := TIIB[N45S08 (EL1008)]^Channel 3^Input;
+		.Enc056Mtr09.iRunning := TIIB[N45S08 (EL1008)]^Channel 5^Input;
+		.Enc056Mtr10.iRunning := TIIB[N45S08 (EL1008)]^Channel 7^Input;
+		.Enc056Mtr11.iRunning := TIIB[N45S18 (EL1008)]^Channel 1^Input;
+		.Enc057Mtr01.iRunning := TIIB[N40S06 (EL1008)]^Channel 5^Input;
+		.Enc057Mtr02.iRunning := TIIB[N40S06 (EL1008)]^Channel 7^Input;
+		.Enc057Mtr03.iRunning := TIIB[N40S07 (EL1008)]^Channel 1^Input;
+		.Enc057Mtr04.iRunning := TIIB[N40S07 (EL1008)]^Channel 3^Input;
+		.Enc057Mtr05.iRunning := TIIB[N40S07 (EL1008)]^Channel 5^Input;
+		.Enc057Mtr06.iRunning := TIIB[N40S07 (EL1008)]^Channel 7^Input;
+		.Enc057Mtr07.iRunning := TIIB[N40S08 (EL1008)]^Channel 1^Input;
+		.Enc057Mtr08.iRunning := TIIB[N40S08 (EL1008)]^Channel 3^Input;
+		.Enc057Mtr09.iRunning := TIIB[N40S08 (EL1008)]^Channel 5^Input;
+		.Enc057Mtr10.iRunning := TIIB[N40S08 (EL1008)]^Channel 7^Input;
+		.Enc060Mtr03.iRunning := TIIB[N60S07 (EL1008)]^Channel 1^Input;
+		.Enc060Mtr04.iRunning := TIIB[N60S07 (EL1008)]^Channel 3^Input;
+		.Enc060Mtr05.iRunning := TIIB[N60S07 (EL1008)]^Channel 5^Input;
+		.Enc060Mtr06.iRunning := TIIB[N60S07 (EL1008)]^Channel 7^Input;
+		.Enc056Mtr05.oRun := TIIB[N45S13 (EL2008)]^Channel 1^Output;
+		.Enc056Mtr06.oRun := TIIB[N45S13 (EL2008)]^Channel 2^Output;
+		.Enc056Mtr07.oRun := TIIB[N45S13 (EL2008)]^Channel 3^Output;
+		.Enc056Mtr08.oRun := TIIB[N45S13 (EL2008)]^Channel 4^Output;
+		.Enc056Mtr09.oRun := TIIB[N45S13 (EL2008)]^Channel 5^Output;
+		.Enc056Mtr10.oRun := TIIB[N45S13 (EL2008)]^Channel 6^Output;
+		.Enc056Mtr11.oRun := TIIB[N45S13 (EL2008)]^Channel 7^Output;
+		.Enc057Mtr01.oRun := TIIB[N40S12 (EL2008)]^Channel 5^Output;
+		.Enc057Mtr02.oRun := TIIB[N40S12 (EL2008)]^Channel 6^Output;
+		.Enc057Mtr03.oRun := TIIB[N40S12 (EL2008)]^Channel 7^Output;
+		.Enc057Mtr04.oRun := TIIB[N40S12 (EL2008)]^Channel 8^Output;
+		.Enc057Mtr05.oRun := TIIB[N40S13 (EL2008)]^Channel 1^Output;
+		.Enc057Mtr06.oRun := TIIB[N40S13 (EL2008)]^Channel 2^Output;
+		.Enc057Mtr07.oRun := TIIB[N40S13 (EL2008)]^Channel 3^Output;
+		.Enc057Mtr08.oRun := TIIB[N40S13 (EL2008)]^Channel 4^Output;
+		.Enc057Mtr09.oRun := TIIB[N40S13 (EL2008)]^Channel 5^Output;
+		.Enc057Mtr10.oRun := TIIB[N40S13 (EL2008)]^Channel 6^Output;
+		.Enc060Mtr03.oRun := TIIB[N60S12 (EL2008)]^Channel 6^Output;
+		.Enc060Mtr04.oRun := TIIB[N60S12 (EL2008)]^Channel 7^Output;
+		.Enc060Mtr05.oRun := TIIB[N60S12 (EL2008)]^Channel 8^Output;
+		.Enc060Mtr06.oRun := TIIB[N60S13 (EL2008)]^Channel 1^Output'}
+	MtrCtrls: ConvMtrCtrlsPuck;
+
+	MtrNOKtoRun : BOOL;	
+	cntMotorStartIndex: DINT;	
+	tmrMotorStartIndex: TON;
+
+
+END_VAR
+VAR CONSTANT	
+	
+	cMaxMotorStartIndex :DINT := 9;  //If starting pairs of motors  adjust to max number of motors "per enclosure" /2
+	
+END_VAR	]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[pMtrRunning := ADR(gProduced_SafetyInterfaceConv.MtrRunning);
+pSafety := ADR(gProduced_SafetyInterfaceConv);
+
+//Create sequenced motor start index - to prevent inrush overloads at time of motor start		
+tmrMotorStartIndex(IN:=NOT tmrMotorStartIndex.Q,PT:=T#300ms);		
+IF tmrMotorStartIndex.Q THEN 		
+	cntMotorStartIndex := cntMotorStartIndex + 1;	
+	IF cntMotorStartIndex > cMaxMotorStartIndex THEN 	
+		cntMotorStartIndex := 1;
+	END_IF	
+END_IF		
+
+// Call action code block that does call for each main line motor		
+MotorCtrl();
+
+//distibute the incoming stn data (consumed data from stn) to single produced outgoing to all stns
+//MEMCPY(ADR(gProduced_SafetyInterfaceConv.gMtrRunningStn051), ADR(gMtrRunning), SizeOf(gProduced_SafetyInterfaceConv.gMtrRunningStn051));
+]]></ST>
+    </Implementation>
+    <Action Name="MotorCtrl" Id="{2efe11a3-2152-47e3-8841-b73bc15c6b4e}">
+      <Implementation>
+        <ST><![CDATA[// Stn053_05_StnMain.MotorCtrl
+// Call to motor control function block for each main line motor	
+// Blue eval - Enc56:11   		Enc57: 7,8,9,10   		Enc60: 5,6
+// Red Eval -  Enc56: 5,6,7,8,9,10  Enc57: 1,2,3,4,5,6  Enc60: 3,4
+// Grn Eval - none
+// complete
+
+MtrCtrls.Enc056Mtr05(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr5',
+	MtrRunning => pMtrRunning^.Enc056Mtr05);
+
+MtrCtrls.Enc056Mtr06(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 1,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr6',
+	MtrRunning => pMtrRunning^.Enc056Mtr06);
+
+MtrCtrls.Enc056Mtr07(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr7',
+	MtrRunning => pMtrRunning^.Enc056Mtr07);
+
+MtrCtrls.Enc056Mtr08(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr8',
+	MtrRunning => pMtrRunning^.Enc056Mtr08);
+
+MtrCtrls.Enc056Mtr09(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 2,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr9',
+	MtrRunning => pMtrRunning^.Enc056Mtr09);
+
+MtrCtrls.Enc056Mtr10(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr10',
+	MtrRunning => pMtrRunning^.Enc056Mtr10);
+
+MtrCtrls.Enc056Mtr11(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc056.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc056-Mtr11',
+	MtrRunning => pMtrRunning^.Enc056Mtr11);
+
+MtrCtrls.Enc057Mtr01(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 3,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr1',
+	MtrRunning => pMtrRunning^.Enc057Mtr01);
+
+MtrCtrls.Enc057Mtr02(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 4,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr2',
+	MtrRunning => pMtrRunning^.Enc057Mtr02);
+
+MtrCtrls.Enc057Mtr03(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 4,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr3',
+	MtrRunning => pMtrRunning^.Enc057Mtr03);
+
+MtrCtrls.Enc057Mtr04(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 5,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr4',
+	MtrRunning => pMtrRunning^.Enc057Mtr04);
+
+MtrCtrls.Enc057Mtr05(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 5,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr5',
+	MtrRunning => pMtrRunning^.Enc057Mtr05);
+
+MtrCtrls.Enc057Mtr06(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 6,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr6',
+	MtrRunning => pMtrRunning^.Enc057Mtr06);
+
+MtrCtrls.Enc057Mtr07(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 4,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr7',
+	MtrRunning => pMtrRunning^.Enc057Mtr07);
+
+MtrCtrls.Enc057Mtr08(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 4,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr8',
+	MtrRunning => pMtrRunning^.Enc057Mtr08);
+
+MtrCtrls.Enc057Mtr09(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 5,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr9',
+	MtrRunning => pMtrRunning^.Enc057Mtr09);
+
+MtrCtrls.Enc057Mtr10(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc057.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 5,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc057-Mtr10',
+	MtrRunning => pMtrRunning^.Enc057Mtr10);
+
+MtrCtrls.Enc060Mtr03(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 6,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc060-Mtr3',
+	MtrRunning => pMtrRunning^.Enc060Mtr03);
+
+MtrCtrls.Enc060Mtr04(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 7,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc060-Mtr4',
+	MtrRunning => pMtrRunning^.Enc060Mtr04);
+
+MtrCtrls.Enc060Mtr05(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 6,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc060-Mtr5',
+	MtrRunning => pMtrRunning^.Enc060Mtr05);
+
+MtrCtrls.Enc060Mtr06(	
+	CycleAuto := gConsumed_Stn053ToSafetyInterface.CycleAuto,
+	CycleReset := gConsumed_Stn053ToSafetyInterface.CycleReset,
+	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped,	
+//	NOKtoRun := pSafety^.Enc060.iEstopRlyTripped OR 
+//		NOT gConsumed_Stn053ToSafetyInterface.Stn053PLCData[2].3 OR 
+//		NOT gConsumed_Stn053ToSafetyInterface_OK,		
+	StartIndexThisMotor := 7,
+	StartIndexCurrent := cntMotorStartIndex,
+	hoMtrName := 'Enc060-Mtr6',
+	MtrRunning => pMtrRunning^.Enc060Mtr06);
+
+	
+//For each motor that the station needs running information but NOT actually controlling the output… 
+//(populate the running bit from the produced consumed logic)
+
+// Populate motor running for motors controlled (outputs linked) by other stations
+//gMtrRunning.Enc062Mtr07 := gConsumed_Stn901To902.ScratchPad[10].0;
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="SafetyInterface_MtrCntrl053">
+      <LineId Id="1017" Count="2" />
+      <LineId Id="1025" Count="10" />
+      <LineId Id="891" Count="0" />
+      <LineId Id="893" Count="1" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+    <LineIds Name="SafetyInterface_MtrCntrl053.MotorCtrl">
+      <LineId Id="372" Count="0" />
+      <LineId Id="381" Count="6" />
+      <LineId Id="879" Count="0" />
+      <LineId Id="928" Count="0" />
+      <LineId Id="880" Count="0" />
+      <LineId Id="949" Count="2" />
+      <LineId Id="390" Count="5" />
+      <LineId Id="881" Count="0" />
+      <LineId Id="929" Count="0" />
+      <LineId Id="882" Count="0" />
+      <LineId Id="952" Count="2" />
+      <LineId Id="398" Count="5" />
+      <LineId Id="883" Count="0" />
+      <LineId Id="930" Count="0" />
+      <LineId Id="884" Count="0" />
+      <LineId Id="955" Count="2" />
+      <LineId Id="406" Count="5" />
+      <LineId Id="885" Count="0" />
+      <LineId Id="931" Count="0" />
+      <LineId Id="886" Count="0" />
+      <LineId Id="958" Count="2" />
+      <LineId Id="414" Count="4" />
+      <LineId Id="919" Count="1" />
+      <LineId Id="932" Count="0" />
+      <LineId Id="921" Count="0" />
+      <LineId Id="961" Count="2" />
+      <LineId Id="922" Count="4" />
+      <LineId Id="419" Count="0" />
+      <LineId Id="887" Count="0" />
+      <LineId Id="933" Count="0" />
+      <LineId Id="888" Count="0" />
+      <LineId Id="964" Count="2" />
+      <LineId Id="422" Count="5" />
+      <LineId Id="889" Count="0" />
+      <LineId Id="934" Count="0" />
+      <LineId Id="890" Count="0" />
+      <LineId Id="967" Count="2" />
+      <LineId Id="430" Count="5" />
+      <LineId Id="891" Count="0" />
+      <LineId Id="935" Count="0" />
+      <LineId Id="892" Count="0" />
+      <LineId Id="970" Count="2" />
+      <LineId Id="438" Count="5" />
+      <LineId Id="893" Count="0" />
+      <LineId Id="936" Count="0" />
+      <LineId Id="894" Count="0" />
+      <LineId Id="973" Count="2" />
+      <LineId Id="446" Count="5" />
+      <LineId Id="895" Count="0" />
+      <LineId Id="937" Count="0" />
+      <LineId Id="896" Count="0" />
+      <LineId Id="976" Count="2" />
+      <LineId Id="454" Count="5" />
+      <LineId Id="897" Count="0" />
+      <LineId Id="938" Count="0" />
+      <LineId Id="898" Count="0" />
+      <LineId Id="979" Count="2" />
+      <LineId Id="462" Count="5" />
+      <LineId Id="899" Count="0" />
+      <LineId Id="939" Count="0" />
+      <LineId Id="900" Count="0" />
+      <LineId Id="982" Count="2" />
+      <LineId Id="470" Count="5" />
+      <LineId Id="901" Count="0" />
+      <LineId Id="940" Count="0" />
+      <LineId Id="902" Count="0" />
+      <LineId Id="985" Count="2" />
+      <LineId Id="478" Count="5" />
+      <LineId Id="903" Count="0" />
+      <LineId Id="941" Count="0" />
+      <LineId Id="904" Count="0" />
+      <LineId Id="988" Count="2" />
+      <LineId Id="486" Count="5" />
+      <LineId Id="905" Count="0" />
+      <LineId Id="942" Count="0" />
+      <LineId Id="906" Count="0" />
+      <LineId Id="991" Count="2" />
+      <LineId Id="494" Count="5" />
+      <LineId Id="907" Count="0" />
+      <LineId Id="943" Count="0" />
+      <LineId Id="908" Count="0" />
+      <LineId Id="994" Count="2" />
+      <LineId Id="502" Count="5" />
+      <LineId Id="909" Count="0" />
+      <LineId Id="944" Count="0" />
+      <LineId Id="910" Count="0" />
+      <LineId Id="997" Count="2" />
+      <LineId Id="510" Count="5" />
+      <LineId Id="911" Count="0" />
+      <LineId Id="945" Count="0" />
+      <LineId Id="912" Count="0" />
+      <LineId Id="1000" Count="2" />
+      <LineId Id="518" Count="5" />
+      <LineId Id="913" Count="0" />
+      <LineId Id="946" Count="0" />
+      <LineId Id="914" Count="0" />
+      <LineId Id="1003" Count="2" />
+      <LineId Id="526" Count="5" />
+      <LineId Id="915" Count="0" />
+      <LineId Id="947" Count="0" />
+      <LineId Id="916" Count="0" />
+      <LineId Id="1006" Count="2" />
+      <LineId Id="534" Count="5" />
+      <LineId Id="917" Count="0" />
+      <LineId Id="948" Count="0" />
+      <LineId Id="918" Count="0" />
+      <LineId Id="1009" Count="2" />
+      <LineId Id="542" Count="3" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="162" Count="5" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

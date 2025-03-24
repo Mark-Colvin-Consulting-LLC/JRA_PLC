@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_20_GrnRedRecircMergeMainPrestop" Id="{8c8852a3-1fae-496d-8441-a68b9b3f27f4}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_20_GrnRedRecircMergeMainPrestop
+VAR
+//correct
+	{attribute 'TcLinkToOSO' := '.iPuckPresent :=  <0,1,2>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 0;
+		.iBufferFull :=  <0,1,2>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 2;
+		.oStopLower :=  <0,1,7>TIIB[N32S00 (AL1332)]^N32S02 (EX260)^RxPDO^output byte 1'}
+	fbConvStop: FB_ConvStop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  EvalGrnRedMergeMainPrestop (8B)  VB9 - DS of Eval 3LnSw - Red Conv - Enc55  M2 H3
+//EvalGRN RED Recirc Merge RED Prestop Puck Present  H4421
+//EvalGRN RED Recirc Merge DS Buffer Full    H4423  Red Conv - Enc55  M2 H3
+
+//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn053_20_GrnRedRecircMergeMainPrestop.ConvRunning  := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr06;
+
+fbConvStop(
+	pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_20_GrnRedRecircMergeMainPrestop),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats));]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_20_GrnRedRecircMergeMainPrestop">
+      <LineId Id="3" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="5" Count="2" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="9" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

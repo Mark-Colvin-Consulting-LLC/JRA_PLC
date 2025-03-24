@@ -1,0 +1,356 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <FileVersion>1.0.0.0</FileVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{4fb5d10d-4586-482d-8edb-cda2b63f52cc}</ProjectGuid>
+    <SubObjectsSortedByName>True</SubObjectsSortedByName>
+    <DownloadApplicationInfo>true</DownloadApplicationInfo>
+    <WriteProductVersion>true</WriteProductVersion>
+    <GenerateTpy>false</GenerateTpy>
+    <Name>Stn05X_ConvSafety_PLC</Name>
+    <ProgramVersion>3.1.4023.0</ProgramVersion>
+    <Application>{5e4b3dfd-d56d-43fe-bac9-185159bca0fc}</Application>
+    <TypeSystem>{2184e3b2-7f3e-4e7f-b15c-1a26bd03fe4c}</TypeSystem>
+    <Implicit_Task_Info>{3924a6ae-c90c-4125-ba51-b8b8c15e6d42}</Implicit_Task_Info>
+    <Implicit_KindOfTask>{71c27705-e657-4ce2-85fb-8863fcf6a5a8}</Implicit_KindOfTask>
+    <Implicit_Jitter_Distribution>{91d95c63-8682-4368-8c9d-e2aff6fbb64b}</Implicit_Jitter_Distribution>
+    <LibraryReferences>{1ee9adf6-d615-4892-b997-77bbdb27dcf6}</LibraryReferences>
+    <Released>false</Released>
+    <MultiuserActive>true</MultiuserActive>
+  </PropertyGroup>
+  <ItemGroup>
+    <Folder Include="DUTs %28Data Types%29" />
+    <Folder Include="DUTs %28Data Types%29\Components" />
+    <Folder Include="DUTs %28Data Types%29\Constants" />
+    <Folder Include="DUTs %28Data Types%29\Other" />
+    <Folder Include="GLVs %28Global Variables%29" />
+    <Folder Include="POUs %28Programs%29\Common" />
+    <Folder Include="VISUs %28Visulaizations%29" />
+    <Folder Include="POUs %28Programs%29" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="DUTs %28Data Types%29\Components\CmpSafetyInterfaceConv.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Components\MastLight.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cMastLightAppearance.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cMastLightBuzzerStyle.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Constants\cMastLightColor.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\ConvMtrCtrlsPuck.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\ConvMtrRunningPuck.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\MastLightReq.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="DUTs %28Data Types%29\Other\Plc2PlcDataSafetyPuckConv.TcDUT">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GlobalTextList.TcGTLO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="GLVs %28Global Variables%29\Global_Variables.TcGVL">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_ConvMtrCtrl.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_MastLight.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\Common\FB_SafetyInterfaceConv.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Config.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc051.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc056.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc059.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc060.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc061.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc062.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc057.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc058.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc055.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc054.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc053.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_Enc052.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight051.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight052.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight053.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight054.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight055.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight056.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight057.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight058.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight059.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight060.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight061.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MastLight062.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MtrCntrl051.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MtrCntrl052.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MtrCntrl053.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MtrCntrl054.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="POUs %28Programs%29\SafetyInterface_MtrCntrl055.TcPOU">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="SafetyInterface.TcTTO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Visualization Manager.TcVMO">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc051.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc058.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc059.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc060.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc061.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc062.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc052.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc053.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc054.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc055.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc056.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+    <Compile Include="VISUs %28Visulaizations%29\SafetyConv_Enc057.TcVIS">
+      <SubType>Code</SubType>
+      <DependentUpon>Visualization Manager.TcVMO</DependentUpon>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Stn05X_ConvSafety_PLC.tmc">
+      <SubType>Content</SubType>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderReference Include="JRA_Beckhoff_Common">
+      <DefaultResolution>JRA_Beckhoff_Common, * (JR Automation)</DefaultResolution>
+      <Namespace>JRA_Beckhoff_Common</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="JRA_GXO_Common">
+      <DefaultResolution>JRA_GXO_Common, * (JR Automation)</DefaultResolution>
+      <Namespace>JRA_GXO_Common</Namespace>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemMeter">
+      <DefaultResolution>VisuElemMeter, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemMeter</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElems">
+      <DefaultResolution>VisuElems, 3.5.13.40 (System)</DefaultResolution>
+      <Namespace>VisuElems</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsSpecialControls">
+      <DefaultResolution>VisuElemsSpecialControls, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemsSpecialControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemsWinControls">
+      <DefaultResolution>VisuElemsWinControls, 3.5.13.20 (System)</DefaultResolution>
+      <Namespace>VisuElemsWinControls</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuElemTextEditor">
+      <DefaultResolution>VisuElemTextEditor, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuElemTextEditor</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="system_visuinputs">
+      <DefaultResolution>visuinputs, 3.5.13.0 (system)</DefaultResolution>
+      <Namespace>visuinputs</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+    <PlaceholderReference Include="System_VisuNativeControl">
+      <DefaultResolution>VisuNativeControl, 3.5.13.0 (System)</DefaultResolution>
+      <Namespace>VisuNativeControl</Namespace>
+      <SystemLibrary>true</SystemLibrary>
+      <ResolverGuid>2717eb6a-dd07-4c66-8d8d-cacebd7b18ae</ResolverGuid>
+    </PlaceholderReference>
+  </ItemGroup>
+  <ItemGroup>
+    <PlaceholderResolution Include="JRA_GXO_Common">
+      <Resolution>JRA_GXO_Common, 0.0.11 (JR Automation)</Resolution>
+    </PlaceholderResolution>
+  </ItemGroup>
+  <ItemGroup>
+    <SubObject Include="SafetyInterface_MastLight058.Output" />
+    <SubObject Include="SafetyInterface_MastLight059.Output" />
+  </ItemGroup>
+  <ProjectExtensions>
+    <PlcProjectOptions>
+      <XmlArchive>
+        <Data>
+          <o xml:space="preserve" t="OptionKey">
+      <v n="Name">"&lt;ProjectRoot&gt;"</v>
+      <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+        <v>{8F99A816-E488-41E4-9FA3-846536012284}</v>
+        <o>
+          <v n="Name">"{8F99A816-E488-41E4-9FA3-846536012284}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{29BD8D0C-3586-4548-BB48-497B9A01693F}</v>
+        <o>
+          <v n="Name">"{29BD8D0C-3586-4548-BB48-497B9A01693F}"</v>
+          <d n="SubKeys" t="Hashtable" ckt="String" cvt="OptionKey">
+            <v>Rules</v>
+            <o>
+              <v n="Name">"Rules"</v>
+              <d n="SubKeys" t="Hashtable" />
+              <d n="Values" t="Hashtable" />
+            </o>
+          </d>
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{40450F57-0AA3-4216-96F3-5444ECB29763}</v>
+        <o>
+          <v n="Name">"{40450F57-0AA3-4216-96F3-5444ECB29763}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String" cvt="String">
+            <v>ActiveVisuProfile</v>
+            <v>IR0whWr8bwfwBwAAiD2qpQAAAABVAgAA37x72QAAAAABAAAAAAAAAAEaUwB5AHMAdABlAG0ALgBTAHQAcgBpAG4AZwACTHsAZgA5ADUAYgBiADQAMgA2AC0ANQA1ADIANAAtADQAYgA0ADUALQA5ADQAMAAwAC0AZgBiADAAZgAyAGUANwA3AGUANQAxAGIAfQADCE4AYQBtAGUABDBUAHcAaQBuAEMAQQBUACAAMwAuADEAIABCAHUAaQBsAGQAIAA0ADAAMgA0AC4ANwAFFlAAcgBvAGYAaQBsAGUARABhAHQAYQAGTHsAMQA2AGUANQA1AGIANgAwAC0ANwAwADQAMwAtADQAYQA2ADMALQBiADYANQBiAC0ANgAxADQANwAxADMAOAA3ADgAZAA0ADIAfQAHEkwAaQBiAHIAYQByAGkAZQBzAAhMewAzAGIAZgBkADUANAA1ADkALQBiADAANwBmAC0ANABkADYAZQAtAGEAZQAxAGEALQBhADgAMwAzADUANgBhADUANQAxADQAMgB9AAlMewA5AGMAOQA1ADgAOQA2ADgALQAyAGMAOAA1AC0ANAAxAGIAYgAtADgAOAA3ADEALQA4ADkANQBmAGYAMQBmAGUAZABlADEAYQB9AAoOVgBlAHIAcwBpAG8AbgALBmkAbgB0AAwKVQBzAGEAZwBlAA0KVABpAHQAbABlAA4aVgBpAHMAdQBFAGwAZQBtAE0AZQB0AGUAcgAPDkMAbwBtAHAAYQBuAHkAEAxTAHkAcwB0AGUAbQARElYAaQBzAHUARQBsAGUAbQBzABIwVgBpAHMAdQBFAGwAZQBtAHMAUwBwAGUAYwBpAGEAbABDAG8AbgB0AHIAbwBsAHMAEyhWAGkAcwB1AEUAbABlAG0AcwBXAGkAbgBDAG8AbgB0AHIAbwBsAHMAFCRWAGkAcwB1AEUAbABlAG0AVABlAHgAdABFAGQAaQB0AG8AcgAVIlYAaQBzAHUATgBhAHQAaQB2AGUAQwBvAG4AdAByAG8AbAAWFHYAaQBzAHUAaQBuAHAAdQB0AHMAFwxzAHkAcwB0AGUAbQAYGFYAaQBzAHUARQBsAGUAbQBCAGEAcwBlABkmRABlAHYAUABsAGEAYwBlAGgAbwBsAGQAZQByAHMAVQBzAGUAZAAaCGIAbwBvAGwAGyJQAGwAdQBnAGkAbgBDAG8AbgBzAHQAcgBhAGkAbgB0AHMAHEx7ADQAMwBkADUAMgBiAGMAZQAtADkANAAyAGMALQA0ADQAZAA3AC0AOQBlADkANAAtADEAYgBmAGQAZgAzADEAMABlADYAMwBjAH0AHRxBAHQATABlAGEAcwB0AFYAZQByAHMAaQBvAG4AHhRQAGwAdQBnAGkAbgBHAHUAaQBkAB8WUwB5AHMAdABlAG0ALgBHAHUAaQBkACBIYQBmAGMAZAA1ADQANAA2AC0ANAA5ADEANAAtADQAZgBlADcALQBiAGIANwA4AC0AOQBiAGYAZgBlAGIANwAwAGYAZAAxADcAIRRVAHAAZABhAHQAZQBJAG4AZgBvACJMewBiADAAMwAzADYANgBhADgALQBiADUAYwAwAC0ANABiADkAYQAtAGEAMAAwAGUALQBlAGIAOAA2ADAAMQAxADEAMAA0AGMAMwB9ACMOVQBwAGQAYQB0AGUAcwAkTHsAMQA4ADYAOABmAGYAYwA5AC0AZQA0AGYAYwAtADQANQAzADIALQBhAGMAMAA2AC0AMQBlADMAOQBiAGIANQA1ADcAYgA2ADkAfQAlTHsAYQA1AGIAZAA0ADgAYwAzAC0AMABkADEANwAtADQAMQBiADUALQBiADEANgA0AC0ANQBmAGMANgBhAGQAMgBiADkANgBiADcAfQAmFk8AYgBqAGUAYwB0AHMAVAB5AHAAZQAnVFUAcABkAGEAdABlAEwAYQBuAGcAdQBhAGcAZQBNAG8AZABlAGwARgBvAHIAQwBvAG4AdgBlAHIAdABpAGIAbABlAEwAaQBiAHIAYQByAGkAZQBzACgQTABpAGIAVABpAHQAbABlACkUTABpAGIAQwBvAG0AcABhAG4AeQAqHlUAcABkAGEAdABlAFAAcgBvAHYAaQBkAGUAcgBzACs4UwB5AHMAdABlAG0ALgBDAG8AbABsAGUAYwB0AGkAbwBuAHMALgBIAGEAcwBoAHQAYQBiAGwAZQAsEnYAaQBzAHUAZQBsAGUAbQBzAC1INgBjAGIAMQBjAGQAZQAxAC0AZAA1AGQAYwAtADQAYQAzAGIALQA5ADAANQA0AC0AMgAxAGYAYQA3ADUANgBhADMAZgBhADQALihJAG4AdABlAHIAZgBhAGMAZQBWAGUAcgBzAGkAbwBuAEkAbgBmAG8AL0x7AGMANgAxADEAZQA0ADAAMAAtADcAZgBiADkALQA0AGMAMwA1AC0AYgA5AGEAYwAtADQAZQAzADEANABiADUAOQA5ADYANAAzAH0AMBhNAGEAagBvAHIAVgBlAHIAcwBpAG8AbgAxGE0AaQBuAG8AcgBWAGUAcgBzAGkAbwBuADIMTABlAGcAYQBjAHkAMzBMAGEAbgBnAHUAYQBnAGUATQBvAGQAZQBsAFYAZQByAHMAaQBvAG4ASQBuAGYAbwA0MEwAbwBhAGQATABpAGIAcgBhAHIAaQBlAHMASQBuAHQAbwBQAHIAbwBqAGUAYwB0ADUaQwBvAG0AcABhAHQAaQBiAGkAbABpAHQAeQDQAAIaA9ADAS0E0AUGGgfQBwgaAUUHCQjQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtDtAPAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60BAAAA0A0BLRHQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0S0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAUAAAA0AwLrQIAAADQDQEtE9APAS0Q0AAJGgRFCgsEAwAAAAUAAAANAAAAAAAAANAMC60CAAAA0A0BLRTQDwEtENAACRoERQoLBAMAAAAFAAAADQAAAAAAAADQDAutAgAAANANAS0V0A8BLRDQAAkaBEUKCwQDAAAABQAAAA0AAAAAAAAA0AwLrQIAAADQDQEtFtAPAS0X0AAJGgRFCgsEAwAAAAUAAAANAAAAKAAAANAMC60EAAAA0A0BLRjQDwEtENAZGq0BRRscAdAAHBoCRR0LBAMAAAAFAAAADQAAAAAAAADQHh8tINAhIhoCRSMkAtAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAAAAANADAS0n0CgBLRHQKQEtENAAJRoFRQoLBAMAAAADAAAAAAAAAAoAAADQJgutAQAAANADAS0n0CgBLRHQKQEtEJoqKwFFAAEC0AABLSzQAAEtF9AAHy0t0C4vGgPQMAutAQAAANAxC60XAAAA0DIarQDQMy8aA9AwC60CAAAA0DELrQMAAADQMhqtANA0Gq0A0DUarQA=</v>
+          </d>
+        </o>
+        <v>{192FAD59-8248-4824-A8DE-9177C94C195A}</v>
+        <o>
+          <v n="Name">"{192FAD59-8248-4824-A8DE-9177C94C195A}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{F66C7017-BDD8-4114-926C-81D6D687E35F}</v>
+        <o>
+          <v n="Name">"{F66C7017-BDD8-4114-926C-81D6D687E35F}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" />
+        </o>
+        <v>{246001F4-279D-43AC-B241-948EB31120E1}</v>
+        <o>
+          <v n="Name">"{246001F4-279D-43AC-B241-948EB31120E1}"</v>
+          <d n="SubKeys" t="Hashtable" />
+          <d n="Values" t="Hashtable" ckt="String">
+            <v>GlobalVisuImageFilePath</v>
+            <v>"%APPLICATIONPATH%"</v>
+            <v>UnicodeStrings</v>
+            <v>false</v>
+          </d>
+        </o>
+      </d>
+      <d n="Values" t="Hashtable" />
+    </o>
+        </Data>
+        <TypeList>
+          <Type n="Boolean">System.Boolean</Type>
+          <Type n="Hashtable">System.Collections.Hashtable</Type>
+          <Type n="OptionKey">{54dd0eac-a6d8-46f2-8c27-2f43c7e49861}</Type>
+          <Type n="String">System.String</Type>
+        </TypeList>
+      </XmlArchive>
+    </PlcProjectOptions>
+  </ProjectExtensions>
+</Project>

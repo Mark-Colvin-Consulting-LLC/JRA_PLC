@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="MastLightReq" Id="{c663baf8-e33d-4dbb-8f75-7a76b09aaa1c}">
+    <Declaration><![CDATA[TYPE MastLightReq :
+STRUCT
+
+RedReq: BOOL;
+RedFlashReq: BOOL;
+YelReq: BOOL;
+YelFlashReq: BOOL;
+GrnReq: BOOL;
+GrnFlashReq: BOOL;
+HornReq: BOOL;	
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

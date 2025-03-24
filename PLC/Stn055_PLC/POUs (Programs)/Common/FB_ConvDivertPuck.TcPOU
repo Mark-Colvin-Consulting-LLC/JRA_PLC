@@ -1,0 +1,875 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_ConvDivertPuck" Id="{c32f889d-4417-4aaf-8db9-cc6ef15c3db5}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_ConvDivertPuck
+VAR_INPUT
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpConvDivert;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFIFO: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+END_VAR
+VAR
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+	fbRFID: FB_RFID;
+	pTransactionHandler: POINTER TO FB_DBTransactionHandler;
+	GetPuckData: DBGetPuckData;
+	senMainPuckPresent: FB_Sensor;
+	senMainBufferFull: FB_SensorHyst;
+	senSpurBufferFull: FB_SensorHyst;
+	MainConvOK: BOOL;
+	SpurConvOK: BOOL;
+	PuckInTransitMain: BOOL;
+	ResetLastMainPuckClearOfDivert: BOOL;
+	ResetReleaseTimingMain: BOOL;
+	tmrPuckInTransitMain: TON;
+	tmrMainOKforNextRelease: TON;
+	tmrLastMainPuckClearOfDivert: TON;
+	ResetLastSpurPuckClearOfDivert: BOOL;
+	PuckInTransitSpur: BOOL;
+	ResetReleaseTimingSpur: BOOL;
+	tmrPuckInTransitSpur: TON;
+	tmrSpurOKforNextRelease: TON;
+	tmrLastSpurPuckClearOfDivert: TON;
+	DataRead: BOOL;
+	RFIDRead: BOOL;
+	cntFailRFID: INT;
+	cntFailDB: INT;
+	ThisPuckToDivert: BOOL;
+	Debug_GateActionMode: BOOL;
+	Debug_GateProceedWtihSingleAction: BOOL;
+	iDivertMain AT %I*: BOOL;
+	iDivertSpur AT %I*: BOOL;
+	iPuckPresent AT %I*: BOOL;
+	iMainBufferFull AT %I*: BOOL;
+	oDivertMain AT %Q*: BOOL;
+	oDivertSpur AT %Q*: BOOL;
+	oStopLower AT %Q*: BOOL;
+	hiDivertMain: BOOL;
+	hiDivertSpur: BOOL;
+	hiStopLower: BOOL;
+	hiStopRaise: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Local.pStateTraceBuffer := pStateTraceBuffer;
+Local.pStateTraceFifo := pStateTraceFifo;
+Local.pStats := pStats;
+
+IF gFirstScan THEN
+	// Version 08 - 06/17/2022
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000ms;
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+	
+	pTransactionHandler := gDBServer.GetTransactionHandler();
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+//RFID Call
+fbRFID();
+fbRFID.PLCFirstScan := gFirstScan;
+fbRFID.WriteStart := FALSE;
+
+senMainPuckPresent(Input := iPuckPresent,
+		OnTime := pCmp^.Config.MainPuckPresentOnTime,
+	OffTime := pCmp^.Config.MainPuckPresentOffTime);
+pCmp^.senMainPuckPresentOn := senMainPuckPresent.On;
+pCmp^.senMainPuckPresentOff := senMainPuckPresent.Off;
+
+senMainBufferFull(Input := iMainBufferFull,
+		OnTime := pCmp^.Config.MainBufferSensorOnTime,
+	OffTime := pCmp^.Config.MainBufferSensorOffTime);
+pCmp^.senMainBufferFullOff := senMainBufferFull.Off;
+
+senSpurBufferFull(Input := pCmp^.SpurBufferFull,
+		OnTime := pCmp^.Config.SpurBufferSensorOnTime,
+	OffTime := pCmp^.Config.SpurBufferSensorOffTime);
+pCmp^.senSpurBufferFullOff := senSpurBufferFull.Off;
+
+// these Main vars are local to Main Conv
+MainConvOK := 
+	pCmp^.MainHeartbeatOK AND
+	pCmp^.MainConvRunning;
+
+SpurConvOK := 
+	pCmp^.SpurHeartbeatOK AND 
+	pCmp^.SpurConvRunning;
+
+ 
+tmrMainOKforNextRelease(
+	IN := NOT ResetReleaseTimingMain AND MainConvOK,
+	PT:= pCmp^.Config.DivertMainTimeSpacing );
+tmrSpurOKforNextRelease(
+	IN := NOT ResetReleaseTimingSpur AND  MainConvOK AND SpurConvOK, 
+	PT:=pCmp^. Config.DivertSpurTimeSpacing);
+
+// iBufferFull for Main
+IF iMainBufferFull OR NOT MainConvOK THEN
+	PuckInTransitMain := FALSE;
+END_IF;
+// iBufferFull for Spur 
+IF pCmp^.SpurBufferFull OR NOT MainConvOK OR NOT SpurConvOK THEN
+	PuckInTransitSpur := FALSE;
+END_IF;
+
+// InTransit timers
+tmrPuckInTransitMain(IN := PuckInTransitMain, PT:= pCmp^.Config.TransitTimeMain);
+tmrPuckInTransitSpur(IN := PuckInTransitSpur, PT:= pCmp^.Config.TransitTimeSpur);
+
+// Timers for switching diverter back and forth
+tmrLastMainPuckClearOfDivert(
+	IN := NOT ResetLastMainPuckClearOfDivert AND 	MainConvOK, 
+	PT := pCmp^.Config.MainPuckClearDivertTime);
+tmrLastSpurPuckClearOfDivert(
+	IN := NOT ResetLastSpurPuckClearOfDivert AND	MainConvOK AND (SpurConvOK OR NOT pCmp^.SpurConvRunning), 
+	PT := pCmp^.Config.SpurPuckClearDivertTime);
+
+// Populate various status bits use for external traffic control puposes
+pCmp^.StatusInCycleAuto := Local.CycleAuto AND (NOT pStn^.StopRequest OR pCmp^.Framework.EnableFreeRun);
+
+// Pass through external free run stop request to local then clear it
+Local.hiFreeRunCycleStop := pCmp^.FreeRunCycleStop;
+pCmp^.FreeRunCycleStop := FALSE;
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for puck*)
+		
+		IF Local.FirstEntry THEN
+			MEMSET(ADR(pCmp^.Puck),0,SIZEOF(pCmp^.Puck));
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF tmrPuckInTransitMain.Q THEN
+			Local.NextState := 1;
+		ELSIF tmrPuckInTransitSpur.Q THEN
+			Local.NextState := 2;
+		ELSIF pCmp^.senMainPuckPresentOn THEN
+			Local.NextState := 10;
+		END_IF
+	
+	1: (*Fault: Puck in Transit Main*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	2: (*Fault: Puck in Transit Spur*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	10: (*Read RFID*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#1S;
+		END_IF
+		
+		IF fbRFID.ReadID <> 0 AND
+				fbRFID.ReadValid THEN
+			Local.NextState := 20;
+		ELSIF Local.tmrState.Q THEN
+			Local.NextState := 30;
+		ELSIF fbRFID.Error THEN
+			Local.NextState := 40;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pCmp^.Puck.RFID := fbRFID.ReadID;
+		END_IF
+	
+	20: (*Reset cntFailRFID *)
+		
+		IF Local.FirstEntry THEN
+			RFIDRead :=  TRUE;
+			cntFailRFID := 0;
+		END_IF
+		
+		Local.NextState := 100;
+	
+	30: (*Pass downstream-No RFID*)
+		
+		IF Local.FirstEntry THEN
+			cntFailRFID := cntFailRFID +1;
+			RFIDRead := FALSE;
+		END_IF
+		
+		IF cntFailRFID > pCmp^.Config.NumberOfNoRfidDataToFault THEN
+			Local.NextState := 31;
+		ELSE
+			Local.NextState := 200;
+		END_IF
+	
+	31: (*Fault: RFID consecutive reads failed*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	40: (*Reset RFID*)
+		
+		IF Local.FirstEntry THEN
+			fbRFID.ErrorClear := TRUE;
+		END_IF
+		
+		IF NOT fbRFID.Error THEN
+			Local.NextState := 50;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			fbRFID.ErrorClear := FALSE;
+		END_IF
+	
+	50: (*Restart RFID Reader*)
+		
+		IF Local.FirstEntry THEN
+			fbRFID.ResetStart := TRUE;
+		END_IF
+		
+		IF fbRFID.ResetDone THEN
+			Local.NextState := 30;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			fbRFID.ResetStart := FALSE;
+		END_IF
+	
+	100: (*Verify TransactionHandler Not Busy*)
+		
+		IF NOT pTransactionHandler^.Busy AND
+				NOT pTransactionHandler^.Done AND
+				NOT pTransactionHandler^.Error THEN
+			Local.NextState := 110;
+		END_IF
+	
+	110: (*Get GetPuckData*)
+		
+		IF Local.FirstEntry THEN
+			memset(ADR(GetPuckData),0,SIZEOF(GetPuckData));
+			GetPuckData.inRFID := pCmp^.Puck.RFID;
+			GetPuckData.inLocation := pCmp^.Config.DBLocation;
+		END_IF
+		
+		pTransactionHandler^.ExecuteSP(
+		  bForeground := TRUE,
+		  sSPName := cDBProcedure.uspGetPuckData,
+		  pData := ADR(GetPuckData),
+		  nDataSize :=SIZEOF(GetPuckData));
+		
+		IF pTransactionHandler^.Done THEN
+			IF NOT pTransactionHandler^.Error THEN
+				IF GetPuckData.outReturnCode =
+						cDBReturnCode.Success THEN
+					Local.NextState := 130;
+				ELSE
+					Local.NextState := 112;
+				END_IF
+			ELSE
+				Local.NextState := 111;
+			END_IF
+		END_IF
+	
+	111: (*Fault: DBServer reported error*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	112: (*FAULT: DBGetPuckData failed*)
+		
+		IF Local.FirstEntry THEN
+			cntFailDB := cntFailDB +1;
+			IF cntFailDB > pCmp^.Config.NumberOfNoDBDataToFault THEN
+				Local.FaultNumber := 1;
+			End_If
+		END_IF
+		
+		IF cntFailDB <= pCmp^.Config.NumberOfNoDBDataToFault THEN
+			Local.NextState := 200;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			DataRead := FALSE;
+		END_IF
+	
+	130: (*Copy Needed Data to Device*)
+		
+		IF Local.FirstEntry THEN
+			MEMSET(ADR(pCmp^.Puck),0,SIZEOF(pCmp^.Puck));
+			pCmp^.Puck.RFID := GetPuckData.inRFID;
+			pCmp^.Puck.Device.SN := GetPuckData.outDeviceSN;
+			pCmp^.Puck.Device.Status := GetPuckData.outDeviceStatus;
+			pCmp^.Puck.Device.SKU := GetPuckData.outSKU;
+			pCmp^.Puck.Device.RowaTrayType := GetPuckData.outRowaTrayType;
+			pCmp^.Puck.Side := GetPuckData.outPuckSide;
+			// Device route applies to device if it existsâ€¦If no device...
+			//   then device route parameter applies to puck itself 
+			IF GetPuckData.outDeviceSN <> '' THEN
+				pCmp^.Puck.Device.Route := GetPuckData.outDeviceRoute;
+			ELSE
+				pCmp^.Puck.PuckOnlyRoute := GetPuckData.outDeviceRoute;
+			END_IF
+			pCmp^.Puck.Device.RMRoute := GetPuckData.outRMRoute;
+			pCmp^.Puck.IsCleaningEligible := GetPuckData.outIsCleaningEligible;
+			pCmp^.Puck.Device.IsHighPriority := GetPuckData.outIsHighPriority;
+			DataRead := TRUE;
+			cntFailDB := 0;
+		END_IF
+		
+		Local.NextState := 200;
+	
+	200: (*Wait for Traffic Control decision*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.PuckReady := TRUE;
+			pCmp^.UnknownPuck := NOT DataRead OR
+				NOT RFIDRead;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Debug_GateActionMode OR
+				Debug_GateProceedWtihSingleAction THEN
+			IF pCmp^.senMainPuckPresentOff THEN
+				Local.NextState := 0;
+			ELSIF pCmp^.PuckReleaseSpur AND
+					tmrSpurOKforNextRelease.Q AND
+					tmrLastMainPuckClearOfDivert.Q AND
+					senSpurBufferFull.Off AND
+					(NOT pStn^.StopRequest OR
+					pCmp^.Framework.EnableFreeRun) THEN
+				Local.NextState := 300;
+			ELSIF pCmp^.PuckReleaseMain AND
+					tmrMainOKforNextRelease.Q AND
+					tmrLastSpurPuckClearOfDivert.Q AND
+					senMainBufferFull.Off AND
+					(NOT pStn^.StopRequest OR
+					pCmp^.Framework.EnableFreeRun) THEN
+				Local.NextState := 400;
+			END_IF
+		ELSIF tmrPuckInTransitMain.Q THEN
+			Local.NextState := 201;
+		ELSIF tmrPuckInTransitSpur.Q THEN
+			Local.NextState := 202;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pCmp^.PuckReady := FALSE;
+		END_IF
+	
+	201: (*Fault: Puck in Transit Main*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	202: (*Fault: Puck in Transit Spur*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	300: (*Set and verify divert to spur*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#1S;
+			ThisPuckToDivert := TRUE;
+			oDivertSpur := TRUE;
+			oDivertMain := FALSE;
+		END_IF
+		
+		IF NOT iDivertSpur AND
+				Local.tmrState.Q THEN
+			Local.NextState := 310;
+		ELSIF iDivertSpur AND
+				NOT iDivertMain THEN
+			Local.NextState := 500;
+		END_IF
+	
+	310: (*Retry-Step1-Set Divert to Main*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#2000MS;
+			oDivertMain := TRUE;
+			oDivertSpur := FALSE;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 320;
+		END_IF
+	
+	320: (*Retry-Step2- Set and verify divert to spur*)
+		
+		IF Local.FirstEntry THEN
+			oDivertSpur := TRUE;
+			oDivertMain := FALSE;
+		END_IF
+		
+		IF iDivertSpur AND
+				NOT iDivertMain THEN
+			Local.NextState := 500;
+		END_IF
+	
+	400: (*Set and verify divert to main*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#1S;
+			ThisPuckToDivert := FALSE;
+			oDivertMain := TRUE;
+			oDivertSpur := FALSE;
+		END_IF
+		
+		IF NOT iDivertMain AND
+				Local.tmrState.Q THEN
+			Local.NextState := 410;
+		ELSIF iDivertMain AND
+				NOT iDivertSpur THEN
+			Local.NextState := 500;
+		END_IF
+	
+	410: (*Retry-Step1-Set Divert to Spur*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#2000MS;
+			oDivertSpur := TRUE;
+			oDivertMain := FALSE;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 420;
+		END_IF
+	
+	420: (*Retry-Step2- Set and verify divert to main*)
+		
+		IF Local.FirstEntry THEN
+			oDivertMain := TRUE;
+			oDivertSpur := FALSE;
+		END_IF
+		
+		IF iDivertMain AND
+				NOT iDivertSpur THEN
+			Local.NextState := 500;
+		END_IF
+	
+	500: (*Release puck*)
+		
+		IF Local.FirstEntry THEN
+			Local.StateTimePreset := T#500MS;
+			oStopLower := TRUE;
+		END_IF
+		
+		IF Local.tmrState.Q THEN
+			Local.NextState := 501;
+		ELSIF senMainPuckPresent.Off THEN
+			IF ThisPuckToDivert THEN
+				Local.NextState := 510;
+			ELSE
+				Local.NextState := 550;
+			END_IF
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oStopLower := FALSE;
+		END_IF
+	
+	501: (*Fault: Stop sensor*)
+		
+		IF Local.FirstEntry THEN
+			Local.FaultNumber := 1;
+		END_IF
+		
+		;
+	
+	510: (*Trigger spur related timers*)
+		
+		(*NOTE: Housekeeping will turn off these InTransit bits when there associated buffers are true*);
+		
+		IF Local.FirstEntry THEN
+			PuckInTransitSpur := TRUE;
+			ResetReleaseTimingSpur := TRUE;
+			ResetLastSpurPuckClearOfDivert := TRUE;
+		END_IF
+		
+		Local.NextState := 520;
+	
+	520: (*Turn off spur related timers*)
+		
+		IF Local.FirstEntry THEN
+			ResetLastSpurPuckClearOfDivert := FALSE;
+			ResetReleaseTimingSpur := FALSE;
+		END_IF
+		
+		Local.NextState := 0;
+	
+	550: (*Trigger main related timers*)
+		
+		(*NOTE: Housekeeping will turn off these InTransit bits when there associated buffers are true*);
+		
+		IF Local.FirstEntry THEN
+			PuckInTransitMain := TRUE;
+			ResetReleaseTimingMain := TRUE;
+			ResetLastMainPuckClearOfDivert := TRUE;
+		END_IF
+		
+		Local.NextState := 560;
+	
+	560: (*Turn off main related timers*)
+		
+		IF Local.FirstEntry THEN
+			ResetLastMainPuckClearOfDivert := FALSE;
+			ResetReleaseTimingMain := FALSE;
+		END_IF
+		
+		Local.NextState := 0;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			oStopLower := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.PuckReady := FALSE;
+			MEMSET(ADR(pCmp^.Puck),0,SIZEOF(pCmp^.Puck));
+			pCmp^.UnknownPuck := TRUE;
+			oStopLower := FALSE;
+			PuckInTransitSpur := FALSE;
+			ResetReleaseTimingSpur := FALSE;
+			ResetLastMainPuckClearOfDivert := FALSE;
+			PuckInTransitMain := FALSE;
+			ResetReleaseTimingMain := FALSE;
+			ResetLastSpurPuckClearOfDivert := FALSE;
+			Local.ReEntryState := 0;
+		END_IF
+		
+		Local.NextState := 5020;
+	
+	5020: (*Is divert position valid with in/out matching*)
+		
+		IF (iDivertMain AND
+				NOT iDivertSpur AND
+				oDivertMain AND
+				NOT oDivertSpur) OR
+				(iDivertSpur AND
+				NOT iDivertMain AND
+				oDivertSpur AND 
+				NOT oDivertMain) THEN
+			Local.NextState := 9000;
+		ELSE
+			Local.NextState := 5030;
+		END_IF
+	
+	5030: (*Set and verify divert to main*)
+		
+		IF Local.FirstEntry THEN
+			oDivertMain := TRUE;
+			oDivertSpur := FALSE;
+		END_IF
+		
+		IF iDivertMain AND
+				NOT iDivertSpur THEN
+			Local.NextState := 9000;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			oDivertMain := FALSE;
+		END_IF
+	
+	6000: (*Fault reset - simply do full init*)
+		
+		(*No need to try to resume cycle so fault reset just jumps to full init logic.*);
+		
+		Local.NextState := 5010;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 9000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset*)
+		
+		IF fbRFID.Error THEN
+			Local.NextState := 9020;
+		ELSE
+			Local.NextState := 9998;
+		END_IF
+	
+	9020: (*Reset RFID*)
+		
+		IF Local.FirstEntry THEN
+			fbRFID.ErrorClear := TRUE;
+		END_IF
+		
+		IF NOT fbRFID.Error THEN
+			Local.NextState := 9030;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			fbRFID.ErrorClear := FALSE;
+		END_IF
+	
+	9030: (*Restart RFID Reader*)
+		
+		IF Local.FirstEntry THEN
+			fbRFID.ResetStart := TRUE;
+		END_IF
+		
+		IF fbRFID.ResetDone THEN
+			Local.NextState := 9998;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			fbRFID.ResetStart := FALSE;
+		END_IF
+	
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+    IF hiDivertSpur THEN
+        oDivertMain := FALSE;
+        oDivertSpur := TRUE;
+    END_IF    
+    IF hiDivertMain THEN
+        oDivertMain := TRUE;
+        oDivertSpur := FALSE;    
+    END_IF    
+    IF hiStopLower THEN
+        oStopLower := TRUE;
+    END_IF
+    IF hiStopRaise THEN
+        oStopLower := FALSE;
+    END_IF
+END_IF
+
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*#### Always turn off hi requests ####*)
+hiDivertSpur := FALSE;
+hiDivertMain := FALSE;
+hiStopLower := FALSE;
+hiStopRaise := FALSE;
+(*### Simulation Logic ###*)
+
+
+;
+
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{cd1b2369-1586-46a7-9aa9-a7570df37841}">
+      <Implementation>
+        <ST><![CDATA[Local.MsgArray[0].Id := 11;
+Local.MsgArray[0].Text := 'Puck failed to reach Main Buffer in time';
+Local.MsgArray[0].AltText := 'No Alt Text';
+Local.MsgArray[1].Id := 21;
+Local.MsgArray[1].Text := 'Puck failed to reach Spur Buffer in time';
+Local.MsgArray[1].AltText := 'No Alt Text';
+Local.MsgArray[2].Id := 101;
+Local.MsgArray[2].Text := 'Failed to read RFID tag';
+Local.MsgArray[2].AltText := 'No Alt Text';
+Local.MsgArray[3].Id := 311;
+Local.MsgArray[3].Text := 'RFID reader failed to read consecutively';
+Local.MsgArray[3].AltText := 'No Alt Text';
+Local.MsgArray[4].Id := 401;
+Local.MsgArray[4].Text := 'Failed to clear error on RFID reader';
+Local.MsgArray[4].AltText := 'No Alt Text';
+Local.MsgArray[5].Id := 501;
+Local.MsgArray[5].Text := 'RFID did not finish reset';
+Local.MsgArray[5].AltText := 'No Alt Text';
+Local.MsgArray[6].Id := 1001;
+Local.MsgArray[6].Text := 'Timed out waiting for TransactionHandler not busy';
+Local.MsgArray[6].AltText := 'No Alt Text';
+Local.MsgArray[7].Id := 1101;
+Local.MsgArray[7].Text := 'Get puck data transaction timed out.';
+Local.MsgArray[7].AltText := 'No Alt Text';
+Local.MsgArray[8].Id := 1111;
+Local.MsgArray[8].Text := 'DBServer error during GetPuckData transaction.';
+Local.MsgArray[8].AltText := 'No Alt Text';
+Local.MsgArray[9].Id := 1121;
+Local.MsgArray[9].Text := 'GetPuckData transaction failed multiple times.';
+Local.MsgArray[9].AltText := 'No Alt Text';
+Local.MsgArray[10].Id := 2001;
+Local.MsgArray[10].Text := 'Traffic Control did not respond';
+Local.MsgArray[10].AltText := 'No Alt Text';
+Local.MsgArray[11].Id := 2011;
+Local.MsgArray[11].Text := 'Puck failed to reach Main Buffer in time';
+Local.MsgArray[11].AltText := 'No Alt Text';
+Local.MsgArray[12].Id := 2021;
+Local.MsgArray[12].Text := 'Puck failed to reach Spur Buffer in time';
+Local.MsgArray[12].AltText := 'No Alt Text';
+Local.MsgArray[13].Id := 3001;
+Local.MsgArray[13].Text := 'Divert to spur failed or input mismatch';
+Local.MsgArray[13].AltText := 'No Alt Text';
+Local.MsgArray[14].Id := 3201;
+Local.MsgArray[14].Text := 'Divert to spur failed or input mismatch';
+Local.MsgArray[14].AltText := 'No Alt Text';
+Local.MsgArray[15].Id := 4001;
+Local.MsgArray[15].Text := 'Divert to main failed or input mismatch';
+Local.MsgArray[15].AltText := 'No Alt Text';
+Local.MsgArray[16].Id := 4201;
+Local.MsgArray[16].Text := 'Divert to main failed or input mismatch';
+Local.MsgArray[16].AltText := 'No Alt Text';
+Local.MsgArray[17].Id := 5001;
+Local.MsgArray[17].Text := 'Puck not leaving divert stop';
+Local.MsgArray[17].AltText := 'No Alt Text';
+Local.MsgArray[18].Id := 5011;
+Local.MsgArray[18].Text := 'Puck did not leave divert stop sensor';
+Local.MsgArray[18].AltText := 'No Alt Text';
+Local.MsgArray[19].Id := 50301;
+Local.MsgArray[19].Text := 'Divert to main failed or input mismatch';
+Local.MsgArray[19].AltText := 'No Alt Text';
+Local.MsgArray[20].Id := 90201;
+Local.MsgArray[20].Text := 'Failed to clear error on RFID reader';
+Local.MsgArray[20].AltText := 'No Alt Text';
+Local.MsgArray[21].Id := 90301;
+Local.MsgArray[21].Text := 'RFID did not finish reset';
+Local.MsgArray[21].AltText := 'No Alt Text';
+]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_ConvDivertPuck">
+      <LineId Id="3" Count="736" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_ConvDivertPuck.DfnMessages">
+      <LineId Id="2" Count="65" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

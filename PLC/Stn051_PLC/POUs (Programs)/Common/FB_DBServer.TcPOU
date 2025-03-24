@@ -1,0 +1,274 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_DBServer" Id="{3f5b3188-b0d0-405a-b5ff-c72394151d1f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_DBServer
+VAR_INPUT
+	JRSQLNetId : T_AmsNetID := ''; //AMS address JRSQL
+	ProjectDBDefs : IProjectDBDefs; //Instance of the custom database FB for this database
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+	//Property backing variables
+	_NextTransactionID : UDINT := 0;
+	_BackgroundQueue : FB_DataStore(bFIFO:=TRUE, nSize:=cMaxBackgroundQueueSize);
+	_Connected : BOOL := FALSE;
+	
+	//buffers
+	TransactionHandlers : ARRAY[1..cMaxTransactionHandlers] OF POINTER TO fb_dbtransactionhandler;
+	TransactionHandlersSize : INT :=0;
+	BackgroundTransactionHandlers : ARRAY[1..cBackgroundTransactionHandlerCount] OF POINTER TO fb_dbbackgroundtransactionhandler;
+	
+	//'Framework'
+	bFirstScan: BOOL := TRUE;
+	tmrState:  TON;
+
+	nState:	UDINT	:= 9999;
+	nNextState:	UDINT	:= 0;
+	bFirstEntry: BOOL;	
+	
+	//Locals	
+	fbADSInfo: ADSRDDEVINFO;
+	
+	ConnectionError : STRING;
+	ResponseTime : TIME;
+	JRSQLVersion : DWORD;
+	
+	i: INT;
+	
+	idx: INT;
+END_VAR
+
+VAR CONSTANT
+	cJRSQLPort : UINT := 2020;
+	cMaxTransactionHandlers : INT := 100;
+	cBackgroundTransactionHandlerCount : INT :=1;
+	cMaxBackgroundQueueSize : INT := 50;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF bFirstScan THEN
+	nNextState:=0;
+	nState:=9999;
+
+	FOR idx:=1 TO cBackgroundTransactionHandlerCount DO
+		BackgroundTransactionHandlers[idx] := __NEW(fb_dbbackgroundtransactionhandler(pDBServer:=THIS,JRSQLNetId:= THIS^.JRSQLNetId, JRSQLPort := cJRSQLPort, ProjectDBDefs := THIS^.ProjectDBDefs));
+	END_FOR
+	
+	//init 
+	fbADSInfo(NETID:=THIS^.JRSQLNetId,PORT:=cJRSQLPort,RDINFO:=FALSE,TMOUT:=T#2S);
+
+	bFirstScan := FALSE;
+END_IF
+
+//state machine	
+IF nState <> nNextState THEN
+	bFirstEntry := TRUE;
+	nState := nNextState;
+ELSE
+	bFirstEntry := FALSE;
+END_IF
+
+tmrState(IN:=(NOT bFirstEntry), PT:=T#20S);
+
+CASE nState OF
+0: //Verify JRSQL is running
+	IF bFirstEntry THEN
+		;
+	END_IF
+
+	fbADSInfo(RDINFO:=TRUE);
+
+	IF NOT fbADSInfo.Busy THEN
+		IF NOT fbADSInfo.ERR THEN
+			IF fbADSInfo.DEVNAME='JRSQL' THEN
+				ResponseTime := tmrState.ET;
+				JRSQLVersion := fbADSINfo.DEVVER;
+				nNextState := 100;
+			ELSE
+				ConnectionError := 'Server responded, not JRSQL';
+				nNextState := 5;
+			END_IF
+		ELSE
+			IF fbADSInfo.ERRID = 1861 THEN
+				ConnectionError := 'JRSQL response timeout';
+				nNextState := 5;	
+			ELSE
+				ConnectionError := Concat('Error connecting to JRSQL: ', UDINT_TO_STRING(fbADSInfo.ERRID));
+				nNextState := 5;	
+			END_IF
+		END_IF
+	END_IF
+	
+	IF (nState <> nNextState) THEN
+		fbADSInfo(RDINFO:=FALSE);
+	END_IF
+	
+5: //Wait and try again
+	IF bFirstEntry THEN
+		_Connected:=FALSE;
+	END_IF
+	IF tmrState.ET > T#10S THEN
+		nNextState:=0;
+	END_IF
+	
+100: //wait for a command
+	IF bFirstEntry THEN
+		ConnectionError := '';
+		_Connected := TRUE;
+	END_IF
+
+	IF tmrState.ET > T#10S THEN
+		//Every 10 seconds check jrsql is still responding
+		nNextState:=0;
+	END_IF
+
+END_CASE
+
+//run owned function blocks
+FOR i := 1 TO TransactionHandlersSize DO
+   IF TransactionHandlers[i] > 0 THEN
+	   TransactionHandlers[i]^(ProjectDBDefs := THIS^.ProjectDBDefs);
+   END_IF
+END_FOR	
+
+FOR i := 1 TO cBackgroundTransactionHandlerCount DO
+   IF BackgroundTransactionHandlers[i] > 0 THEN
+      BackgroundTransactionHandlers[i]^(ProjectDBDefs := THIS^.ProjectDBDefs);
+   END_IF
+END_FOR	]]></ST>
+    </Implementation>
+    <Method Name="AddBackgroundItem" Id="{7b613f39-120a-47bb-bfc5-b20662de531e}">
+      <Declaration><![CDATA[METHOD AddBackgroundItem : BOOL
+VAR_INPUT
+	ptr: POINTER TO DBBackgroundItem;
+END_VAR
+VAR 
+	old: POINTER TO DBBackgroundItem;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[//if the queue is full, delete the oldest and add the new one
+IF _BackgroundQueue.Count >= _backgroundQueue.Size THEN
+	old:=_backgroundqueue.Pop();
+	IF old >0 THEN
+		__DELETE(old);
+	END_IF
+END_IF
+
+AddBackgroundItem:= _BackgroundQueue.Push(ptr,FALSE);
+]]></ST>
+      </Implementation>
+    </Method>
+    <Property Name="BackgroundQueue" Id="{a3947809-172d-4456-a788-b33cfddb9f30}">
+      <Declaration><![CDATA[PROPERTY BackgroundQueue : pointer to fb_datastore]]></Declaration>
+      <Get Name="Get" Id="{23f36928-af39-4afa-83e3-42328d48265d}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[BackgroundQueue:=adr(_BackgroundQueue);]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Property Name="Connected" Id="{6fe12b2a-2e04-41b9-967d-86619822004c}">
+      <Declaration><![CDATA[PROPERTY Connected : BOOL]]></Declaration>
+      <Get Name="Get" Id="{84203a97-8113-44e8-8e5a-b0680e6e8548}">
+        <Declaration><![CDATA[VAR
+END_VAR
+]]></Declaration>
+        <Implementation>
+          <ST><![CDATA[Connected := _Connected;]]></ST>
+        </Implementation>
+      </Get>
+    </Property>
+    <Method Name="FB_exit" Id="{f733f770-8eac-4c07-aef8-57013c08a683}">
+      <Declaration><![CDATA[METHOD FB_exit : BOOL
+VAR_INPUT
+	bInCopyCode : BOOL; // if TRUE, the exit method is called for exiting an instance that is copied afterwards (online change).
+END_VAR
+
+VAR
+	idx: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF NOT bInCopyCode THEN
+	FOR idx:=1 TO TransactionHandlersSize DO
+		IF TransactionHandlers[idx] > 0 THEN
+			__DELETE(TransactionHandlers[idx]);
+			TransactionHandlers[idx]:=0;
+		END_IF
+	END_FOR 
+	FOR idx:=1 TO cBackgroundTransactionHandlerCount DO
+		IF BackgroundTransactionHandlers[idx] > 0 THEN
+			__DELETE(BackgroundTransactionHandlers[idx]);
+			BackgroundTransactionHandlers[idx]:=0;
+		END_IF
+	END_FOR
+
+END_IF
+]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="FB_init" Id="{ddb753bd-ff40-4e86-85a2-95963091ee69}">
+      <Declaration><![CDATA[METHOD FB_init : BOOL
+VAR_INPUT
+	bInitRetains : BOOL; // if TRUE, the retain variables are initialized (warm start / cold start)
+	bInCopyCode : BOOL;  // if TRUE, the instance afterwards gets moved into the copy code (online change)
+END_VAR
+
+VAR
+	idx: INT;
+END_VAR]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF bInitRetains  THEN
+	bFirstScan := TRUE;
+	TransactionHandlersSize := 0;	
+
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <Method Name="GetTransactionHandler" Id="{a9f87229-e4c7-4993-bd1a-b822043ca03d}">
+      <Declaration><![CDATA[METHOD GetTransactionHandler : POINTER TO FB_dbTransactionHandler
+VAR_INPUT
+END_VAR
+]]></Declaration>
+      <Implementation>
+        <ST><![CDATA[IF TransactionHandlersSize < cMaxTransactionHandlers THEN
+	GetTransactionHandler := __NEW(FB_dbTransactionHandler(pDBServer:=THIS,JRSQLNetId:= THIS^.JRSQLNetId, JRSQLPort := cJRSQLPort, ProjectDBDefs := THIS^.ProjectDBDefs ));
+	IF (GetTransactionHandler > 0)THEN
+		TransactionHandlersSize := TransactionHandlersSize + 1;
+		TransactionHandlers[TransactionHandlersSize] := GetTransactionHandler;
+	END_IF
+ELSE
+	GetTransactionHandler := 0;
+END_IF]]></ST>
+      </Implementation>
+    </Method>
+    <LineIds Name="FB_DBServer">
+      <LineId Id="3" Count="88" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBServer.AddBackgroundItem">
+      <LineId Id="3" Count="8" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBServer.BackgroundQueue.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBServer.Connected.Get">
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBServer.FB_exit">
+      <LineId Id="3" Count="14" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBServer.FB_init">
+      <LineId Id="3" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_DBServer.GetTransactionHandler">
+      <LineId Id="3" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

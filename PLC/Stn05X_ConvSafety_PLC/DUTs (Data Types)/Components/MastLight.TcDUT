@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="MastLight" Id="{7bff7d48-0b63-4b54-902a-d10975cb1d43}">
+    <Declaration><![CDATA[TYPE MastLight :
+STRUCT
+	Light1Color: cMastLightColor;  //Bottom Light
+	Light1Appearance: cMastLightAppearance; //Bottom Light
+	Light2Color: cMastLightColor;  //2nd From Bottom Light
+	Light2Appearance: cMastLightAppearance;  //2nd From Bottom Light
+	Light3Color: cMastLightColor;  //Center Light
+	Light3Appearance: cMastLightAppearance; //Center Light
+	Light4Color: cMastLightColor;  //2nd From Top Light
+	Light4Appearance: cMastLightAppearance;  //2nd From Top Light
+	Light5Color: cMastLightColor; //Top Light
+	Light5Appearance: cMastLightAppearance; //Top Light
+	MastBuzzerSW: BOOL; //On-Off Siwtch
+	MastBuzzerSound: cMastLightBuzzerStyle; //Sound of the buzzer
+	
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

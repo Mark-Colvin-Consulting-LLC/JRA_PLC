@@ -1,0 +1,51 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_15_RedGrnRecircMainMergePrestopGrn" Id="{1e8ef402-7344-4ade-89d0-454c80e8a1e7}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_15_RedGrnRecircMainMergePrestopGrn
+VAR
+	
+	// Puck stop output is on valve bank controlled by stn 53 so don't use direct link but request over produced/consumed
+	//  .oStopLower :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S02 (EX260)^RxPDO^output byte 0  
+
+	{attribute 'TcLinkToOSO' := '.iPuckPresent :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 0;
+								 .iBufferFull :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 2'}
+	fbConvStop: FB_ConvStop_RemoteOutput;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//MergeRedtoGrnMergeMainPrestopGrn  (1A)   VB10 Enc56 Mtr 10 - DS from Eval 3LnSw - conv segment is High Friction type
+//REDGRN Recirc Merge Main GRN Stop Puck Present
+//REDGRN Recirc Merge Main GRN DS Buffer
+//
+//REDGRN Recirc Merge Spur RED Stop Puck Present @ 9B on Red conv
+
+
+//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn054_15_RedGrnRecircMainMergePrestopGrn.ConvRunning  := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr01;
+fbConvStop(
+	pStn := ADR(gStn054),
+	pCmp := ADR(gStn054_15_RedGrnRecircMainMergePrestopGrn),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn054_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn054_StateTraceFifo),
+	pStats := ADR(gStn054_02_Stats));
+	
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[1].2 := gStn054_15_RedGrnRecircMainMergePrestopGrn.RemoteStopLower; 
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn054_15_RedGrnRecircMainMergePrestopGrn">
+      <LineId Id="3" Count="0" />
+      <LineId Id="5" Count="1" />
+      <LineId Id="46" Count="0" />
+      <LineId Id="45" Count="0" />
+      <LineId Id="7" Count="4" />
+      <LineId Id="13" Count="6" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="32" Count="1" />
+      <LineId Id="60" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

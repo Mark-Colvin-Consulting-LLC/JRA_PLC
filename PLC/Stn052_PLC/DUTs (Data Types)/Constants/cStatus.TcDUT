@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cStatus" Id="{9244ac1c-8dfd-479b-83b5-da36dd011040}">
+    <Declaration><![CDATA[{attribute 'qualified_only' := ''}
+{attribute 'strict' := ''}
+TYPE cStatus :
+(
+	None := 0,
+	Empty := 1,
+	Full := 2,
+	RejectMalformedAPIData := 98,
+	Reject := 99
+) DINT;
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

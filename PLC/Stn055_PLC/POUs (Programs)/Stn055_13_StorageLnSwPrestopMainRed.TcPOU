@@ -1,0 +1,89 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn055_13_StorageLnSwPrestopMainRed" Id="{1330e6ff-d34f-42b0-8b4f-dbc758460f70}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn055_13_StorageLnSwPrestopMainRed
+VAR
+	{attribute 'TcLinkTo' := '.fbRFID.iRawArray[0] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 0;
+		.fbRFID.iRawArray[1] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 1;
+		.fbRFID.iRawArray[2] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 2;
+		.fbRFID.iRawArray[3] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 3;
+		.fbRFID.iRawArray[4] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 4;
+		.fbRFID.iRawArray[5] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 5;
+		.fbRFID.iRawArray[6] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 6;
+		.fbRFID.iRawArray[7] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 7;
+		.fbRFID.iRawArray[8] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 8;
+		.fbRFID.iRawArray[9] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 9;
+		.fbRFID.iRawArray[10] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 10;
+		.fbRFID.iRawArray[11] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 11;
+		.fbRFID.iRawArray[12] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 12;
+		.fbRFID.iRawArray[13] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 13;
+		.fbRFID.iRawArray[14] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 14;
+		.fbRFID.iRawArray[15] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 15;
+		.fbRFID.iRawArray[16] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 16;
+		.fbRFID.iRawArray[17] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 17;
+		.fbRFID.iRawArray[18] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 18;
+		.fbRFID.iRawArray[19] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 19;
+		.fbRFID.iRawArray[20] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 20;
+		.fbRFID.iRawArray[21] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 21;
+		.fbRFID.iRawArray[22] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 22;
+		.fbRFID.iRawArray[23] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 23;
+		.fbRFID.iRawArray[24] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 24;
+		.fbRFID.iRawArray[25] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 25;
+		.fbRFID.iRawArray[26] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 26;
+		.fbRFID.iRawArray[27] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 27;
+		.fbRFID.iRawArray[28] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 28;
+		.fbRFID.iRawArray[29] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 29;
+		.fbRFID.iRawArray[30] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 30;
+		.fbRFID.iRawArray[31] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^TxPDO^input byte 31;
+		.fbRFID.oRawArray[0] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 0;
+		.fbRFID.oRawArray[1] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 1;
+		.fbRFID.oRawArray[2] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 2;
+		.fbRFID.oRawArray[3] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 3;
+		.fbRFID.oRawArray[4] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 4;
+		.fbRFID.oRawArray[5] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 5;
+		.fbRFID.oRawArray[6] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 6;
+		.fbRFID.oRawArray[7] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 7;
+		.fbRFID.oRawArray[8] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 8;
+		.fbRFID.oRawArray[9] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 9;
+		.fbRFID.oRawArray[10] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 10;
+		.fbRFID.oRawArray[11] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 11;
+		.fbRFID.oRawArray[12] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 12;
+		.fbRFID.oRawArray[13] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 13;
+		.fbRFID.oRawArray[14] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 14;
+		.fbRFID.oRawArray[15] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 15;
+		.fbRFID.oRawArray[16] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 16;
+		.fbRFID.oRawArray[17] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 17;
+		.fbRFID.oRawArray[18] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 18;
+		.fbRFID.oRawArray[19] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 19;
+		.fbRFID.oRawArray[20] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 20;
+		.fbRFID.oRawArray[21] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 21;
+		.fbRFID.oRawArray[22] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 22;
+		.fbRFID.oRawArray[23] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 23;
+		.fbRFID.oRawArray[24] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 24;
+		.fbRFID.oRawArray[25] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 25;
+		.fbRFID.oRawArray[26] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 26;
+		.fbRFID.oRawArray[27] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 27;
+		.fbRFID.oRawArray[28] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 28;
+		.fbRFID.oRawArray[29] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 29;
+		.fbRFID.oRawArray[30] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 30;
+		.fbRFID.oRawArray[31] := TIIB[N62S00 (AL1332)]^N62S06 (DTI425)^RxPDO^output byte 31'}
+	fbWorkStopMainLnSw: FB_WorkStopMainLnSw;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+fbWorkStopMainLnSw(pStn := ADR(gStn055),
+	pCmp := ADR(gStn055_13_StorageLnSwPrestopMainRed),
+	pStateTraceBuffer := ADR(gStn055_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn055_StateTraceFifo),
+	pStats := ADR(gStn055_02_Stats),
+	pWorkstop := ADR(gStn055_12_StorageLnSwPrestopRed));]]></ST>
+    </Implementation>
+    <LineIds Name="Stn055_13_StorageLnSwPrestopMainRed">
+      <LineId Id="3" Count="7" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

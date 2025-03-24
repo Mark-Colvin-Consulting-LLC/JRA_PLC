@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn052_14_ReceivingLnSwPrestopBlu" Id="{565446db-7fe0-42c5-9641-8be029957cb3}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn052_14_ReceivingLnSwPrestopBlu
+VAR
+	{attribute 'TcLinkToOSO' := '.iPuckPresent :=  <0,1,0>TIIB[N21S00 (AL1332)]^N21S01 (AL2341)^TxPDO^input byte 1;
+		.oStopLower := <0,1,2>TIIB[N21S00 (AL1332)]^N21S02 (EX260)^RxPDO^output byte 2'}
+	fbConvStop: FB_ConvStop;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn052_14_ReceivingLnSwPrestopBlu.ConvRunning := gStn052_16_ReceivingLnSw.BoschInfeedConvRunning;
+
+fbConvStop(
+	pStn := ADR(gStn052),
+	pCmp := ADR(gStn052_14_ReceivingLnSwPrestopBlu),
+	pUpstreamStop := 0,
+	pStateTraceBuffer := ADR(gStn052_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn052_StateTraceFifo),
+	pStats := ADR(gStn052_02_Stats));]]></ST>
+    </Implementation>
+    <LineIds Name="Stn052_14_ReceivingLnSwPrestopBlu">
+      <LineId Id="3" Count="1" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="5" Count="0" />
+      <LineId Id="8" Count="6" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

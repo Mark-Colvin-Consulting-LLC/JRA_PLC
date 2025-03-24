@@ -1,0 +1,604 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_02_Stats" Id="{19b6c14f-56b9-4224-b561-9f4dff99aae2}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_02_Stats
+VAR
+	pStats: POINTER TO Component_Stats;
+	pStn: POINTER TO Station;
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+
+	tmrDelayStatsStart: TON;
+	StartStats: R_TRIG;
+	CurrentTime: TimeStamp;
+	(*pStateTraceBuffer: POINTER TO TraceFIFOBuffer;*)
+	(*pStateTraceFifo: POINTER TO FIFO_StateTrace;*)
+	TimeStamp:StateTimeStamp;
+	pStatsEventFifo: POINTER TO FIFO_StatsEvent;
+	pStatsEventBuffer: POINTER TO StatsEventFIFOBuffer;
+	ActiveEvent: StatsEvent;
+	EventErrorCount: DINT;
+	CurrentMode: DINT;
+	NewMode: DINT;
+	ModeStartTime: T_ULarge_Integer;
+	TimeDiff: LREAL;
+	CurrentFault: StatsFault;
+	CurrentFailure: StatsFailure;
+	CurrentAggregate: StatsAggregateRecord;
+	CurrentShiftAggregate: StatsShiftAggregateRecord;
+	AggregateTimeCount: DINT;
+	IntervalAggregateStart: R_TRIG;
+	ShiftAggregateStart: R_TRIG;
+	TempEvent: StatsEvent;
+	LastMinute: DINT;
+	idx: DINT;
+	StartOfShift: BOOL;
+	CurrentShiftIdx: DINT;
+	TimeMins: DINT;
+	MathTemp: DINT;
+	CycleStartTime: LREAL;
+	CycleStopTime: LREAL;
+	CycleTimeBuffer: ARRAY [0..49] OF LREAL;
+	CycleTimeIDX: DINT;
+	CycleTimeAVG: LREAL;
+
+	LastIdealCycleTime: LREAL := -1;
+	TempIdealCycleTime: LREAL := -1;
+	TempTotalParts: DINT;
+	SumCycleTimeXParts: LREAL;
+	onsIdealCycleTimeChange: R_TRIG;
+
+	hoActiveShiftAggregate: StatsShiftAggregateRecord;
+	hiActiveShiftIdx: DINT := 0;
+	LastActiveShiftIndex: DINT := -1;
+	nPeekCnt: DINT := 0;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[pStn := ADR(gStn054);
+pStats := ADR(gStn054_02_Stats);
+Local.pStateTraceBuffer := ADR(gStn054_StateTraceBuffer);
+Local.pStateTraceFifo := ADR(gStn054_StateTraceFifo);
+pStatsEventFifo := ADR(pStats^.StatsEventFIFO);
+pStatsEventBuffer := ADR(pStats^.StatsEventBuffer);
+
+IF gFirstScan THEN
+	Local.FaultTimeLong := T#20000MS;
+	Local.FaultTimeShort := T#10000MS;
+
+	pStats^.StatsAggregateFIFO.INIT(pFifo := ADR(pStats^.StatsAggregateBuffer));
+	MEMSET(ADR(CurrentAggregate),0,SIZEOF(CurrentAggregate));
+	pStats^.StatsShiftAggregateFIFO.INIT(pFIFO := ADR(pStats^.StatsShiftAggregateBuffer));
+	MEMSET(ADR(CurrentShiftAggregate),0,SIZEOF(CurrentShiftAggregate));
+	pStats^.StatsFaultLog.INIT(pFIFO := ADR(pStats^.StatsFaultLogBuffer));
+	pStats^.StatsFailureLog.INIT(pFIFO := ADR(pStats^.StatsFailureLogBuffer));
+	LastIdealCycleTime := pStats^.IdealCycleTime;
+	pStats^.StatsIdealCycleTimeFIFO.INIT(pFIFO := ADR(pStats^.StatsIdealCycleTimeBuffer));
+	pStats^.StatsPartCountFIFO.INIT(pFIFO := ADR(pStats^.StatsPartCountBuffer));
+	CycleTimeIDX := 0;
+	hoActiveShiftAggregate := CurrentShiftAggregate;
+	
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pStats^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+CurrentTime := gCurrentTime;
+tmrDelayStatsStart(IN:=TRUE,PT:=T#50MS);
+StartStats(CLK:=tmrDelayStatsStart.Q);
+
+IF StartStats.Q THEN
+	ModeStartTime := CurrentTime.CurrentValue;
+	LastMinute := CurrentTime.DateTime.wMinute;
+	CurrentShiftAggregate.ShiftStartTimeStamp := CurrentTime;
+	(*determine what shift it is. 3rd shift is assumed to start before midnight*)
+	TimeMins := CurrentTime.DateTime.wHour * 60 + CurrentTime.DateTime.wMinute;
+	MathTemp := pStats^.StartOfShift[0,1] * 60 + pStats^.StartOfShift[0,0];
+	IF (pStats^.StartOfShift[0,1] * 60 + pStats^.StartOfShift[0,0] - TimeMins) > 0 THEN
+		CurrentShiftIdx := 2; (*3rd shift*)
+	ELSIF (pStats^.StartOfShift[1,1] * 60 + pStats^.StartOfShift[1,0] - TimeMins) > 0 THEN
+		CurrentShiftIdx := 0; (*1st shift*)
+	ELSIF (pStats^.StartOfShift[2,1] * 60 + pStats^.StartOfShift[2,0] - TimeMins) > 0 THEN
+		CurrentShiftIdx := 1; (*2nd shift*)
+	ELSE
+		CurrentShiftIdx := 2; (*3rd shift*)
+	END_IF
+	CurrentShiftAggregate.Shift := CurrentShiftIdx;
+	CurrentShiftAggregate.ShiftStartTimeStamp := CurrentTime;
+
+	(*On startup, it takes a few plc cycles to have a valid current time. Check to see if any events are already
+	  in the buffer. If so, set their timestamp to the now valid current time.*)
+	IF pStats^.StatsEventFIFO.Count > 0 THEN
+		FOR idx := 0 TO (pStats^.StatsEventFIFO.Count - 1) DO
+			pStats^.StatsEventBuffer.Buffer[idx].TimeStamp := CurrentTime;
+	 	END_FOR
+	END_IF
+END_IF
+
+IF (CurrentTime.DateTime.wMinute <> LastMinute) THEN
+	(*check for end of shift*)
+	FOR idx := 0 TO 2 DO
+		IF CurrentTime.DateTime.wHour = pStats^.StartOfShift[idx,1] AND CurrentTime.DateTime.wMinute = pStats^.StartOfShift[idx,0] THEN
+			StartOfShift := TRUE;
+			CurrentShiftIdx := idx;
+			TempEvent.EType := cStats.Aggregate;
+			TempEvent.Data[0] := DINT_TO_REAL(CurrentShiftIdx + 1); (* Indicates to Aggregate to reset the CurrentShift data *)
+			F_SendEvent(pStatsEventFifo, pStatsEventBuffer, ADR(TempEvent));
+		END_IF
+	END_FOR
+
+	(* Aggregate Interval *)
+	IF (CurrentTime.DateTime.wMinute MOD pStats^.AggregateInterval) = 0 AND NOT StartOfShift THEN
+		TempEvent.EType := cStats.Aggregate;
+		TempEvent.Data[0] := 0;
+		F_SendEvent(pStatsEventFifo, pStatsEventBuffer, ADR(TempEvent));
+	END_IF
+
+	StartOfShift := FALSE;
+	LastMinute := CurrentTime.DateTime.wMinute;
+END_IF
+
+(* Ideal Cycle time changed *)
+onsIdealCycleTimeChange(CLK:=(LastIdealCycleTime <> pStats^.IdealCycleTime));
+IF onsIdealCycleTimeChange.Q THEN
+	TempEvent.EType := cStats.Aggregate;
+	TempEvent.Data[0] := 0;
+	F_SendEvent (pStatsEventFifo, pStatsEventBuffer, ADR(TempEvent));
+END_IF
+
+(**********************
+* Sequence logic *
+***********************)
+
+CASE Local.State OF
+
+0: (*Wait for Start*)
+	IF Local.FirstEntry THEN
+		;
+	END_IF
+	Local.OKToStop := TRUE;
+	IF pStats^.StatsEventFIFO.Count > 0 THEN
+		pStats^.StatsEventFIFO.UNLOAD(pFIFO:=pStatsEventBuffer, out=> ActiveEvent);
+		IF ActiveEvent.EType > 0 AND ActiveEvent.EType < 200 THEN
+			(*Aggregate or Mode change*)
+			Local.NextState := 100;
+		ELSIF ActiveEvent.EType >= 200 AND ActiveEvent.EType < 300 THEN
+			(*Count only*)
+			Local.NextState := 200;
+		ELSIF ActiveEvent.EType >= 300 AND ActiveEvent.EType < 400 THEN
+			(*Process*)
+			Local.NextState := 300;
+		ELSE
+			(*Error*)
+			EventErrorCount := EventErrorCount + 1;
+		END_IF
+	END_IF
+
+100: (*Process mode change*)
+
+	IF Local.FirstEntry THEN
+		TimeDiff := UINT64_TO_LREAL(UInt64Sub64(ActiveEvent.TimeStamp.CurrentValue,ModeStartTime)) / 600000000; (*time in minutes*)
+		IF ActiveEvent.EType <> CurrentMode THEN
+			(*do something*);
+			CASE CurrentMode OF
+				0:	(*software startup*)
+					NewMode := cStats.MachineStop;
+
+				cStats.MachineStop:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge AND	ActiveEvent.EType <> cStats.Faulted THEN
+						(*mode change is valid*)
+						CurrentAggregate.AutoStopTime := CurrentAggregate.AutoStopTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.OperatorStop:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge AND	ActiveEvent.EType <> cStats.Faulted THEN
+						(*mode change is valid*)
+						CurrentAggregate.OperatorStopTime := CurrentAggregate.OperatorStopTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Working:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.WorkTime := CurrentAggregate.WorkTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Bypass:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.BypassTime := CurrentAggregate.BypassTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Blocked:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.BlockTime := CurrentAggregate.BlockTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Starved:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.StarveTime := CurrentAggregate.StarveTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Empty:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.EmptyTime := CurrentAggregate.EmptyTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Retry:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.EmptyTime := CurrentAggregate.EmptyTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Mastering:
+					IF ActiveEvent.EType <> cStats.FaultAcknowledge THEN
+						(*mode change is valid*)
+						CurrentAggregate.MasterTime := CurrentAggregate.MasterTime + TimeDiff;
+						ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+						IF ActiveEvent.EType <> cStats.Aggregate THEN
+							NewMode := ActiveEvent.EType;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+
+				cStats.Faulted:
+					IF ActiveEvent.EType <> cStats.OperatorStop OR ActiveEvent.EType <> cStats.MachineStop THEN
+						(*mode change is valid*)
+						IF ActiveEvent.EType = cStats.FaultAcknowledge THEN
+							CurrentFault.AcknowledgeTime := TimeDiff;
+						ELSE
+							CurrentAggregate.FaultTime := CurrentAggregate.FaultTime + TimeDiff;
+							ModeStartTime := ActiveEvent.TimeStamp.CurrentValue;
+							IF ActiveEvent.EType <> cStats.Aggregate THEN
+								CurrentFault.Duration := UINT64_TO_LREAL(UInt64Sub64(ActiveEvent.TimeStamp.CurrentValue,CurrentFault.TimeStamp.CurrentValue)) / 600000000;
+								IF CurrentFault.AcknowledgeTime = 0 THEN
+									CurrentFault.AcknowledgeTime := CurrentFault.Duration;
+									EventErrorCount := EventErrorCount + 1;
+								END_IF
+								NewMode := ActiveEvent.EType;
+								pStats^.StatsFaultLog.LOAD(pFIFO:=ADR(pStats^.StatsFaultLogBuffer), in:=CurrentFault);
+							END_IF
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+					END_IF
+			END_CASE
+
+			IF NewMode <> CurrentMode THEN
+				(*need to handle new event specifics*)
+				CASE NewMode OF
+					cStats.MachineStop:
+						CurrentAggregate.AutoStopCount := CurrentAggregate.AutoStopCount + 1;
+					cStats.OperatorStop:
+						CurrentAggregate.OperatorStopCount := CurrentAggregate.OperatorStopCount + 1;
+					cStats.Working:
+						CurrentAggregate.WorkCount := CurrentAggregate.WorkCount + 1;
+					cStats.Bypass:
+						CurrentAggregate.BypassCount := CurrentAggregate.BypassCount + 1;
+					cStats.Blocked:
+						CurrentAggregate.BlockCount := CurrentAggregate.BlockCount + 1;
+					cStats.Starved:
+						CurrentAggregate.StarveCount := CurrentAggregate.StarveCount + 1;
+					cStats.Empty:
+						CurrentAggregate.EmptyCount := CurrentAggregate.EmptyCount + 1;
+					cStats.Retry:
+						CurrentAggregate.RetryCount := CurrentAggregate.RetryCount + 1;
+					cStats.Mastering:
+						CurrentAggregate.MasterCount := CurrentAggregate.MasterCount + 1;
+					cStats.Faulted:
+						CurrentAggregate.FaultCount := CurrentAggregate.FaultCount + 1;
+						MEMSET(ADR(CurrentFault),0,SIZEOF(CurrentFault));
+						CurrentFault.TimeStamp := ActiveEvent.TimeStamp;
+						CurrentFault.FaultID := REAL_TO_DINT(ActiveEvent.Data[0]);
+						CurrentFault.StationID := pStn^.StationID;
+						CurrentFault.Data[0] := ActiveEvent.Data[1];
+						CurrentFault.Data[1] := ActiveEvent.Data[2];
+						CurrentFault.Data[2] := ActiveEvent.Data[3];
+						CurrentFault.StringData := ActiveEvent.StringData;
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+				END_CASE
+				CurrentMode := NewMode;
+			END_IF
+			IF ActiveEvent.EType = cStats.Aggregate THEN
+				Aggregate();
+			END_IF
+		END_IF
+	END_IF
+	Local.NextState := 0;
+
+200: (*Count only events*)
+
+	CASE ActiveEvent.EType OF
+		cStats.Failure:
+			CurrentAggregate.RejectCount := CurrentAggregate.RejectCount + REAL_TO_INT(ActiveEvent.Data[1]);
+			CurrentFailure.TimeStamp := ActiveEvent.TimeStamp;
+			CurrentFailure.StationID := pStn^.StationID;
+			CurrentFailure.FailureID := REAL_TO_INT(ActiveEvent.Data[0]);
+			CurrentFailure.Parameters := ActiveEvent.StringData[0];
+			pStats^.StatsFailureLog.LOAD(pFIFO:=ADR(pStats^.StatsFailureLogBuffer), in:=CurrentFailure);
+		cStats.Good:
+			CurrentAggregate.GoodCount := CurrentAggregate.GoodCount + REAL_TO_INT(ActiveEvent.Data[0]);
+		cStats.FirstTimeGood:
+			CurrentAggregate.FirstTimeGoodCount := CurrentAggregate.FirstTimeGoodCount + 1;
+		cStats.FirstTimeStart:
+			CurrentAggregate.FirstTimeStartCount := CurrentAggregate.FirstTimeStartCount + 1;
+		cStats.Initialize:
+			CurrentAggregate.InitCount := CurrentAggregate.InitCount + 1;
+		ELSE
+			EventErrorCount := EventErrorCount + 1;
+	END_CASE;
+	Local.NextState := 0;
+
+300: (*Process data events *)
+
+	IF Local.FirstEntry THEN
+		CASE ActiveEvent.EType OF
+			cStats.CycleTime:
+				CASE REAL_TO_INT(ActiveEvent.Data[0]) OF
+					0: (*Start timer*)
+						CycleStartTime := UINT64_TO_LREAL(ActiveEvent.TimeStamp.CurrentValue);
+					1: (*Cancel timer*)
+						CycleStartTime := 0;
+					2: (*End of good cycle time*)
+						IF CycleStartTime > 0 THEN
+							CycleStopTime := UINT64_TO_LREAL(ActiveEvent.TimeStamp.CurrentValue);
+							IF CycleTimeIDX >= 50 THEN (* Start overwriting oldest elements *)
+								CycleTimeIDX := 0;
+							END_IF
+							CycleTimeBuffer[CycleTimeIDX] := (CycleStopTime - CycleStartTime) / 10000000; (*cycle time is in seconds*)
+							CycleTimeIDX := CycleTimeIDX + 1;
+						END_IF
+					ELSE
+						EventErrorCount := EventErrorCount + 1;
+				END_CASE;
+			ELSE
+				EventErrorCount := EventErrorCount + 1;
+		END_CASE;
+		Local.NextState := 0;
+	END_IF
+
+5000:
+	Local.NextState := 0;
+
+END_CASE
+
+(* 0 is current, 1 is 1st most recent FIFO *)
+IF(hiActiveShiftIdx <> LastActiveShiftIndex) THEN
+	LastActiveShiftIndex := hiActiveShiftIdx;
+	IF (hiActiveShiftIdx > 0) AND (hiActiveShiftIdx <= 270) THEN
+		IF hiActiveShiftIdx > pStats^.StatsShiftAggregateFIFO.Count THEN
+			hiActiveShiftIdx := pStats^.StatsShiftAggregateFIFO.Count;
+		END_IF
+	
+		nPeekCnt := pStats^.StatsShiftAggregateFIFO.Count - hiActiveShiftIdx;
+		pStats^.StatsShiftAggregateFIFO.PEEK(pFIFO:=ADR(pStats^.StatsShiftAggregateBuffer), PeekCnt := DINT_TO_UDINT(nPeekCnt), out=> hoActiveShiftAggregate);
+	
+	ELSE
+		hoActiveShiftAggregate := CurrentShiftAggregate;
+	END_IF
+END_IF
+
+(*##### END of sequence logic #####*)
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="Aggregate" Id="{341e575c-999e-4086-9443-583e708d6d4a}">
+      <Implementation>
+        <ST><![CDATA[(*average cycle time*)
+IF CycleTimeIDX > 0 THEN
+	CycleTimeAVG := 0;
+	FOR idx := 0 TO (CycleTimeIDX-1) DO
+		CycleTimeAVG := CycleTimeAVG + CycleTimeBuffer[idx];
+	END_FOR;
+	CycleTimeAVG := CycleTimeAVG / idx;
+	CurrentAggregate.GoodCycleTime := CycleTimeAVG;
+
+	CurrentShiftAggregate.CycleTimeAvgSum := CurrentShiftAggregate.CycleTimeAvgSum + CycleTimeAVG;
+	CurrentShiftAggregate.CycleTimeAvgCnt := CurrentShiftAggregate.CycleTimeAvgCnt + 1;
+
+	IF CurrentShiftAggregate.CycleTimeAvgCnt <> 0 THEN
+		CurrentShiftAggregate.AggregateData.GoodCycleTime := CurrentShiftAggregate.CycleTimeAvgSum / CurrentShiftAggregate.CycleTimeAvgCnt;
+	END_IF
+
+	CycleTimeIDX := 0;
+END_IF
+
+(*Aggregate data*)
+CurrentShiftAggregate.AggregateData.Shift := CurrentShiftAggregate.Shift;
+CurrentShiftAggregate.AggregateData.AutoStopCount := CurrentShiftAggregate.AggregateData.AutoStopCount + CurrentAggregate.AutoStopCount;
+CurrentShiftAggregate.AggregateData.AutoStopTime := CurrentShiftAggregate.AggregateData.AutoStopTime + CurrentAggregate.AutoStopTime;
+CurrentShiftAggregate.AggregateData.BlockCount := CurrentShiftAggregate.AggregateData.BlockCount + CurrentAggregate.BlockCount;
+CurrentShiftAggregate.AggregateData.BlockTime := CurrentShiftAggregate.AggregateData.BlockTime + CurrentAggregate.BlockTime;
+CurrentShiftAggregate.AggregateData.BypassCount := CurrentShiftAggregate.AggregateData.BypassCount + CurrentAggregate.BypassCount;
+CurrentShiftAggregate.AggregateData.BypassTime := CurrentShiftAggregate.AggregateData.BypassTime + CurrentAggregate.BypassTime;
+CurrentShiftAggregate.AggregateData.EmptyCount := CurrentShiftAggregate.AggregateData.EmptyCount + CurrentAggregate.EmptyCount;
+CurrentShiftAggregate.AggregateData.EmptyTime := CurrentShiftAggregate.AggregateData.EmptyTime + CurrentAggregate.EmptyTime;
+CurrentShiftAggregate.AggregateData.FaultCount := CurrentShiftAggregate.AggregateData.FaultCount + CurrentAggregate.FaultCount;
+CurrentShiftAggregate.AggregateData.FaultTime := CurrentShiftAggregate.AggregateData.FaultTime + CurrentAggregate.FaultTime;
+CurrentShiftAggregate.AggregateData.FirstTimeGoodCount := CurrentShiftAggregate.AggregateData.FirstTimeGoodCount + CurrentAggregate.FirstTimeGoodCount;
+CurrentShiftAggregate.AggregateData.FirstTimeStartCount := CurrentShiftAggregate.AggregateData.FirstTimeStartCount + CurrentAggregate.FirstTimeStartCount;
+CurrentShiftAggregate.AggregateData.GoodCount := CurrentShiftAggregate.AggregateData.GoodCount + CurrentAggregate.GoodCount;
+CurrentShiftAggregate.AggregateData.InitCount := CurrentShiftAggregate.AggregateData.InitCount + CurrentAggregate.InitCount;
+CurrentShiftAggregate.AggregateData.MasterCount := CurrentShiftAggregate.AggregateData.MasterCount + CurrentAggregate.MasterCount;
+CurrentShiftAggregate.AggregateData.MasterTime := CurrentShiftAggregate.AggregateData.MasterTime + CurrentAggregate.MasterTime;
+CurrentShiftAggregate.AggregateData.OperatorStopCount := CurrentShiftAggregate.AggregateData.OperatorStopCount + CurrentAggregate.OperatorStopCount;
+CurrentShiftAggregate.AggregateData.OperatorStopTime := CurrentShiftAggregate.AggregateData.OperatorStopTime + CurrentAggregate.OperatorStopTime;
+CurrentShiftAggregate.AggregateData.OtherCount := CurrentShiftAggregate.AggregateData.OtherCount + CurrentAggregate.OtherCount;
+CurrentShiftAggregate.AggregateData.OtherTime := CurrentShiftAggregate.AggregateData.OtherTime + CurrentAggregate.OtherTime;
+CurrentShiftAggregate.AggregateData.RejectCount := CurrentShiftAggregate.AggregateData.RejectCount + CurrentAggregate.RejectCount;
+CurrentShiftAggregate.AggregateData.RetryCount := CurrentShiftAggregate.AggregateData.RetryCount + CurrentAggregate.RetryCount;
+CurrentShiftAggregate.AggregateData.RetryTime := CurrentShiftAggregate.AggregateData.RetryTime + CurrentAggregate.RetryTime;
+CurrentShiftAggregate.AggregateData.StarveCount := CurrentShiftAggregate.AggregateData.StarveCount + CurrentAggregate.StarveCount;
+CurrentShiftAggregate.AggregateData.StarveTime := CurrentShiftAggregate.AggregateData.StarveTime + CurrentAggregate.StarveTime;
+CurrentShiftAggregate.AggregateData.WorkCount := CurrentShiftAggregate.AggregateData.WorkCount + CurrentAggregate.WorkCount;
+CurrentShiftAggregate.AggregateData.WorkTime := CurrentShiftAggregate.AggregateData.WorkTime + CurrentAggregate.WorkTime;
+
+(*OEE calculations*)
+
+(*Available time*)
+CurrentShiftAggregate.AvailableTime := UINT64_TO_LREAL(UInt64Sub64(ActiveEvent.TimeStamp.CurrentValue,
+													CurrentShiftAggregate.ShiftStartTimeStamp.CurrentValue)) / 600000000;
+
+(*total down time*)
+CurrentShiftAggregate.TotalDownTime := CurrentShiftAggregate.AggregateData.AutoStopTime +
+									CurrentShiftAggregate.AggregateData.FaultTime +
+									CurrentShiftAggregate.AggregateData.OperatorStopTime;
+
+(*Planned down time*)
+IF CurrentShiftAggregate.TotalDownTime > pStats^.PlannedDowntime[CurrentShiftIdx] THEN
+	CurrentShiftAggregate.PlannedDownTime := pStats^.PlannedDowntime[CurrentShiftIdx];
+ELSE
+	CurrentShiftAggregate.PlannedDownTime := CurrentShiftAggregate.TotalDownTime;
+END_IF
+
+(*unplaned down time*)
+CurrentShiftAggregate.UnplannedDownTime := CurrentShiftAggregate.TotalDownTime - CurrentShiftAggregate.PlannedDownTime;
+(*Net available time*)
+CurrentShiftAggregate.NetAvailableTime := CurrentShiftAggregate.AvailableTime - CurrentShiftAggregate.PlannedDownTime;
+(*operating time*)
+CurrentShiftAggregate.OperatingTime := CurrentShiftAggregate.NetAvailableTime - CurrentShiftAggregate.UnplannedDownTime;
+(*Equipment availability*)
+IF CurrentShiftAggregate.NetAvailableTime > 0 THEN
+	CurrentShiftAggregate.EquipmentAvailability := CurrentShiftAggregate.OperatingTime / CurrentShiftAggregate.NetAvailableTime * 100;
+ELSE
+	CurrentShiftAggregate.EquipmentAvailability := 0;
+END_IF
+(*Total parts*)
+CurrentShiftAggregate.TotalParts := CurrentShiftAggregate.AggregateData.GoodCount + CurrentShiftAggregate.AggregateData.RejectCount;
+
+(*Performance efficiency*)
+(* Since Ideal Cycle time can change, keep track off all of the cycle times and the Total Parts for those cycle times *)
+CurrentShiftAggregate.AggregateData.PartsForCurrentCycleTime :=
+	CurrentShiftAggregate.AggregateData.PartsForCurrentCycleTime + CurrentAggregate.GoodCount + CurrentAggregate.RejectCount;
+
+IF pStats^.IdealCycleTime <> LastIdealCycleTime THEN
+	pStats^.StatsIdealCycleTimeFIFO.LOAD(pFIFO := ADR(pStats^.StatsIdealCycleTimeBuffer), in:=LastIdealCycleTime);
+	pStats^.StatsPartCountFIFO.LOAD(pFIFO := ADR(pStats^.StatsPartCountBuffer), in:=CurrentShiftAggregate.AggregateData.PartsForCurrentCycleTime);
+
+	LastIdealCycleTime := pStats^.IdealCycleTime;
+	CurrentShiftAggregate.AggregateData.PartsForCurrentCycleTime := 0;
+END_IF
+
+IF CurrentShiftAggregate.OperatingTime > 0 THEN
+	SumCycleTimeXParts := pStats^.IdealCycleTime * CurrentShiftAggregate.AggregateData.PartsForCurrentCycleTime;
+
+	FOR idx := 0 TO pStats^.StatsIdealCycleTimeFIFO.Count - 1 DO
+		TempIdealCycleTime := pStats^.StatsIdealCycleTimeBuffer.Buffer[idx];
+		TempTotalParts := pStats^.StatsPartCountBuffer.Buffer[idx];
+		SumCycleTimeXParts := SumCycleTimeXParts + (TempIdealCycleTime * TempTotalParts);
+	END_FOR
+	CurrentShiftAggregate.PerformanceEfficiency := SumCycleTimeXParts / (CurrentShiftAggregate.OperatingTime * 60) * 100;
+
+	(*CurrentShiftAggregate.PerformanceEfficiency := (pStats^.IdealCycleTime * CurrentShiftAggregate.TotalParts) / (CurrentShiftAggregate.OperatingTime * 60) * 100;*)
+ELSE
+	CurrentShiftAggregate.PerformanceEfficiency := 0;
+END_IF
+
+
+(*Quality rate*)
+IF CurrentShiftAggregate.TotalParts > 0 THEN
+	CurrentShiftAggregate.QualityRate := DINT_TO_REAL(CurrentShiftAggregate.AggregateData.GoodCount) / DINT_TO_REAL(CurrentShiftAggregate.TotalParts) * 100;
+ELSE
+	CurrentShiftAggregate.QualityRate := 0;
+END_IF
+
+(*OEE*)
+CurrentShiftAggregate.OverallEquipmentEffectiveness := CurrentShiftAggregate.EquipmentAvailability *
+												CurrentShiftAggregate.QualityRate *
+												CurrentShiftAggregate.PerformanceEfficiency * 0.0001;
+
+(*Insert current aggregate into aggregate log*)
+CurrentAggregate.TimeStamp := ActiveEvent.TimeStamp;
+CurrentAggregate.Shift := CurrentShiftAggregate.Shift;
+pStats^.StatsAggregateFIFO.LOAD(pFIFO := ADR(pStats^.StatsAggregateBuffer), in:=CurrentAggregate);
+MEMSET(ADR(CurrentAggregate),0,SIZEOF(CurrentAggregate));
+
+(* Ensure Active shift gets updatad on HMI *)
+LastActiveShiftIndex := -1;
+
+(*check for end of shift*)
+IF REAL_TO_INT(ActiveEvent.Data[0]) > 0 THEN
+	CurrentShiftAggregate.AggregateData.TimeStamp := ActiveEvent.TimeStamp;
+	pStats^.StatsShiftAggregateFIFO.LOAD(pFIFO := ADR(pStats^.StatsShiftAggregateBuffer), in:=CurrentShiftAggregate);
+	MEMSET(ADR(CurrentShiftAggregate),0,SIZEOF(CurrentShiftAggregate));
+	CurrentShiftAggregate.ShiftStartTimeStamp := ActiveEvent.TimeStamp;
+	CurrentShiftAggregate.Shift := REAL_TO_DINT(ActiveEvent.Data[0] - 1);
+
+	pStats^.StatsIdealCycleTimeFIFO.INIT(pFIFO := ADR(pStats^.StatsIdealCycleTimeBuffer));
+	pStats^.StatsPartCountFIFO.INIT(pFIFO := ADR(pStats^.StatsPartCountBuffer));
+	LastIdealCycleTime := pStats^.IdealCycleTime;
+
+END_IF]]></ST>
+      </Implementation>
+    </Action>
+    <Action Name="DfnMessages" Id="{94ac0688-1496-4720-92fb-139211eb7ea8}">
+      <Implementation>
+        <ST><![CDATA[(*No Messages*);]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="Stn054_02_Stats">
+      <LineId Id="3" Count="377" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn054_02_Stats.Aggregate">
+      <LineId Id="2" Count="143" />
+      <LineId Id="1" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn054_02_Stats.DfnMessages">
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

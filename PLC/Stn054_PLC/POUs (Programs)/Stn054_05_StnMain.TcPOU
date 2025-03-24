@@ -1,0 +1,808 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_05_StnMain" Id="{a51cec9e-394d-4c21-9c4d-e732c72d880b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_05_StnMain
+VAR
+	
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpCore;
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+	
+	pRedGrnRecircMainMergePrestopGrn	: POINTER TO  CmpConvStop_RemoteOutput;
+	pRedGrnRecircMerge					: POINTER TO  CmpConvMerge;
+	pRedGrnRecircSpurMergePrestopRed	: POINTER TO  CmpConvStop_RemoteOutput;
+	pEvalBreakStopsGrn	: POINTER TO  CmpConvBreakStopGroup;
+	pEmptyPuckStorageDivertGrn	: POINTER TO  CmpConvDivert;
+	pEmptyPuckStorageBreakStop1Grn	: POINTER TO  CmpConvStop;
+	pEmptyPuckStorageBreakStop2Grn : POINTER TO  CmpConvStop;
+	pEmptyPuckStorageMainMergePrestopGrn : POINTER TO  CmpConvStop;
+	pEmptyPuckStorageSpurMergePrestopGrn : POINTER TO  CmpConvStop;
+	pEmptyPuckStorageMergeGrn 			: POINTER TO  CmpConvMerge;
+	pStn311Divert			:  POINTER TO CmpConvDivert;
+	pStn311MergePrestop 	:  POINTER TO CmpConvStop;
+	pStn311Merge			: POINTER TO  CmpConvMerge;
+	pBufferRecircEntryDivertGrn			: POINTER TO  CmpConvDivert;
+	pBufferRecircMainMergePrestopGrn 	:  POINTER TO CmpConvStop;
+	pBufferRecircSpurMergePrestopGrn 	:  POINTER TO CmpConvStop;
+	pBufferRecircMergeGrn			:  POINTER TO CmpConvMerge;
+	pCleaningRecircExitDivertGrn			:  POINTER TO CmpConvDivert;
+	pCleaningRecircExitMainMergePrestopGrn	:  POINTER TO CmpConvStop;
+	pCleaningRecircExitSpurMergePrestopGrn :  POINTER TO CmpConvStop;
+	pCleaningRecircExitMergeGrn			:  POINTER TO CmpConvMerge;
+	pStn321Divert			:  POINTER TO CmpConvDivert;
+	pStn321MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn321Merge			:  POINTER TO CmpConvMerge;
+	pStn322Divert			:  POINTER TO CmpConvDivert;
+	pStn322MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn322Merge			:  POINTER TO CmpConvMerge;
+	pStn331Divert :  POINTER TO CmpConvDivert;
+	pStn331MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn331Merge	:  POINTER TO CmpConvMerge;
+	pStn332Divert		:  POINTER TO CmpConvDivert;
+	pStn332MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn332Merge	:  POINTER TO CmpConvMerge;
+	pGradingRecircEntryDivertGrn 	: POINTER TO  CmpConvDivert;
+	pTestRecircExitMainMergePrestopGrn	:  POINTER TO CmpConvStop;
+	pTestRecircExitSpurMergePrestopGrn	:  POINTER TO CmpConvStop;
+	pTestRecircExitMergeGrn	:  POINTER TO CmpConvMerge;
+	pStn341Divert	:  POINTER TO CmpConvDivert;
+	pStn341MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn341Merge	:  POINTER TO CmpConvMerge;
+	pStn351Divert	:  POINTER TO CmpConvDivert;
+	pStn351MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn351Merge	:  POINTER TO CmpConvMerge;
+	pStn352Divert	:  POINTER TO CmpConvDivert;
+	pStn352MainMergePrestop	:  POINTER TO CmpConvStop;
+	pStn352Merge	:  POINTER TO CmpConvMerge;
+	pTestRecircEntryDivertGrn	:  POINTER TO CmpConvDivert;
+	pEvalRecircBreakStopsGrn	:  POINTER TO CmpConvStop;
+	
+	fbEnc56Mtr2_HFPC_TC: FB_Enc56Mtr2_HFPC_TC;
+	fbEnc56Mtr3_HFPC_TC: FB_Enc56Mtr3_HFPC_TC;
+	fbEnc58Mtr2_HFPC_TC: FB_Enc58Mtr2_HFPC_TC;
+(*
+	hiStopCartonConv: BOOL;
+	hiStartCartonConv: BOOL;
+	hiStopAllComponents: BOOL;
+*)	
+	
+	ForceBootUpdate: BOOL := FALSE;
+	
+END_VAR
+
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// This is a "do nothing" main but does respond to reset start from station mode control.
+//  Will allow station to be reset and put into cycle until real statoin main is integrated.
+
+pStn := ADR(gStn054);
+pCmp := ADR(gStn054_05_StnMain);
+
+pRedGrnRecircMainMergePrestopGrn	:= ADR(gStn054_15_RedGrnRecircMainMergePrestopGrn);
+pRedGrnRecircMerge					:= ADR(gStn054_16_RedGrnRecircMerge);
+pRedGrnRecircSpurMergePrestopRed	:= ADR(gStn054_17_RedGrnRecircSpurMergePrestopRed);
+pEvalBreakStopsGrn 	 := ADR(gStn054_22_EvalBreakStopsGrn);
+pEmptyPuckStorageDivertGrn	 := ADR(gStn054_24_EmptyPuckStorageDivertGrn);
+pEmptyPuckStorageBreakStop1Grn	 := ADR(gStn054_25_EmptyPuckStorageBreakStop1Grn);
+pEmptyPuckStorageBreakStop2Grn  := ADR(gStn054_26_EmptyPuckStorageBreakStop2Grn);
+pEmptyPuckStorageMainMergePrestopGrn  := ADR(gStn054_27_EmptyPuckStorageMainMergePrestopGrn);
+pEmptyPuckStorageSpurMergePrestopGrn  := ADR(gStn054_28_EmptyPuckStorageSpurMergePrestopGrn);
+pEmptyPuckStorageMergeGrn 			 := ADR(gStn054_29_EmptyPuckStorageMergeGrn);
+pStn311Divert			 := ADR(gStn054_30_Stn311Divert);
+pStn311MergePrestop 	 := ADR(gStn054_31_Stn311MergePrestop);
+pStn311Merge			 := ADR(gStn054_32_Stn311Merge);
+pBufferRecircEntryDivertGrn		 := ADR(gStn054_40_BufferRecircEntryDivertGrn);
+pBufferRecircMainMergePrestopGrn 	 := ADR(gStn054_41_BufferRecircMainMergePrestopGrn);
+pBufferRecircSpurMergePrestopGrn 	 := ADR(gStn054_42_BufferRecircSpurMergePrestopGrn);
+pBufferRecircMergeGrn			 := ADR(gStn054_43_BufferRecircMergeGrn);
+pCleaningRecircExitDivertGrn			 := ADR(gStn054_45_CleaningRecircExitDivertGrn);
+pCleaningRecircExitMainMergePrestopGrn	 := ADR(gStn054_46_CleaningRecircExitMainMergePrestopGrn);
+pCleaningRecircExitSpurMergePrestopGrn  := ADR(gStn054_47_CleaningRecircExitSpurMergePrestopGrn);
+pCleaningRecircExitMergeGrn			 := ADR(gStn054_48_CleaningRecircExitMergeGrn);
+pStn321Divert			 := ADR(gStn054_50_Stn321Divert);
+pStn321MainMergePrestop	 := ADR(gStn054_51_Stn321MainMergePrestop);
+pStn321Merge			 := ADR(gStn054_52_Stn321Merge);
+pStn322Divert			 := ADR(gStn054_55_Stn322Divert);
+pStn322MainMergePrestop	 := ADR(gStn054_56_Stn322MainMergePrestop);
+pStn322Merge			 := ADR(gStn054_57_Stn322Merge);
+pStn331Divert  := ADR(gStn054_60_Stn331Divert);
+pStn331MainMergePrestop	 := ADR(gStn054_61_Stn331MainMergePrestop);
+pStn331Merge	 := ADR(gStn054_62_Stn331Merge);
+pStn332Divert		 := ADR(gStn054_65_Stn332Divert);
+pStn332MainMergePrestop	 := ADR(gStn054_66_Stn332MainMergePrestop);
+pStn332Merge	 := ADR(gStn054_67_Stn332Merge);
+pGradingRecircEntryDivertGrn 	 := ADR(gStn054_75_GradingRecircEntryDivertGrn);
+pTestRecircExitMainMergePrestopGrn	 := ADR(gStn054_76_TestRecircExitMainMergePrestopGrn);
+pTestRecircExitSpurMergePrestopGrn	 := ADR(gStn054_77_TestRecircExitSpurMergePrestopGrn);
+pTestRecircExitMergeGrn	 := ADR(gStn054_78_TestRecircExitMergeGrn);
+pStn341Divert	 := ADR(gStn054_80_Stn341Divert);
+pStn341MainMergePrestop	 := ADR(gStn054_81_Stn341MainMergePrestop);
+pStn341Merge	 := ADR(gStn054_82_Stn341Merge);
+pStn351Divert	 := ADR(gStn054_88_Stn351Divert);
+pStn351MainMergePrestop	 := ADR(gStn054_89_Stn351MainMergePrestop);
+pStn351Merge	 := ADR(gStn054_90_Stn351Merge);
+pStn352Divert	 := ADR(gStn054_91_Stn352Divert);
+pStn352MainMergePrestop	 := ADR(gStn054_92_Stn352MainMergePrestop);
+pStn352Merge	 := ADR(gStn054_93_Stn352Merge);
+pTestRecircEntryDivertGrn := ADR(gStn054_95_TestRecircEntryDivertGrn);
+pEvalRecircBreakStopsGrn	 := ADR(gStn054_96_EvalRecircBreakStopsGrn);
+
+Local.pStateTraceBuffer := ADR(gStn054_StateTraceBuffer);
+Local.pStateTraceFifo := ADR(gStn054_StateTraceFifo);
+Local.pStats := ADR(gStn054_02_Stats);
+
+IF gFirstScan THEN
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000MS;
+
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+
+//Note Stn 54 does not control any other stations remote breakstop
+//  All the shared valve banks used by Stn54 are owened by Stn53
+
+//Green line HFPC TC 
+fbEnc56Mtr2_HFPC_TC( 
+	pStn := ADR(gStn054)
+);
+fbEnc56Mtr3_HFPC_TC( 
+	pStn := ADR(gStn054)
+);
+fbEnc58Mtr2_HFPC_TC( 
+	pStn := ADR(gStn054)
+);
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for action*)
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			
+			pRedGrnRecircMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pRedGrnRecircMerge^.Framework.ResetStart := FALSE;
+			pRedGrnRecircSpurMergePrestopRed^.Framework.ResetStart := FALSE;
+			pEvalBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageDivertGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageBreakStop1Grn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageBreakStop2Grn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageMergeGrn^.Framework.ResetStart := FALSE;
+			pStn311Divert^.Framework.ResetStart := FALSE;
+			pStn311MergePrestop^.Framework.ResetStart := FALSE;
+			pStn311Merge^.Framework.ResetStart := FALSE;
+			pBufferRecircEntryDivertGrn^.Framework.ResetStart := FALSE;
+			pBufferRecircMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pBufferRecircSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pBufferRecircMergeGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitDivertGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitMergeGrn^.Framework.ResetStart := FALSE;
+			pStn321Divert^.Framework.ResetStart := FALSE;
+			pStn321MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn321Merge^.Framework.ResetStart := FALSE;
+			pStn322Divert^.Framework.ResetStart := FALSE;
+			pStn322MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn322Merge^.Framework.ResetStart := FALSE;
+			pStn331Divert^.Framework.ResetStart := FALSE;
+			pStn331MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn331Merge^.Framework.ResetStart := FALSE;
+			pStn332Divert^.Framework.ResetStart := FALSE;
+			pStn332MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn332Merge^.Framework.ResetStart := FALSE;
+			pGradingRecircEntryDivertGrn^.Framework.ResetStart := FALSE;
+			pTestRecircExitMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pTestRecircExitSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pTestRecircExitMergeGrn^.Framework.ResetStart := FALSE;
+			pStn341Divert^.Framework.ResetStart := FALSE;
+			pStn341MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn341Merge^.Framework.ResetStart := FALSE;
+			pStn351Divert^.Framework.ResetStart := FALSE;
+			pStn351MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn351Merge^.Framework.ResetStart := FALSE;
+			pStn352Divert^.Framework.ResetStart := FALSE;
+			pStn352MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn352Merge^.Framework.ResetStart := FALSE;
+			pTestRecircEntryDivertGrn^.Framework.ResetStart := FALSE;
+			pEvalRecircBreakStopsGrn^.Framework.ResetStart := FALSE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 0;
+		END_IF
+		
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - check LastAutoState*)
+		
+		Local.NextState := 9000;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 6000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset robot first*)
+		
+		IF Local.FirstEntry THEN
+			pRedGrnRecircMainMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pRedGrnRecircMerge^.Framework.ResetStart := TRUE;
+			pRedGrnRecircSpurMergePrestopRed^.Framework.ResetStart := TRUE;
+			pEvalBreakStopsGrn^.Framework.ResetStart := TRUE;
+			pEmptyPuckStorageDivertGrn^.Framework.ResetStart := TRUE;
+			pEmptyPuckStorageBreakStop1Grn^.Framework.ResetStart := TRUE;
+			pEmptyPuckStorageBreakStop2Grn^.Framework.ResetStart := TRUE;
+			pEmptyPuckStorageMainMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pEmptyPuckStorageSpurMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pEmptyPuckStorageMergeGrn^.Framework.ResetStart := TRUE;
+			pStn311Divert^.Framework.ResetStart := TRUE;
+			pStn311MergePrestop^.Framework.ResetStart := TRUE;
+			pStn311Merge^.Framework.ResetStart := TRUE;
+			pBufferRecircEntryDivertGrn^.Framework.ResetStart := TRUE;
+			pBufferRecircMainMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pBufferRecircSpurMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pBufferRecircMergeGrn^.Framework.ResetStart := TRUE;
+			pCleaningRecircExitDivertGrn^.Framework.ResetStart := TRUE;
+			pCleaningRecircExitMainMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pCleaningRecircExitSpurMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pCleaningRecircExitMergeGrn^.Framework.ResetStart := TRUE;
+			pStn321Divert^.Framework.ResetStart := TRUE;
+			pStn321MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn321Merge^.Framework.ResetStart := TRUE;
+			pStn322Divert^.Framework.ResetStart := TRUE;
+			pStn322MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn322Merge^.Framework.ResetStart := TRUE;
+			pStn331Divert^.Framework.ResetStart := TRUE;
+			pStn331MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn331Merge^.Framework.ResetStart := TRUE;
+			pStn332Divert^.Framework.ResetStart := TRUE;
+			pStn332MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn332Merge^.Framework.ResetStart := TRUE;
+			pGradingRecircEntryDivertGrn^.Framework.ResetStart := TRUE;
+			pTestRecircExitMainMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pTestRecircExitSpurMergePrestopGrn^.Framework.ResetStart := TRUE;
+			pTestRecircExitMergeGrn^.Framework.ResetStart := TRUE;
+			pStn341Divert^.Framework.ResetStart := TRUE;
+			pStn341MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn341Merge^.Framework.ResetStart := TRUE;
+			pStn351Divert^.Framework.ResetStart := TRUE;
+			pStn351MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn351Merge^.Framework.ResetStart := TRUE;
+			pStn352Divert^.Framework.ResetStart := TRUE;
+			pStn352MainMergePrestop^.Framework.ResetStart := TRUE;
+			pStn352Merge^.Framework.ResetStart := TRUE;
+			pTestRecircEntryDivertGrn^.Framework.ResetStart := TRUE;
+			pEvalRecircBreakStopsGrn^.Framework.ResetStart := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF 	
+				(pRedGrnRecircMainMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_15_RedGrnRecircMainMergePrestopGrn) AND
+				(pRedGrnRecircMerge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_16_RedGrnRecircMerge) AND
+				(pRedGrnRecircSpurMergePrestopRed^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_17_RedGrnRecircSpurMergePrestopRed) AND
+				(pEvalBreakStopsGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_22_EvalBreakStopsGrn) AND					
+				(pEmptyPuckStorageDivertGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_24_EmptyPuckStorageDivertGrn) AND
+				(pEmptyPuckStorageBreakStop1Grn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_25_EmptyPuckStorageBreakStop1Grn) AND
+				(pEmptyPuckStorageBreakStop2Grn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_26_EmptyPuckStorageBreakStop2Grn) AND
+				(pEmptyPuckStorageMainMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_27_EmptyPuckStorageMainMergePrestopGrn) AND
+				(pEmptyPuckStorageSpurMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_28_EmptyPuckStorageSpurMergePrestopGrn) AND
+				(pEmptyPuckStorageMergeGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_29_EmptyPuckStorageMergeGrn) AND
+				(pStn311Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_30_Stn311Divert) AND
+				(pStn311MergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_31_Stn311MergePrestop) AND
+				(pStn311Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_32_Stn311Merge) AND
+				(pBufferRecircEntryDivertGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_40_BufferRecircEntryDivertGrn) AND
+				(pBufferRecircMainMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_41_BufferRecircMainMergePrestopGrn) AND
+				(pBufferRecircSpurMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_42_BufferRecircSpurMergePrestopGrn) AND
+				(pBufferRecircMergeGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_43_BufferRecircMergeGrn) AND
+				(pCleaningRecircExitDivertGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_45_CleaningRecircExitDivertGrn) AND
+				(pCleaningRecircExitMainMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_46_CleaningRecircExitMainMergePrestopGrn) AND
+				(pCleaningRecircExitSpurMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_47_CleaningRecircExitSpurMergePrestopGrn) AND
+				(pCleaningRecircExitMergeGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_48_CleaningRecircExitMergeGrn) AND
+				(pStn321Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_50_Stn321Divert) AND
+				(pStn321MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_51_Stn321MainMergePrestop) AND
+				(pStn321Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_52_Stn321Merge) AND
+				(pStn322Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_55_Stn322Divert) AND
+				(pStn322MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_56_Stn322MainMergePrestop) AND
+				(pStn322Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_57_Stn322Merge) AND
+				(pStn331Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_60_Stn331Divert) AND
+				(pStn331MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_61_Stn331MainMergePrestop) AND
+				(pStn331Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_62_Stn331Merge) AND
+				(pStn332Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_65_Stn332Divert) AND
+				(pStn332MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_66_Stn332MainMergePrestop) AND
+				(pStn332Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_67_Stn332Merge) AND
+				(pGradingRecircEntryDivertGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_75_GradingRecircEntryDivertGrn) AND
+				(pTestRecircExitMainMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_76_TestRecircExitMainMergePrestopGrn) AND
+				(pTestRecircExitSpurMergePrestopGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_77_TestRecircExitSpurMergePrestopGrn) AND
+				(pTestRecircExitMergeGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_78_TestRecircExitMergeGrn) AND
+				(pStn341Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_80_Stn341Divert) AND
+				(pStn341MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_81_Stn341MainMergePrestop) AND
+				(pStn341Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_82_Stn341Merge) AND
+				(pStn351Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_88_Stn351Divert) AND
+				(pStn351MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_89_Stn351MainMergePrestop) AND
+				(pStn351Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_90_Stn351Merge) AND
+				(pStn352Divert^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_91_Stn352Divert) AND
+				(pStn352MainMergePrestop^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_92_Stn352MainMergePrestop) AND
+				(pStn352Merge^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_93_Stn352Merge) AND
+				(pTestRecircEntryDivertGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_95_TestRecircEntryDivertGrn) AND
+				(pEvalRecircBreakStopsGrn^.Framework.ResetDone OR
+				NOT gDebug_ComponentCalls.CallStn054_96_EvalRecircBreakStopsGrn) THEN
+			Local.NextState := 9998;
+		END_IF
+		
+		IF Local.State <> Local.NextState THEN
+			pRedGrnRecircMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pRedGrnRecircMerge^.Framework.ResetStart := FALSE;
+			pRedGrnRecircSpurMergePrestopRed^.Framework.ResetStart := FALSE;
+			pEvalBreakStopsGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageDivertGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageBreakStop1Grn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageBreakStop2Grn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pEmptyPuckStorageMergeGrn^.Framework.ResetStart := FALSE;
+			pStn311Divert^.Framework.ResetStart := FALSE;
+			pStn311MergePrestop^.Framework.ResetStart := FALSE;
+			pStn311Merge^.Framework.ResetStart := FALSE;
+			pBufferRecircEntryDivertGrn^.Framework.ResetStart := FALSE;
+			pBufferRecircMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pBufferRecircSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pBufferRecircMergeGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitDivertGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pCleaningRecircExitMergeGrn^.Framework.ResetStart := FALSE;
+			pStn321Divert^.Framework.ResetStart := FALSE;
+			pStn321MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn321Merge^.Framework.ResetStart := FALSE;
+			pStn322Divert^.Framework.ResetStart := FALSE;
+			pStn322MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn322Merge^.Framework.ResetStart := FALSE;
+			pStn331Divert^.Framework.ResetStart := FALSE;
+			pStn331MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn331Merge^.Framework.ResetStart := FALSE;
+			pStn332Divert^.Framework.ResetStart := FALSE;
+			pStn332MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn332Merge^.Framework.ResetStart := FALSE;
+			pGradingRecircEntryDivertGrn^.Framework.ResetStart := FALSE;
+			pTestRecircExitMainMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pTestRecircExitSpurMergePrestopGrn^.Framework.ResetStart := FALSE;
+			pTestRecircExitMergeGrn^.Framework.ResetStart := FALSE;
+			pStn341Divert^.Framework.ResetStart := FALSE;
+			pStn341MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn341Merge^.Framework.ResetStart := FALSE;
+			pStn351Divert^.Framework.ResetStart := FALSE;
+			pStn351MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn351Merge^.Framework.ResetStart := FALSE;
+			pStn352Divert^.Framework.ResetStart := FALSE;
+			pStn352MainMergePrestop^.Framework.ResetStart := FALSE;
+			pStn352Merge^.Framework.ResetStart := FALSE;
+			pTestRecircEntryDivertGrn^.Framework.ResetStart := FALSE;
+			pEvalRecircBreakStopsGrn^.Framework.ResetStart := FALSE;
+		END_IF
+		
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual THEN
+    ;
+END_IF
+
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*
+//HMI control to stop the conveyor motors
+IF hiStopCartonConv AND NOT Local.CycleAuto THEN
+	gProduced_Stn054ToSafetyInterface.Stn054PLCData[2].3 := TRUE;
+END_IF
+//HMI control to start the conveyor motors
+IF hiStartCartonConv AND NOT Local.CycleAuto THEN
+	gProduced_Stn054ToSafetyInterface.Stn054PLCData[2].3 := FALSE;
+END_IF
+*)
+
+(*
+IF hiStopAllComponents THEN	
+			pRedGrnRecircMainMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pRedGrnRecircMerge^.FreeRunCycleStop := TRUE;
+			pRedGrnRecircSpurMergePrestopRed^.FreeRunCycleStop := TRUE;
+//			pEvalBreakStopsGrn^.FreeRunCycleStop := TRUE;
+			pEmptyPuckStorageDivertGrn^.FreeRunCycleStop := TRUE;
+			pEmptyPuckStorageBreakStop1Grn^.FreeRunCycleStop := TRUE;
+			pEmptyPuckStorageBreakStop2Grn^.FreeRunCycleStop := TRUE;
+			pEmptyPuckStorageMainMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pEmptyPuckStorageSpurMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pEmptyPuckStorageMergeGrn^.FreeRunCycleStop := TRUE;
+			pStn311Divert^.FreeRunCycleStop := TRUE;
+			pStn311MergePrestop^.FreeRunCycleStop := TRUE;
+			pStn311Merge^.FreeRunCycleStop := TRUE;
+			pBufferRecircEntryDivertGrn^.FreeRunCycleStop := TRUE;
+			pBufferRecircMainMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pBufferRecircSpurMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pBufferRecircMergeGrn^.FreeRunCycleStop := TRUE;
+			pCleaningRecircExitDivertGrn^.FreeRunCycleStop := TRUE;
+			pCleaningRecircExitMainMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pCleaningRecircExitSpurMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pCleaningRecircExitMergeGrn^.FreeRunCycleStop := TRUE;
+			pStn321Divert^.FreeRunCycleStop := TRUE;
+			pStn321MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn321Merge^.FreeRunCycleStop := TRUE;
+			pStn322Divert^.FreeRunCycleStop := TRUE;
+			pStn322MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn322Merge^.FreeRunCycleStop := TRUE;
+			pStn331Divert^.FreeRunCycleStop := TRUE;
+			pStn331MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn331Merge^.FreeRunCycleStop := TRUE;
+			pStn332Divert^.FreeRunCycleStop := TRUE;
+			pStn332MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn332Merge^.FreeRunCycleStop := TRUE;
+			pGradingRecircEntryDivertGrn^.FreeRunCycleStop := TRUE;
+			pTestRecircExitMainMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pTestRecircExitSpurMergePrestopGrn^.FreeRunCycleStop := TRUE;
+			pTestRecircExitMergeGrn^.FreeRunCycleStop := TRUE;
+			pStn341Divert^.FreeRunCycleStop := TRUE;
+			pStn341MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn341Merge^.FreeRunCycleStop := TRUE;
+			pStn351Divert^.FreeRunCycleStop := TRUE;
+			pStn351MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn351Merge^.FreeRunCycleStop := TRUE;
+			pStn352Divert^.FreeRunCycleStop := TRUE;
+			pStn352MainMergePrestop^.FreeRunCycleStop := TRUE;
+			pStn352Merge^.FreeRunCycleStop := TRUE;
+			pTestRecircEntryDivertGrn^.FreeRunCycleStop := TRUE;
+			pEvalRecircBreakStopsGrn^.FreeRunCycleStop := TRUE;
+
+	pStn^.hiCycleStop := TRUE;	//comment the prgs NOT with FreeRun
+	pStn^.FullInitRequired := TRUE;
+	
+END_IF
+*)
+
+(*#### Always turn off hi requests ####*)
+(*
+	hiStopCartonConv := FALSE;
+	hiStartCartonConv := FALSE;
+	hiStopAllComponents := FALSE;
+	;
+*)
+
+(*#### Always turn off hi requests ####*)
+	;
+
+(*### Simulation Logic ###*)
+IF NOT gSimulateActive THEN
+//	pEvalLnSw^.Sim.SimMode := 0;
+END_IF
+
+
+ForceBootUpdate := TRUE;
+
+
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{e9ef12e4-aeae-4605-8934-25cc4b62d787}">
+      <Implementation>
+        <ST><![CDATA[]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="Stn054_05_StnMain">
+      <LineId Id="1946" Count="5" />
+      <LineId Id="3227" Count="0" />
+      <LineId Id="3230" Count="1" />
+      <LineId Id="3228" Count="0" />
+      <LineId Id="1956" Count="0" />
+      <LineId Id="1958" Count="43" />
+      <LineId Id="2005" Count="17" />
+      <LineId Id="2614" Count="0" />
+      <LineId Id="2613" Count="0" />
+      <LineId Id="3130" Count="0" />
+      <LineId Id="3335" Count="0" />
+      <LineId Id="2034" Count="0" />
+      <LineId Id="3322" Count="1" />
+      <LineId Id="2035" Count="0" />
+      <LineId Id="3328" Count="6" />
+      <LineId Id="2036" Count="19" />
+      <LineId Id="3232" Count="0" />
+      <LineId Id="3243" Count="1" />
+      <LineId Id="3233" Count="0" />
+      <LineId Id="2059" Count="0" />
+      <LineId Id="2062" Count="43" />
+      <LineId Id="2109" Count="68" />
+      <LineId Id="3246" Count="1" />
+      <LineId Id="3245" Count="0" />
+      <LineId Id="2182" Count="0" />
+      <LineId Id="2184" Count="1" />
+      <LineId Id="2785" Count="0" />
+      <LineId Id="2187" Count="5" />
+      <LineId Id="2791" Count="0" />
+      <LineId Id="2194" Count="33" />
+      <LineId Id="2231" Count="4" />
+      <LineId Id="3252" Count="0" />
+      <LineId Id="3254" Count="0" />
+      <LineId Id="3253" Count="0" />
+      <LineId Id="3251" Count="0" />
+      <LineId Id="3255" Count="0" />
+      <LineId Id="2236" Count="0" />
+      <LineId Id="3256" Count="0" />
+      <LineId Id="2807" Count="0" />
+      <LineId Id="2241" Count="0" />
+      <LineId Id="3167" Count="0" />
+      <LineId Id="2242" Count="0" />
+      <LineId Id="2808" Count="0" />
+      <LineId Id="2243" Count="0" />
+      <LineId Id="2809" Count="0" />
+      <LineId Id="2244" Count="0" />
+      <LineId Id="3131" Count="0" />
+      <LineId Id="2245" Count="0" />
+      <LineId Id="3132" Count="0" />
+      <LineId Id="2246" Count="0" />
+      <LineId Id="3133" Count="0" />
+      <LineId Id="2247" Count="0" />
+      <LineId Id="3134" Count="0" />
+      <LineId Id="2248" Count="0" />
+      <LineId Id="3135" Count="0" />
+      <LineId Id="2249" Count="0" />
+      <LineId Id="3136" Count="0" />
+      <LineId Id="2250" Count="0" />
+      <LineId Id="3137" Count="0" />
+      <LineId Id="2810" Count="1" />
+      <LineId Id="2252" Count="0" />
+      <LineId Id="2812" Count="0" />
+      <LineId Id="2253" Count="0" />
+      <LineId Id="2813" Count="0" />
+      <LineId Id="2254" Count="0" />
+      <LineId Id="2814" Count="0" />
+      <LineId Id="2255" Count="0" />
+      <LineId Id="3138" Count="0" />
+      <LineId Id="2256" Count="0" />
+      <LineId Id="3139" Count="0" />
+      <LineId Id="2257" Count="0" />
+      <LineId Id="3140" Count="0" />
+      <LineId Id="2258" Count="0" />
+      <LineId Id="3141" Count="0" />
+      <LineId Id="2259" Count="0" />
+      <LineId Id="3142" Count="0" />
+      <LineId Id="2260" Count="0" />
+      <LineId Id="3143" Count="0" />
+      <LineId Id="2261" Count="0" />
+      <LineId Id="3144" Count="0" />
+      <LineId Id="2262" Count="0" />
+      <LineId Id="3145" Count="0" />
+      <LineId Id="2263" Count="0" />
+      <LineId Id="3146" Count="0" />
+      <LineId Id="2264" Count="0" />
+      <LineId Id="3168" Count="0" />
+      <LineId Id="2265" Count="0" />
+      <LineId Id="3147" Count="0" />
+      <LineId Id="2266" Count="0" />
+      <LineId Id="3148" Count="0" />
+      <LineId Id="2267" Count="0" />
+      <LineId Id="3149" Count="0" />
+      <LineId Id="2268" Count="0" />
+      <LineId Id="3150" Count="0" />
+      <LineId Id="2269" Count="0" />
+      <LineId Id="3151" Count="0" />
+      <LineId Id="2270" Count="0" />
+      <LineId Id="3152" Count="0" />
+      <LineId Id="2271" Count="0" />
+      <LineId Id="3153" Count="0" />
+      <LineId Id="2272" Count="0" />
+      <LineId Id="3154" Count="0" />
+      <LineId Id="2273" Count="0" />
+      <LineId Id="3155" Count="0" />
+      <LineId Id="2274" Count="0" />
+      <LineId Id="3156" Count="0" />
+      <LineId Id="2275" Count="0" />
+      <LineId Id="3157" Count="0" />
+      <LineId Id="2276" Count="0" />
+      <LineId Id="3158" Count="0" />
+      <LineId Id="2277" Count="0" />
+      <LineId Id="3159" Count="0" />
+      <LineId Id="2278" Count="0" />
+      <LineId Id="3160" Count="0" />
+      <LineId Id="2279" Count="0" />
+      <LineId Id="3161" Count="0" />
+      <LineId Id="2280" Count="0" />
+      <LineId Id="3162" Count="0" />
+      <LineId Id="2281" Count="0" />
+      <LineId Id="3163" Count="0" />
+      <LineId Id="2282" Count="0" />
+      <LineId Id="3164" Count="0" />
+      <LineId Id="2283" Count="0" />
+      <LineId Id="3165" Count="0" />
+      <LineId Id="2284" Count="0" />
+      <LineId Id="3166" Count="0" />
+      <LineId Id="2288" Count="3" />
+      <LineId Id="3249" Count="1" />
+      <LineId Id="3248" Count="0" />
+      <LineId Id="2295" Count="0" />
+      <LineId Id="2298" Count="43" />
+      <LineId Id="2345" Count="64" />
+      <LineId Id="3406" Count="13" />
+      <LineId Id="3456" Count="47" />
+      <LineId Id="3442" Count="13" />
+      <LineId Id="2412" Count="8" />
+      <LineId Id="2431" Count="3" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="Stn054_05_StnMain.DfnMessages">
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

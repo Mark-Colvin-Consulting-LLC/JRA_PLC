@@ -1,0 +1,179 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn055_PrgCalls" Id="{c24ade0f-2287-4d00-b38b-3cd15669f233}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn055_PrgCalls
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//Turn on the default programs
+IF gFirstScan THEN
+	gDebug_ComponentCalls.CallStn055_21_StorageBreakStopsRed := TRUE;
+	gDebug_ComponentCalls.CallStn055_40_StorageBypassDivertRed := TRUE;
+	gDebug_ComponentCalls.CallStn055_41_StorageBypassMainMergePrestopRed := TRUE;
+	gDebug_ComponentCalls.CallStn055_42_StorageBypassSpurMergePrestopRed := TRUE;
+	gDebug_ComponentCalls.CallStn055_43_StorageBypassMergeRed := TRUE;
+	gDebug_ComponentCalls.CallStn055_45_Stn511Divert := TRUE;
+	gDebug_ComponentCalls.CallStn055_46_Stn511MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn055_47_Stn511Merge := TRUE;
+	gDebug_ComponentCalls.CallStn055_50_Stn512Divert := TRUE;
+	gDebug_ComponentCalls.CallStn055_51_Stn512MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn055_52_Stn512Merge := TRUE;
+	
+	gDebug_ComponentCalls.CallStn055_20_StorageBreakStopsGrn := TRUE;
+	gDebug_ComponentCalls.CallStn055_25_StorageBypassDivertGrn := TRUE;
+	gDebug_ComponentCalls.CallStn055_26_StorageBypassMainMergePrestopGrn  := TRUE;
+	gDebug_ComponentCalls.CallStn055_27_StorageBypassSpurMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn055_28_StorageBypassMergeGrn := TRUE;
+	gDebug_ComponentCalls.CallStn055_30_Stn411Divert := TRUE;
+	gDebug_ComponentCalls.CallStn055_31_Stn411MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn055_32_Stn411Merge := TRUE;
+	
+END_IF
+
+// Call Components
+IF gDebug_ComponentCalls.CallStn055_20_StorageBreakStopsGrn OR
+		gFirstScan THEN
+	Stn055_20_StorageBreakStopsGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_21_StorageBreakStopsRed OR
+		gFirstScan THEN
+	Stn055_21_StorageBreakStopsRed();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_25_StorageBypassDivertGrn OR
+		gFirstScan THEN
+	Stn055_25_StorageBypassDivertGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_26_StorageBypassMainMergePrestopGrn OR
+		gFirstScan THEN
+	Stn055_26_StorageBypassMainMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_27_StorageBypassSpurMergePrestopGrn OR
+		gFirstScan THEN
+	Stn055_27_StorageBypassSpurMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_28_StorageBypassMergeGrn OR
+		gFirstScan THEN
+	Stn055_28_StorageBypassMergeGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_30_Stn411Divert OR
+		gFirstScan THEN
+	Stn055_30_Stn411Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_31_Stn411MainMergePrestop OR
+		gFirstScan THEN
+	Stn055_31_Stn411MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_32_Stn411Merge OR
+		gFirstScan THEN
+	Stn055_32_Stn411Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_40_StorageBypassDivertRed OR
+		gFirstScan THEN
+	Stn055_40_StorageBypassDivertRed();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_41_StorageBypassMainMergePrestopRed OR
+		gFirstScan THEN
+	Stn055_41_StorageBypassMainMergePrestopRed();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_42_StorageBypassSpurMergePrestopRed OR
+		gFirstScan THEN
+	Stn055_42_StorageBypassSpurMergePrestopRed();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_43_StorageBypassMergeRed OR
+		gFirstScan THEN
+	Stn055_43_StorageBypassMergeRed();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_45_Stn511Divert OR
+		gFirstScan THEN
+	Stn055_45_Stn511Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_46_Stn511MainMergePrestop OR
+		gFirstScan THEN
+	Stn055_46_Stn511MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_47_Stn511Merge OR
+		gFirstScan THEN
+	Stn055_47_Stn511Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_50_Stn512Divert OR
+		gFirstScan THEN
+	Stn055_50_Stn512Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_51_Stn512MainMergePrestop OR
+		gFirstScan THEN
+	Stn055_51_Stn512MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn055_52_Stn512Merge OR
+		gFirstScan THEN
+	Stn055_52_Stn512Merge();
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="Stn055_PrgCalls">
+      <LineId Id="111" Count="3" />
+      <LineId Id="116" Count="8" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="136" Count="1" />
+      <LineId Id="129" Count="6" />
+      <LineId Id="109" Count="1" />
+      <LineId Id="6" Count="1" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="45" Count="1" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="47" Count="1" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="49" Count="1" />
+      <LineId Id="90" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="51" Count="1" />
+      <LineId Id="91" Count="0" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="53" Count="1" />
+      <LineId Id="92" Count="0" />
+      <LineId Id="42" Count="0" />
+      <LineId Id="55" Count="1" />
+      <LineId Id="93" Count="0" />
+      <LineId Id="43" Count="0" />
+      <LineId Id="57" Count="1" />
+      <LineId Id="94" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="59" Count="1" />
+      <LineId Id="95" Count="0" />
+      <LineId Id="21" Count="0" />
+      <LineId Id="61" Count="1" />
+      <LineId Id="96" Count="0" />
+      <LineId Id="63" Count="1" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="97" Count="0" />
+      <LineId Id="22" Count="0" />
+      <LineId Id="67" Count="1" />
+      <LineId Id="98" Count="0" />
+      <LineId Id="23" Count="0" />
+      <LineId Id="69" Count="1" />
+      <LineId Id="99" Count="0" />
+      <LineId Id="24" Count="0" />
+      <LineId Id="71" Count="1" />
+      <LineId Id="100" Count="0" />
+      <LineId Id="25" Count="0" />
+      <LineId Id="73" Count="1" />
+      <LineId Id="101" Count="0" />
+      <LineId Id="26" Count="0" />
+      <LineId Id="75" Count="1" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="27" Count="0" />
+      <LineId Id="77" Count="1" />
+      <LineId Id="103" Count="0" />
+      <LineId Id="28" Count="0" />
+      <LineId Id="79" Count="1" />
+      <LineId Id="104" Count="0" />
+      <LineId Id="29" Count="0" />
+      <LineId Id="81" Count="1" />
+      <LineId Id="105" Count="0" />
+      <LineId Id="8" Count="0" />
+      <LineId Id="83" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

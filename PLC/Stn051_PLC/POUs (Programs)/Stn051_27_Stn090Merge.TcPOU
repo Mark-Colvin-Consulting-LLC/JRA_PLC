@@ -1,0 +1,50 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn051_27_Stn090Merge" Id="{8f73454e-d5c2-46ea-bd18-d0ebd7e63d53}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn051_27_Stn090Merge
+VAR
+//Stn 090 BLU  Exit Main Stop DS Buffer
+	{attribute 'TcLinkToOSO' := '.iBufferFull := <0,1,2>TIIB[N23S00 (AL1332)]^N23S01 (AL2341)^TxPDO^input byte 3'}
+	fbConvMerge: FB_ConvMerge;
+	
+	{attribute 'TcLinkToOSO' := '<0,1,2>TIIB[N23S00 (AL1332)]^N23S01 (AL2341)^TxPDO^input byte 3'}
+	iBufferFull AT %I*: BOOL;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn051_27_Stn090Merge.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn051_27_Stn090Merge.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc053Mtr04;
+gStn051_27_Stn090Merge.MainInAuto := gStn051.CycleAuto;
+
+gStn051_27_Stn090Merge.SpurHeartbeatOK := gConsumed_Stn090To051_OK;
+gStn051_27_Stn090Merge.SpurConvRunning := gConsumed_Stn090To051.SpurConvRunning;
+gStn051_27_Stn090Merge.SpurInAuto := gConsumed_Stn090To051.ScratchPad[0].1;
+
+gStn090_30_MergeSpurPreStop.Available := gConsumed_Stn090To051.Available;
+
+
+fbConvMerge(
+	pStn := ADR(gStn051),
+	pCmp := ADR(gStn051_27_Stn090Merge),
+	pStateTraceBuffer := ADR(gStn051_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn051_StateTraceFifo),
+	pStats := ADR(gStn051_02_Stats),
+	pMain := ADR(gStn051_26_Stn090MainMergePrestop),
+	pSpur := ADR(gStn090_30_MergeSpurPreStop)		
+);
+
+gProduced_Stn051To090.Release := gStn090_30_MergeSpurPreStop.Release;
+gProduced_Stn051To090.iBufferFull := iBufferFull;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn051_27_Stn090Merge">
+      <LineId Id="16" Count="3" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="21" Count="4" />
+      <LineId Id="27" Count="14" />
+      <LineId Id="5" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="PuckLnSw" Id="{080af766-d51f-4089-b245-b932c45e0706}">
+    <Declaration><![CDATA[TYPE PuckLnSw :
+STRUCT
+	
+	RFID: DINT; //DB Input
+	Location: STRING(30); //DB Input
+	PrimaryLane: STRING(30); //DB Output
+	SecondaryLane: STRING(30); //DB Output
+	TertiaryLane: STRING(30); //DB Output
+	PuckSide: STRING(30); //DB Output
+	IsHighPriority: BOOL; //DB Output
+	InfeedBelt: DINT; //PLC Internal variable
+	OutfeedDivert: DINT; //PLC Internal variable
+	TransferStage: DINT; //PLC Internal variable
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

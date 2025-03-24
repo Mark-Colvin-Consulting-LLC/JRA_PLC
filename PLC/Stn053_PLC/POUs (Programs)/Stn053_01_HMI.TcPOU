@@ -1,0 +1,199 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_01_HMI" Id="{b096004c-2c9e-4154-b862-f37357a5a98b}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_01_HMI
+VAR_IN_OUT
+	
+END_VAR
+
+VAR
+	
+	pCmp: POINTER TO CmpHMI;
+	pStn: POINTER TO Station;
+	pStats: POINTER TO Component_Stats;
+
+	State: DINT;
+	NextState: DINT;
+	NoFault: BOOL;
+	FirstEntry: BOOL;
+	tmrState: TON;
+	hoMessageTrigger: BOOL := FALSE;
+
+	StationResetRequest: BOOL;
+	hiStart: BOOL;
+	hiStop: BOOL;
+	hoStartButtonColor: DINT;
+	hoStopButtonColor: DINT;
+	ActiveMsg: HMIMessage;(* ~(OPC:1:available for OPC-clients) *)
+	index: DINT;
+	Msg: STRING;
+	TimeStr: STRING;
+	senMessageTriggerReset: FB_Sensor;
+	
+	
+	hoPopupTitle : STRING := '';
+	hoPopupMessage : STRING := '';
+	hoPopupTimeout : DINT;
+	hoPopupInformationOnly : BOOL;
+	hoPopupTrigger : BOOL:=FALSE;
+	hiPopupRespPositive : BOOL;
+	hiPopupRespNegative : BOOL;
+	hiPopupTimedOut : BOOL;
+	PopupNextState: DINT;
+	PopupState: DINT;
+	PopUpFirstEntry: BOOL;
+	tmrPopupState:TON;
+	
+	Heartbeat: BOOL;
+	tonHeartbeat: TON;
+	tofHeartbeat: TON;
+	
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[pCmp := ADR(gStn053_01_HMI);
+pStn := ADR(gStn053);
+pStats := ADR(gStn053_02_Stats);
+
+IF pStn^.CycleAuto THEN
+	hoStartButtonColor := cColor.Green;
+	hoStopButtonColor := cColor.Grey;
+ELSE
+	hoStartButtonColor := cColor.Grey;
+	hoStopButtonColor := cColor.Red;
+END_IF
+
+IF NextState <> State THEN
+	(*code: Log state change into buffer*)
+	FirstEntry := TRUE;
+	State := NextState;
+ELSE
+	FirstEntry := FALSE;
+END_IF
+
+IF FirstEntry THEN
+	tmrState(IN:=FALSE);
+END_IF
+
+senMessageTriggerReset(Input := hoMessageTrigger, Ontime:=T#0.0s, OffTime:=T#1.0s);
+
+CASE State OF
+
+0:	(*Check fifo for message. If msg, then unload *)
+
+	IF pStn^.HMIMessageFIFO.Count > 0 THEN
+		pStn^.HMIMessageFIFO.UNLOAD(pFIFO:=ADR(pStn^.HMIMessageBuffer), out=> ActiveMsg);
+
+		(* If this is an empty message, don't pass it to the HMI *)
+		(* If this is the first fault message, don't pass it to the HMI *)
+		IF ActiveMsg.Text <> '' AND ActiveMsg.Text <> ' ' AND NOT (ActiveMsg.Channel = cChannel.FirstFault) THEN
+			(*hoMessageTrigger := NOT hoMessageTrigger;*)
+			hoMessageTrigger := TRUE;
+			NextState := 10;
+		END_IF
+
+		(* If this is an operator message, display it on the main banner *)
+		(* If this is the first fault message, display it on the main banner *)
+		IF 	ActiveMsg.Channel = cChannel.General OR
+			ActiveMsg.Channel = cChannel.FirstFault OR
+			ActiveMsg.Channel = cChannel.Attention
+		THEN
+			pStn^.OperatorMessage.Text := ActiveMsg.Text;
+			pStn^.OperatorMessage.Color := ActiveMsg.Color;
+			pStn^.OperatorMessage.AltText := ActiveMsg.AltText;
+		END_IF
+	ELSIF hoMessageTrigger THEN
+		hoMessageTrigger := FALSE;
+	END_IF
+
+10:	(*Wait for confirmation from HMI*)
+
+	tmrState(IN:=TRUE, PT:=T#1.0s);
+(*	IF hiMessageReceived OR tmrState.Q THEN*)
+	IF senMessageTriggerReset.Off OR tmrState.Q THEN
+(*		hiMessageReceived := FALSE;*)
+		hoMessageTrigger := FALSE;
+
+		NextState := 0;
+	END_IF
+
+END_CASE
+
+
+(**)
+(* Popup related *)
+(**)
+
+IF PopupNextState <> PopupState THEN
+	(*code: Log state change into buffer*)
+	PopUpFirstEntry := TRUE;
+	PopupState := PopupNextState;
+ELSE
+	PopupFirstEntry := FALSE;
+END_IF
+
+IF PopupFirstEntry THEN
+	tmrPopupState(IN:=FALSE);
+END_IF
+
+CASE PopupState OF
+
+0:	(*Check component for popup message request *)
+
+	IF pCmp^.Trigger THEN
+		hoPopupTitle := pCmp^.Title;
+		hoPopupMessage := pCmp^.Message;
+		hoPopupTimeout := TIME_TO_DINT(pCmp^.Timeout);
+		hoPopupInformationOnly := pCmp^.InformationOnly;
+		hoPopupTrigger := TRUE;
+		PopupNextState := 10;
+	ELSE
+		pCmp^.RespPositive := FALSE;
+		pCmp^.RespNegative := FALSE;
+		pCmp^.RespTimeout := FALSE;
+		hiPopupRespPositive := FALSE;
+		hiPopupRespNegative := FALSE;
+		hiPopupTimedOut := FALSE;
+		hoPopupTrigger := FALSE;
+
+	END_IF
+
+10:	(*Wait for confirmation from HMI*)
+	tmrPopupState(IN:=TRUE,PT:=pCmp^.Timeout);
+	IF (tmrPopupState.Q AND (hoPopupTimeout>0)) OR hiPopupRespPositive OR hiPopupRespNegative THEN
+		hoPopupTrigger := FALSE;
+		pCmp^.RespPositive := hiPopupRespPositive;
+		pCmp^.RespNegative := hiPopupRespNegative;
+		pCmp^.RespTimeout := (tmrPopupState.Q AND (hoPopupTimeout > 0));
+		PopupNextState := 20;
+	ELSIF NOT hoPopupTrigger THEN
+		pCmp^.RespTimeout := TRUE;
+		PopupNextState := 20;
+	ELSIF NOT pCmp^.HeartbeatOK OR NOT pCmp^.Trigger THEN
+		pCmp^.RespTimeout := TRUE;
+		PopupNextState := 20;
+	END_IF
+
+20:	(*Wait for result acknowledgement from component*)
+	tmrPopupState(IN:=TRUE,PT:=T#10S);
+	IF tmrPopupState.Q OR NOT pCmp^.Trigger THEN
+		pCmp^.Trigger := FALSE;
+		pCmp^.RespPositive := FALSE;
+		pCmp^.RespNegative := FALSE;
+		pCmp^.RespTimeout := FALSE;
+		PopupNextState:=0;
+	END_IF
+
+END_CASE
+
+tonHeartbeat(IN:=Heartbeat,PT:=T#10S);
+tofHeartbeat(IN:=(Heartbeat=TRUE)=0,PT:=T#10s);
+
+pCmp^.HeartbeatOK := (NOT tonHeartbeat.Q AND NOT tofHeartbeat.Q);
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_01_HMI">
+      <LineId Id="189" Count="138" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

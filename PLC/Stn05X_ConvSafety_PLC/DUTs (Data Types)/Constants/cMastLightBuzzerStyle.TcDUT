@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cMastLightBuzzerStyle" Id="{fbff37aa-a324-4d9e-b137-37e0e4aef771}">
+    <Declaration><![CDATA[TYPE cMastLightBuzzerStyle :
+(
+	NoSound := 16#0,
+	RapidIntermittenBeep := 16#1,
+	RapidHiLo := 16#2,
+	SweepSound := 16#3,
+	ContinuousBeepWithCycleOnOff := 16#4,
+	RapidBeenWithCycleOnOff := 16#5,
+	RapidHiLoWithCycleOnOff := 16#6,
+	SweepSoundWithCycleOnOff := 16#7
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

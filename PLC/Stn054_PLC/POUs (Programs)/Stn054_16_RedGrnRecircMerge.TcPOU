@@ -1,0 +1,56 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_16_RedGrnRecircMerge" Id="{0b73cf2d-3617-4249-bdcf-7b2e5beabbb0}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_16_RedGrnRecircMerge
+VAR
+	{attribute 'TcLinkToOSO' := '.iBufferFull :=  <0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 2'}
+	fbConvMerge: FB_ConvMerge_RemoteOutput;
+	{attribute 'TcLinkToOSO' := '<0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull AT %I*: BOOL;
+
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Enc56 inputs - Merge of Green High Friction conv from Eval 3LnSw and Red conv from BufferRecircMergeRed - Elevated Puck Conveyor Merge 
+//REDGRN Recirc Merge Spur RED Stop Puck Present
+//REDGRN Recirc Merge Main GRN Stop Puck Present
+//REDGRN Recirc Merge Main GRN DS Buffer
+
+//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+// This merge is NOT linked to any work cell
+
+gStn054_16_RedGrnRecircMerge.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn054_16_RedGrnRecircMerge.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc058Mtr01; 
+gStn054_16_RedGrnRecircMerge.MainInAuto := gStn054.CycleAuto;
+
+gStn054_16_RedGrnRecircMerge.SpurHeartbeatOK := TRUE; // because this PLC is Main
+gStn054_16_RedGrnRecircMerge.SpurConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc056Mtr10; 
+gStn054_16_RedGrnRecircMerge.SpurInAuto := gStn054.CycleAuto;
+
+fbConvMerge(
+	pStn := ADR(gStn054),
+	pCmp := ADR(gStn054_16_RedGrnRecircMerge),
+	pStateTraceBuffer := ADR(gStn054_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn054_StateTraceFifo),
+	pStats := ADR(gStn054_02_Stats),
+	pMain := ADR(gStn054_15_RedGrnRecircMainMergePrestopGrn),
+	pSpur := ADR(gStn054_17_RedGrnRecircSpurMergePrestopRed)		
+);
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn054_16_RedGrnRecircMerge">
+      <LineId Id="37" Count="0" />
+      <LineId Id="3" Count="6" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="10" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="12" Count="2" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="16" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

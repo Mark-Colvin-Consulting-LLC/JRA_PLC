@@ -1,0 +1,99 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="KeyenceSRScannerIn" Id="{a88ed4a7-8053-4e32-be3b-020c3b02354a}">
+    <Declaration><![CDATA[TYPE KeyenceSRScannerIn :
+STRUCT
+	Error: BIT;
+	ResultDataAvailable: BIT;
+	ResultDataStrobe: BIT;
+	Reserved01: BIT;
+	Reserved02: BIT;
+	Reserved03: BIT;
+	BufferOverflowError: BIT;
+	GeneralError: BIT;
+	Busy: BIT;
+	TriggerBusy: BIT;
+	LockBusy: BIT;
+	ModeBusy: BIT;
+	ErrorBusy: BIT;
+	Reserved04: BIT;
+	Reserved05: BIT;
+	Reserved06: BIT;
+	ReadComplete: BIT;
+	PresetComplete: BIT;
+	RegisterPresetComplete: BIT;
+	TuneComplete: BIT;
+	/// Not available in SR-1000 ProfiNet
+	BankLoadComplete: BIT;
+	Reserved07: BIT;
+	Reserved08: BIT;
+	ExternalRequestComplete: BIT;
+	ReadFailure: BIT;
+	PresetFailure: BIT;
+	RegisterPresetDataFailure: BIT;
+	TuneFailure: BIT;
+	/// Not available in SR-1000 ProfiNet
+	BankLoadFailure: BIT;
+	Reserved09: BIT;
+	Reserved10: BIT;
+	ExternalRequestFailure: BIT;
+	Input1Status: BIT;
+	Input2Status: BIT;
+	Reserved11: BIT;
+	Reserved12: BIT;
+	Output1Status: BIT;
+	Output2Status: BIT;
+	Output3Status: BIT;
+	Reserved13: BIT;
+	Unstable: BIT;
+	MatchingLevelUnstable: BIT;
+	ISO_IEC15415Unstable: BIT;
+	AIM_DPMUnstable: BIT;
+	ADE_AS9132Unstable: BIT;
+	Reserved14: BIT;
+	Reserved15: BIT;
+	Reserved16: BIT;
+	Reserved17: BIT;
+	Reserved18: BIT;
+	Reserved19: BIT;
+	Reserved20: BIT;
+	Reserved21: BIT;
+	Reserved22: BIT;
+	Reserved23: BIT;
+	Reserved24: BIT;
+	Reserved25: BIT;
+	Reserved26: BIT;
+	Reserved27: BIT;
+	Reserved28: BIT;
+	Reserved29: BIT;
+	Reserved30: BIT;
+	Reserved31: BIT;
+	Reserved32: BIT;
+	MatchingLevel: UINT;
+	ISO_IEC15415Grade: UINT;
+	AIM_DPMGrade: UINT;
+	///_Reserved
+	Reserved33: UINT;
+	ReadResultCode: UINT;
+	PresetResultCode: UINT;
+	RegisterPresetDataResultCode: UINT;
+	TuneResultCode: UINT;
+	///_Reserved[0]
+	BankLoadResultCode: UINT;
+	///_Reserved[1]
+	Reserved34: UINT;
+	///_Reserved[2]
+	Reserved35: UINT;
+	ExternalRequestResultCode: UINT;
+	GeneralErrorCode: UINT;
+	Reserved36: UINT;
+	ResultDataReadyCount: UINT;
+	ResultDataUpdateCount: UINT;
+	Reserved37: UINT;
+	ResultDataSize: UINT;
+	ResultData: ARRAY[0..245] OF BYTE;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

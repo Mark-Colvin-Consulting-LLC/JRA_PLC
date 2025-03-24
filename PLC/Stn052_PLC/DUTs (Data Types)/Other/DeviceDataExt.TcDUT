@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="DeviceDataExt" Id="{efddb44a-e980-4ff6-909b-2db6f2b374f6}">
+    <Declaration><![CDATA[TYPE DeviceDataExt EXTENDS DeviceData :
+STRUCT
+	Justified: BOOL;
+	ClingRequired: BOOL;
+	ClingSize: cClingSize;
+	CartonNum: DINT;
+	CartonTracking: DINT;
+	ToteRFID: DINT;
+	ToteSide: DINT; //TODO, used for 1 or 2 phones in tote, to be removed
+	JustifyNest: DINT;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

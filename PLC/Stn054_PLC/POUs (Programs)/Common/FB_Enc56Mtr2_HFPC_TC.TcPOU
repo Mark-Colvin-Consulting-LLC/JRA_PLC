@@ -1,0 +1,64 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_Enc56Mtr2_HFPC_TC" Id="{8196b355-44e5-4083-8519-a3ca03e92e04}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_Enc56Mtr2_HFPC_TC
+VAR_INPUT
+	pStn: POINTER TO Station;
+END_VAR
+VAR_OUTPUT
+END_VAR
+VAR
+
+	senBufferFull: FB_SensorHyst;
+	//Eval Grn BS3
+	{attribute 'TcLinkToOSO' := '<0,1,0>TIIB[N32S00 (AL1332)]^N32S05 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull AT %I*: BOOL;
+	
+	//next buffer full sensor would Red to Green Merge Main 
+	{attribute 'TcLinkToOSO' := '<0,1,0>TIIB[N46S00 (AL1332)]^N46S01 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull2 AT %I*: BOOL;
+											//****for some reason, declared assignment value is not transferred to FB call. now writing value directly****
+	BufferSensorOnTime:	TIME := T#4500MS;  //chg to 2.75s to allow spaced puck delay not trigger the conv motor off, 
+	BufferSensorOffTime:	TIME:= T#30S;
+	StatusBufferFull: BOOL;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Traffic control by conv motor on/off for High Friction Puck Conveyor
+//
+// Eval Green BS3 – Low to High, buffer at Red to Green Merge Main Prestop. Enc56 Motor 2
+
+// Eval Green BS3 (4B VB9 Enc55), Enc56 Motor 2 is located near 1A. The buffer sensor is located near 1A.  
+// This section running from low to high. The Red to Green merge main spur prestop is 1A.
+
+senBufferFull(
+	Input := iBufferFull,
+	OnTime := T#2750MS,
+	OffTime := BufferSensorOffTime);
+
+StatusBufferFull := NOT senBufferFull.OFF;
+
+//Producing MOTOR enable to SafetyInterface to enable motor to run if Buffer NOT Full
+//   Used in safety interface PLC to control NOKtoRun singmal for Enc056Mtr02
+gProduced_Stn054ToSafetyInterface.Stn054PLCData[2].0 := NOT StatusBufferFull;
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_Enc56Mtr2_HFPC_TC">
+      <LineId Id="44" Count="1" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="14" Count="0" />
+      <LineId Id="13" Count="0" />
+      <LineId Id="12" Count="0" />
+      <LineId Id="52" Count="4" />
+      <LineId Id="60" Count="0" />
+      <LineId Id="75" Count="0" />
+      <LineId Id="77" Count="0" />
+      <LineId Id="102" Count="0" />
+      <LineId Id="73" Count="0" />
+      <LineId Id="80" Count="0" />
+      <LineId Id="79" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

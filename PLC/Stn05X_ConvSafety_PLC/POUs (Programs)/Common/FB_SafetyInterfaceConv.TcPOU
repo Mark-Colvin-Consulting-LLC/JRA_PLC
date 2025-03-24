@@ -1,0 +1,165 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_SafetyInterfaceConv" Id="{ac8c08ba-1f73-40a1-8f43-e88364bb123f}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_SafetyInterfaceConv
+VAR_INPUT
+	pSafetyInterface: POINTER TO CmpSafetyInterfaceConv;
+END_VAR
+VAR	
+	// IO mapped from safety controller or direct from safety IO
+	iSafteyCtrlProjectCRC AT %I*: WORD;
+	iSafetyGroup_State AT %I*: USINT;
+	iSafetyGroup_Diag AT %I*: USINT;
+	iSafetyGroup_ComErr AT %I*: BOOL;
+	iSafetyGroup_ComInStartup AT %I*: BOOL;
+	iSafetyGroup_FBErr AT %I*: BOOL;
+	iSafetyGroup_FBInRun AT %I*: BOOL;
+	iSafetyGroup_InRun AT %I*: BOOL;
+	iSafetyGroup_OtherErr AT %I*: BOOL;
+	oSafetyGroup_ErrAck AT %Q*: BOOL;
+	oSafetyGroup_Run AT %Q*: BOOL := TRUE;
+	iSafetyResetPB AT %I*: BOOL;
+	iEstopPB1_CH1 AT %I*: BOOL;
+	iEstopPB1_CH2  AT %I*: BOOL;
+	iRelayNCContact_Estop AT %I*: BOOL;
+	iSafetyPowerOn_Estop_CH1 AT %I*: BOOL;
+	iSafetyPowerOn_Estop_CH2 AT %I*: BOOL;
+	iAirPressureOk   AT %I*: BOOL;
+	oControlPowerPBLight AT %Q*: BOOL;	//Real Output
+	
+	// Times for error reset pulse
+	tmrFirstScanDelay: TON;
+	tmrRunRestart: TON;
+	tmrDelayAfterRun: TON;
+	tmrErrorAckPulse: TON;
+	
+	AutoErrorAckOnFirstScan: BOOL;
+	
+	// HMI display related to Ctrl/Group info
+	hoSafetyCtrlCRC: STRING;
+	hoSafetyGroup_State: DINT;
+	hoSafetyGroup_Diag: DINT;
+	
+	// HMI display vars for group status/reset
+	hiSafetyGroupPulseErrAck: BOOL;
+	hiSafetyGroupPulseRun: BOOL;
+	hoSafetyGroupErrAck: BOOL;
+	hoSafetyGroupRun: BOOL;
+	hoSafetyGroupComErr: BOOL;
+	hoSafetyGroupFBErr: BOOL;	
+	hoSafetyGroupAndFBInRun: BOOL;
+	hoSafetyGroupOtherErr: BOOL;
+	hoSafetyGroupComRunning: BOOL;
+	
+	// HMI display vars for devices
+	hoEstopPB1Ok: BOOL;
+	hoRelayNCContact_Estop: BOOL;
+	hoSafetyPowerOn_Estop: BOOL;
+	
+	// HMI display Reset PB status
+	hoSafetyResetPB: BOOL;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[// Interface logic between standard logic and safety logic and I/O
+
+// Delay berfore taking reset type actions
+tmrFirstScanDelay(IN := NOT gFirstScan, PT := T#10S);
+IF gFirstScan THEN 
+	AutoErrorAckOnFirstScan := TRUE;
+END_IF
+
+(* #################
+   Safety Group
+   #################*)
+   
+// Map Ctrl/Group status
+hoSafetyCtrlCRC := WORD_TO_HEXSTR(iSafteyCtrlProjectCRC,4,FALSE);
+hoSafetyGroup_State := iSafetyGroup_State;
+hoSafetyGroup_Diag := iSafetyGroup_Diag;
+
+// Map reset PB status to HMI
+hoSafetyResetPB := iSafetyResetPB;
+   
+// Map safety group status to HMI
+hoSafetyGroupRun := oSafetyGroup_Run;
+hoSafetyGroupErrAck := oSafetyGroup_ErrAck;
+hoSafetyGroupComErr := iSafetyGroup_ComErr;
+hoSafetyGroupFBErr := iSafetyGroup_FBErr;
+hoSafetyGroupAndFBInRun := iSafetyGroup_InRun AND iSafetyGroup_FBInRun;
+hoSafetyGroupOtherErr := iSafetyGroup_OtherErr;
+hoSafetyGroupComRunning := NOT iSafetyGroup_ComInStartup;
+
+// Allow HMI to turn if off group run; Reassert run after period of time regardless of what turned it off; 
+IF hiSafetyGroupPulseRun THEN
+	oSafetyGroup_Run := FALSE;
+	hiSafetyGroupPulseRun := FALSE;
+END_IF
+tmrRunRestart(IN:=(NOT oSafetyGroup_Run AND tmrFirstScanDelay.Q),PT:=T#500MS);
+IF tmrRunRestart.Q THEN
+	oSafetyGroup_Run := TRUE;
+	oSafetyGroup_ErrAck := FALSE;
+END_IF
+
+// Assert group error reset by command from HMI or after first scan; 
+tmrDelayAfterRun(IN := oSafetyGroup_Run, PT := T#500MS);
+
+IF hiSafetyGroupPulseErrAck OR 
+		(AutoErrorAckOnFirstScan AND
+		tmrFirstScanDelay.Q AND
+		tmrDelayAfterRun.Q)THEN
+	oSafetyGroup_ErrAck := TRUE;
+	hiSafetyGroupPulseErrAck := FALSE;
+	AutoErrorAckOnFirstScan:= FALSE;
+END_IF
+
+// Lower group error reset after period of time regardless of what turned it on
+tmrErrorAckPulse(IN:=oSafetyGroup_ErrAck,PT:=T#200MS);
+IF tmrErrorAckPulse.Q THEN
+	oSafetyGroup_ErrAck := FALSE;
+END_IF
+
+(* #################
+    Estop
+   #################*)
+
+hoEstopPB1Ok := iEstopPB1_CH1 AND
+	iEstopPB1_CH2; 
+hoSafetyPowerOn_Estop := NOT iSafetyGroup_ComErr AND
+	iSafetyPowerOn_Estop_CH1 AND
+	iSafetyPowerOn_Estop_CH2;
+
+// Publish safety status to reset of station
+
+// Group Related
+pSafetyInterface^.iSafetyCtrlGroupError := NOT hoSafetyPowerOn_Estop AND (hoSafetyGroupComErr OR hoSafetyGroupFBErr OR hoSafetyGroupOtherErr);	
+pSafetyInterface^.iSafetyResetPB := hoSafetyResetPB;
+
+// Estop Related
+pSafetyInterface^.iEstopButtonNOK1 := NOT hoEstopPB1Ok;
+pSafetyInterface^.iEstopRlyTripped := NOT hoSafetyPowerOn_Estop;
+
+//Control Power Light ON - SAFETY RESET REQUEST PB LIGHT in Electrical DWG
+oControlPowerPBLight := NOT pSafetyInterface^.iEstopRlyTripped;
+
+(* #################
+    Misc
+   #################*)
+   
+ pSafetyInterface^.iAirPressureOk := iAirPressureOk;
+ ]]></ST>
+    </Implementation>
+    <LineIds Name="FB_SafetyInterfaceConv">
+      <LineId Id="121" Count="0" />
+      <LineId Id="125" Count="74" />
+      <LineId Id="9" Count="0" />
+      <LineId Id="260" Count="0" />
+      <LineId Id="268" Count="0" />
+      <LineId Id="428" Count="0" />
+      <LineId Id="352" Count="0" />
+      <LineId Id="429" Count="4" />
+      <LineId Id="259" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

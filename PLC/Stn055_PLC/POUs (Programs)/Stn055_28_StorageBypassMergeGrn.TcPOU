@@ -1,0 +1,47 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn055_28_StorageBypassMergeGrn" Id="{d8cbd00c-9bee-4964-9df0-57f886096de3}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn055_28_StorageBypassMergeGrn
+VAR
+	{attribute 'TcLinkToOSO' := '.iBufferFull :=  <0,1,3>TIIB[N67S00 (AL1332)]^N67S05 (AL2341)^TxPDO^input byte 2'}
+	fbConvMerge: FB_ConvMerge;
+	
+	{attribute 'TcLinkToOSO' := '<0,1,3>TIIB[N67S00 (AL1332)]^N67S05 (AL2341)^TxPDO^input byte 2'}
+	iBufferFull AT %I*: BOOL;
+
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+gStn055_28_StorageBypassMergeGrn.MainHeartbeatOK := TRUE; // because this PLC is Main
+gStn055_28_StorageBypassMergeGrn.MainConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc061Mtr02;
+gStn055_28_StorageBypassMergeGrn.MainInAuto := gStn055.CycleAuto;
+
+gStn055_28_StorageBypassMergeGrn.SpurHeartbeatOK := TRUE; // because this PLC is Main
+gStn055_28_StorageBypassMergeGrn.SpurConvRunning := gConsumed_SafetyInterfaceConv.MtrRunning.Enc061Mtr03;
+gStn055_28_StorageBypassMergeGrn.SpurInAuto := gStn055.CycleAuto; 
+
+
+fbConvMerge(
+	pStn := ADR(gStn055),
+	pCmp := ADR(gStn055_28_StorageBypassMergeGrn),
+	pStateTraceBuffer := ADR(gStn055_StateTraceBuffer),
+	pStateTraceFifo := ADR(gStn055_StateTraceFifo),
+	pStats := ADR(gStn055_02_Stats),
+	pMain := ADR(gStn055_26_StorageBypassMainMergePrestopGrn),
+	pSpur := ADR(gStn055_27_StorageBypassSpurMergePrestopGrn)		
+);
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn055_28_StorageBypassMergeGrn">
+      <LineId Id="3" Count="3" />
+      <LineId Id="36" Count="0" />
+      <LineId Id="8" Count="2" />
+      <LineId Id="38" Count="0" />
+      <LineId Id="12" Count="11" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,61 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpSafetyInterface" Id="{89fbdc96-7dbf-4a33-b26b-6b2da20c1802}">
+    <Declaration><![CDATA[TYPE CmpSafetyInterface :
+STRUCT
+
+	// Structure for use across various staions
+	// Code behind the variables will implimented only on an as needed basis
+
+	iEstopRlyTripped: BOOL;				//Populated from safety interface
+	iEstopButtonNOK1: BOOL;				//Populated from safety interface
+	iEstopButtonNOK2: BOOL;				//Populated from safety interface
+	iEstopButtonNOK3: BOOL;				//Populated from safety interface
+	iEstopButtonNOK4: BOOL;				//Populated from safety interface
+	iEstopButtonNOK5: BOOL;				//Populated from safety interface
+	iEstopButtonNOK6: BOOL;				//Populated from safety interface
+	iEstopButtonNOK7: BOOL;				//Populated from safety interface
+	iGrdDrRlyTripped: BOOL;				//Populated from safety interface
+	iGrdDr1Open: BOOL;					//Populated from safety interface
+	iGrdDr2Open: BOOL;					//Populated from safety interface 
+	iGrdDr3Open: BOOL;					//Populated from safety interface
+	iGrdDr4Open: BOOL;					//Populated from safety interface
+	iGrdDr5Open: BOOL;					//Populated from safety interface 
+	iGrdDr6Open: BOOL;					//Populated from safety interface
+	iToolDr1Open: BOOL;					//Populated from safety interface
+	iToolDr2Open: BOOL;					//Populated from safety interface
+	iToolDr3Open: BOOL;					//Populated from safety interface
+	iToolDr4Open: BOOL;					//Populated from safety interface
+	iToolDr5Open: BOOL;					//Populated from safety interface
+	iToolDr6Open: BOOL;					//Populated from safety interface
+	iToolDr7Open: BOOL;					//Populated from safety interface
+	iToolDr8Open: BOOL;					//Populated from safety interface
+	iTool1PosNOK: BOOL;					//Populated from safety interface
+	iTool2PosNOK: BOOL;					//Populated from safety interface
+	iTool3PosNOK: BOOL;					//Populated from safety interface
+	iTool4PosNOK: BOOL;					//Populated from safety interface
+	iTool5PosNOK: BOOL;					//Populated from safety interface
+	iTool6PosNOK: BOOL;					//Populated from safety interface
+	iTool7PosNOK: BOOL;					//Populated from safety interface
+	iTool8PosNOK: BOOL;					//Populated from safety interface
+	iRobot1CommNOK: BOOL;				//Populated from safety interface
+	iRobot2CommNOK: BOOL;				//Populated from safety interface
+	iRobot3CommNOK: BOOL;				//Populated from safety interface
+	iRobot1InManual: BOOL;				//Populated from safety interface
+	iRobot2InManual: BOOL;				//Populated from safety interface
+	iRobot3InManual: BOOL;				//Populated from safety interface
+	iSafetyResetPB: BOOL;				//Populated from safety interface 
+	iSafetyCtrlGroupError: BOOL;		//Populated from safety interface
+	iServoSTOEnableImmedOff: BOOL;		//Populated from safety interface
+	iServoSTOEnableDelayedOff: BOOL;	//Populated from safety interface
+	iRowa_JROkToRowaRlyTripped: BOOL;	//Populated from safety interface
+	iRowa_RowaToJRSafetyNOK: BOOL;		//Populated from safety interface
+	oServo1STOFeedback: BOOL;			//Populated to safety interface
+	oServo2STOFeedback: BOOL;			//Populated to safety interface
+	oServo3STOFeedback: BOOL;			//Populated to safety interface
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

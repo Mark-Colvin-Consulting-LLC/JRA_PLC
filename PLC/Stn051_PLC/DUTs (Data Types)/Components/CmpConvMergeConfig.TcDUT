@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvMergeConfig" Id="{ff529019-5545-4f74-ac16-7c0d7de4bade}">
+    <Declaration><![CDATA[TYPE CmpConvMergeConfig :
+STRUCT
+	BufferSensorOnTime: TIME;
+	BufferSensorOffTime: TIME;
+	MergeTimeSpacing: TIME;
+	MergeTimeMainTravel: TIME;
+	MergeTimeSpurTravel: TIME;
+	UseReleaseRatio: BOOL;
+	RatioMain: REAL;
+	RatioSpur: REAL;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

@@ -1,0 +1,373 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn054_PrgCalls" Id="{f25742e9-8607-485c-a3e7-84bcb0ab48b9}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn054_PrgCalls
+VAR
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+//Turn on/off by defult based on debug progress
+IF gFirstScan THEN
+	
+	gDebug_ComponentCalls.CallStn054_15_RedGrnRecircMainMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_16_RedGrnRecircMerge := TRUE;
+	gDebug_ComponentCalls.CallStn054_17_RedGrnRecircSpurMergePrestopRed := TRUE;
+	gDebug_ComponentCalls.CallStn054_22_EvalBreakStopsGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_24_EmptyPuckStorageDivertGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_25_EmptyPuckStorageBreakStop1Grn := TRUE;
+	gDebug_ComponentCalls.CallStn054_26_EmptyPuckStorageBreakStop2Grn := TRUE;
+	gDebug_ComponentCalls.CallStn054_27_EmptyPuckStorageMainMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_28_EmptyPuckStorageSpurMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_29_EmptyPuckStorageMergeGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_30_Stn311Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_31_Stn311MergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_32_Stn311Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_40_BufferRecircEntryDivertGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_41_BufferRecircMainMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_42_BufferRecircSpurMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_43_BufferRecircMergeGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_45_CleaningRecircExitDivertGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_46_CleaningRecircExitMainMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_47_CleaningRecircExitSpurMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_48_CleaningRecircExitMergeGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_50_Stn321Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_51_Stn321MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_52_Stn321Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_55_Stn322Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_56_Stn322MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_57_Stn322Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_60_Stn331Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_61_Stn331MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_62_Stn331Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_65_Stn332Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_66_Stn332MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_67_Stn332Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_75_GradingRecircEntryDivertGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_76_TestRecircExitMainMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_77_TestRecircExitSpurMergePrestopGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_78_TestRecircExitMergeGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_80_Stn341Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_81_Stn341MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_82_Stn341Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_88_Stn351Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_89_Stn351MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_90_Stn351Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_91_Stn352Divert := TRUE;
+	gDebug_ComponentCalls.CallStn054_92_Stn352MainMergePrestop := TRUE;
+	gDebug_ComponentCalls.CallStn054_93_Stn352Merge := TRUE;
+	gDebug_ComponentCalls.CallStn054_95_TestRecircEntryDivertGrn := TRUE;
+	gDebug_ComponentCalls.CallStn054_96_EvalRecircBreakStopsGrn := TRUE;
+	
+END_IF
+
+
+// Conditionally Call Components
+IF gDebug_ComponentCalls.CallStn054_15_RedGrnRecircMainMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_15_RedGrnRecircMainMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_16_RedGrnRecircMerge OR
+		gFirstScan THEN
+	Stn054_16_RedGrnRecircMerge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_17_RedGrnRecircSpurMergePrestopRed OR
+		gFirstScan THEN
+	Stn054_17_RedGrnRecircSpurMergePrestopRed();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_22_EvalBreakStopsGrn OR
+		gFirstScan THEN
+	Stn054_22_EvalBreakStopsGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_24_EmptyPuckStorageDivertGrn OR
+		gFirstScan THEN
+	Stn054_24_EmptyPuckStorageDivertGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_25_EmptyPuckStorageBreakStop1Grn OR
+		gFirstScan THEN
+	Stn054_25_EmptyPuckStorageBreakStop1Grn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_26_EmptyPuckStorageBreakStop2Grn OR
+		gFirstScan THEN
+	Stn054_26_EmptyPuckStorageBreakStop2Grn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_27_EmptyPuckStorageMainMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_27_EmptyPuckStorageMainMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_28_EmptyPuckStorageSpurMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_28_EmptyPuckStorageSpurMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_29_EmptyPuckStorageMergeGrn OR
+		gFirstScan THEN
+	Stn054_29_EmptyPuckStorageMergeGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_30_Stn311Divert OR
+		gFirstScan THEN
+	Stn054_30_Stn311Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_31_Stn311MergePrestop OR
+		gFirstScan THEN
+	Stn054_31_Stn311MergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_32_Stn311Merge OR
+		gFirstScan THEN
+	Stn054_32_Stn311Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_40_BufferRecircEntryDivertGrn OR
+		gFirstScan THEN
+	Stn054_40_BufferRecircEntryDivertGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_41_BufferRecircMainMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_41_BufferRecircMainMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_42_BufferRecircSpurMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_42_BufferRecircSpurMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_43_BufferRecircMergeGrn OR
+		gFirstScan THEN
+	Stn054_43_BufferRecircMergeGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_45_CleaningRecircExitDivertGrn OR
+		gFirstScan THEN
+	Stn054_45_CleaningRecircExitDivertGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_46_CleaningRecircExitMainMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_46_CleaningRecircExitMainMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_47_CleaningRecircExitSpurMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_47_CleaningRecircExitSpurMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_48_CleaningRecircExitMergeGrn OR
+		gFirstScan THEN
+	Stn054_48_CleaningRecircExitMergeGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_50_Stn321Divert OR
+		gFirstScan THEN
+	Stn054_50_Stn321Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_51_Stn321MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_51_Stn321MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_52_Stn321Merge OR
+		gFirstScan THEN
+	Stn054_52_Stn321Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_55_Stn322Divert OR
+		gFirstScan THEN
+	Stn054_55_Stn322Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_56_Stn322MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_56_Stn322MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_57_Stn322Merge OR
+		gFirstScan THEN
+	Stn054_57_Stn322Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_60_Stn331Divert OR
+		gFirstScan THEN
+	Stn054_60_Stn331Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_61_Stn331MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_61_Stn331MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_62_Stn331Merge OR
+		gFirstScan THEN
+	Stn054_62_Stn331Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_65_Stn332Divert OR
+		gFirstScan THEN
+	Stn054_65_Stn332Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_66_Stn332MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_66_Stn332MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_67_Stn332Merge OR
+		gFirstScan THEN
+	Stn054_67_Stn332Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_75_GradingRecircEntryDivertGrn OR
+		gFirstScan THEN
+	Stn054_75_GradingRecircEntryDivertGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_76_TestRecircExitMainMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_76_TestRecircExitMainMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_77_TestRecircExitSpurMergePrestopGrn OR
+		gFirstScan THEN
+	Stn054_77_TestRecircExitSpurMergePrestopGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_78_TestRecircExitMergeGrn OR
+		gFirstScan THEN
+	Stn054_78_TestRecircExitMergeGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_80_Stn341Divert OR
+		gFirstScan THEN
+	Stn054_80_Stn341Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_81_Stn341MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_81_Stn341MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_82_Stn341Merge OR
+		gFirstScan THEN
+	Stn054_82_Stn341Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_88_Stn351Divert OR
+		gFirstScan THEN
+	Stn054_88_Stn351Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_89_Stn351MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_89_Stn351MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_90_Stn351Merge OR
+		gFirstScan THEN
+	Stn054_90_Stn351Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_91_Stn352Divert OR
+		gFirstScan THEN
+	Stn054_91_Stn352Divert();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_92_Stn352MainMergePrestop OR
+		gFirstScan THEN
+	Stn054_92_Stn352MainMergePrestop();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_93_Stn352Merge OR
+		gFirstScan THEN
+	Stn054_93_Stn352Merge();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_95_TestRecircEntryDivertGrn OR
+		gFirstScan THEN
+	Stn054_95_TestRecircEntryDivertGrn();
+END_IF
+IF gDebug_ComponentCalls.CallStn054_96_EvalRecircBreakStopsGrn OR
+		gFirstScan THEN
+	Stn054_96_EvalRecircBreakStopsGrn();
+END_IF
+]]></ST>
+    </Implementation>
+    <LineIds Name="Stn054_PrgCalls">
+      <LineId Id="113" Count="0" />
+      <LineId Id="128" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="180" Count="0" />
+      <LineId Id="371" Count="1" />
+      <LineId Id="370" Count="0" />
+      <LineId Id="136" Count="43" />
+      <LineId Id="133" Count="0" />
+      <LineId Id="135" Count="0" />
+      <LineId Id="86" Count="0" />
+      <LineId Id="366" Count="0" />
+      <LineId Id="87" Count="0" />
+      <LineId Id="6" Count="0" />
+      <LineId Id="373" Count="2" />
+      <LineId Id="182" Count="0" />
+      <LineId Id="377" Count="2" />
+      <LineId Id="376" Count="0" />
+      <LineId Id="381" Count="2" />
+      <LineId Id="380" Count="0" />
+      <LineId Id="231" Count="2" />
+      <LineId Id="183" Count="0" />
+      <LineId Id="234" Count="2" />
+      <LineId Id="184" Count="0" />
+      <LineId Id="237" Count="2" />
+      <LineId Id="185" Count="0" />
+      <LineId Id="240" Count="2" />
+      <LineId Id="186" Count="0" />
+      <LineId Id="243" Count="2" />
+      <LineId Id="187" Count="0" />
+      <LineId Id="246" Count="2" />
+      <LineId Id="188" Count="0" />
+      <LineId Id="249" Count="2" />
+      <LineId Id="189" Count="0" />
+      <LineId Id="252" Count="2" />
+      <LineId Id="190" Count="0" />
+      <LineId Id="255" Count="2" />
+      <LineId Id="191" Count="0" />
+      <LineId Id="258" Count="2" />
+      <LineId Id="192" Count="0" />
+      <LineId Id="261" Count="2" />
+      <LineId Id="193" Count="0" />
+      <LineId Id="264" Count="2" />
+      <LineId Id="194" Count="0" />
+      <LineId Id="267" Count="2" />
+      <LineId Id="195" Count="0" />
+      <LineId Id="270" Count="2" />
+      <LineId Id="196" Count="0" />
+      <LineId Id="273" Count="2" />
+      <LineId Id="197" Count="0" />
+      <LineId Id="276" Count="2" />
+      <LineId Id="198" Count="0" />
+      <LineId Id="279" Count="2" />
+      <LineId Id="199" Count="0" />
+      <LineId Id="282" Count="2" />
+      <LineId Id="200" Count="0" />
+      <LineId Id="285" Count="2" />
+      <LineId Id="201" Count="0" />
+      <LineId Id="288" Count="2" />
+      <LineId Id="202" Count="0" />
+      <LineId Id="291" Count="2" />
+      <LineId Id="203" Count="0" />
+      <LineId Id="294" Count="2" />
+      <LineId Id="204" Count="0" />
+      <LineId Id="297" Count="2" />
+      <LineId Id="205" Count="0" />
+      <LineId Id="300" Count="2" />
+      <LineId Id="206" Count="0" />
+      <LineId Id="303" Count="2" />
+      <LineId Id="207" Count="0" />
+      <LineId Id="306" Count="2" />
+      <LineId Id="208" Count="0" />
+      <LineId Id="309" Count="2" />
+      <LineId Id="209" Count="0" />
+      <LineId Id="312" Count="2" />
+      <LineId Id="210" Count="0" />
+      <LineId Id="315" Count="2" />
+      <LineId Id="211" Count="0" />
+      <LineId Id="318" Count="2" />
+      <LineId Id="212" Count="0" />
+      <LineId Id="321" Count="2" />
+      <LineId Id="213" Count="0" />
+      <LineId Id="324" Count="2" />
+      <LineId Id="214" Count="0" />
+      <LineId Id="327" Count="2" />
+      <LineId Id="215" Count="0" />
+      <LineId Id="330" Count="2" />
+      <LineId Id="216" Count="0" />
+      <LineId Id="333" Count="2" />
+      <LineId Id="217" Count="0" />
+      <LineId Id="336" Count="2" />
+      <LineId Id="218" Count="0" />
+      <LineId Id="339" Count="2" />
+      <LineId Id="219" Count="0" />
+      <LineId Id="342" Count="2" />
+      <LineId Id="220" Count="0" />
+      <LineId Id="345" Count="2" />
+      <LineId Id="221" Count="0" />
+      <LineId Id="348" Count="2" />
+      <LineId Id="222" Count="0" />
+      <LineId Id="351" Count="2" />
+      <LineId Id="223" Count="0" />
+      <LineId Id="354" Count="2" />
+      <LineId Id="224" Count="0" />
+      <LineId Id="357" Count="2" />
+      <LineId Id="225" Count="0" />
+      <LineId Id="360" Count="2" />
+      <LineId Id="226" Count="0" />
+      <LineId Id="363" Count="2" />
+      <LineId Id="62" Count="0" />
+      <LineId Id="68" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

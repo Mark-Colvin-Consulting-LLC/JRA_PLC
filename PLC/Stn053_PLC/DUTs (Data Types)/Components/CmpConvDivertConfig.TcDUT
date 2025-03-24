@@ -1,0 +1,27 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpConvDivertConfig" Id="{dae82b7c-e5f9-449e-8cc9-286b023b7840}">
+    <Declaration><![CDATA[TYPE CmpConvDivertConfig :
+	STRUCT
+		MainBufferSensorOnTime: TIME;
+		MainBufferSensorOffTime: TIME;
+		SpurBufferSensorOnTime: TIME;
+		SpurBufferSensorOffTime: TIME;
+		NumberOfNoRfidDataToFault: INT;
+		DivertMainTimeSpacing: TIME;
+		DivertSpurTimeSpacing: TIME;
+		MainPuckClearDivertTime: TIME;
+		NumberOfNoDBDataToFault: INT;
+		SpurPuckClearDivertTime: TIME;
+		TransitTimeMain: TIME;
+		TransitTimeSpur: TIME;
+		MainPuckPresentOnTime: TIME;
+		MainPuckPresentOffTime: TIME;
+		SpurEmptyRequestDelayTime: TIME;
+		RemoteBufferSensorMain: BOOL;
+		DBLocation: STRING(30);
+	END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

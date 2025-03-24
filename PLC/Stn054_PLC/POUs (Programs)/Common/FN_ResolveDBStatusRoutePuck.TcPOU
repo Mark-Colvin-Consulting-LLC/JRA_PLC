@@ -1,0 +1,76 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FN_ResolveDBStatusRoutePuck" Id="{825c7582-d2a3-4243-9756-9fb6773e890a}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION FN_ResolveDBStatusRoutePuck : cResolvedDBStatusRoute
+
+VAR_IN_OUT
+	Puck: PuckData;
+END_VAR
+
+VAR_INPUT
+	RouteToWork: STRING(30);
+END_VAR
+
+VAR
+	tempResolved: cResolvedDBStatusRoute;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+//Deafault to none in case logic fails
+tempResolved := cResolvedDBStatusRoute.None;
+
+// First deal with "no device" situations... as indicated by no status 
+//   DB has constraint that satatus must be non-null for a device record
+IF Puck.Device.Status = '' THEN
+	IF Puck.Device.Route <> '' THEN
+		tempResolved := cResolvedDBStatusRoute.InvalidCombination;
+	ELSIF Puck.PuckOnlyRoute = '' THEN
+		tempResolved := cResolvedDBStatusRoute.Empty_NoRoute;
+	ELSIF Puck.PuckOnlyRoute = cDBDetailRoute.PuckException THEN
+		tempResolved := cResolvedDBStatusRoute.UnknownDevice;
+	ELSIF Puck.PuckOnlyRoute = cDBDetailRoute.FastReceivingVision115 THEN
+		tempResolved := cResolvedDBStatusRoute.FastReceivingVision;
+	ELSIF Puck.PuckOnlyRoute = RouteToWork AND RouteToWork <> '' THEN
+		tempResolved := cResolvedDBStatusRoute.Empty_RoutedThisStation;
+	ELSE
+		tempResolved := cResolvedDBStatusRoute.Empty_RoutedOtherStation;
+	END_IF
+// Call sub-function related to device only (as compared to this function which is related to devices on pucks)	
+ELSE
+	tempResolved := FN_ResolveDBStatusRouteDevice(Device:=Puck.Device,RouteToWork:=RouteToWork);
+END_IF
+	
+FN_ResolveDBStatusRoutePuck := tempResolved;
+
+
+]]></ST>
+    </Implementation>
+    <LineIds Name="FN_ResolveDBStatusRoutePuck">
+      <LineId Id="54" Count="0" />
+      <LineId Id="53" Count="0" />
+      <LineId Id="52" Count="0" />
+      <LineId Id="66" Count="0" />
+      <LineId Id="51" Count="0" />
+      <LineId Id="88" Count="0" />
+      <LineId Id="15" Count="0" />
+      <LineId Id="20" Count="0" />
+      <LineId Id="30" Count="0" />
+      <LineId Id="39" Count="0" />
+      <LineId Id="32" Count="0" />
+      <LineId Id="40" Count="0" />
+      <LineId Id="35" Count="0" />
+      <LineId Id="102" Count="1" />
+      <LineId Id="41" Count="0" />
+      <LineId Id="33" Count="0" />
+      <LineId Id="42" Count="1" />
+      <LineId Id="31" Count="0" />
+      <LineId Id="67" Count="0" />
+      <LineId Id="44" Count="0" />
+      <LineId Id="89" Count="0" />
+      <LineId Id="76" Count="0" />
+      <LineId Id="69" Count="0" />
+      <LineId Id="17" Count="2" />
+      <LineId Id="7" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cResolvedDBStatusRoute" Id="{6a1398f4-6d55-473c-9c72-f4ead782e2f4}">
+    <Declaration><![CDATA[{attribute 'qualified_only'}
+{attribute 'strict'}
+TYPE cResolvedDBStatusRoute :
+(
+	
+	None := 0,
+	Empty_NoRoute := 1,
+	Empty_RoutedThisStation := 2,
+	Empty_RoutedOtherStation := 3,
+	Normal_RoutedThisStation := 5,
+	Normal_RoutedOtherStation := 6,
+	Normal_RoutedException := 7,
+	Normal_RoutedConsolidation := 8,
+	NonNormal_RoutedException := 9,
+	UnknownDevice := 10,
+	FastReceivingVision := 11,
+	InvalidCombination := 12
+	
+) DINT;
+END_TYPE]]></Declaration>
+  </DUT>
+</TcPlcObject>

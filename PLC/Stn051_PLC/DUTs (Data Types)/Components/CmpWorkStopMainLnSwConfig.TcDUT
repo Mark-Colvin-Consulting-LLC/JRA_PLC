@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpWorkStopMainLnSwConfig" Id="{65b878bb-1b66-4e88-bf66-179793ba122e}">
+    <Declaration><![CDATA[TYPE CmpWorkStopMainLnSwConfig :
+STRUCT
+	
+	DBLocation: STRING(30);
+
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

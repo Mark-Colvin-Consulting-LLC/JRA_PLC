@@ -1,0 +1,223 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_3LnSw_02_RoundRobin_V00" Id="{434fdb2a-5869-4adc-b9ea-e188979b4e41}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_3LnSw_02_RoundRobin_V00
+VAR_INPUT
+	pCmp: POINTER TO Cmp3LaneSwitchMain;
+	pWorkStop: ARRAY[0..3] OF POINTER TO CmpWorkStopMainLnSw;
+	pBreakStop2: ARRAY[0..3] OF POINTER TO CmpConvStop;
+	TargetReq: BOOL;
+END_VAR
+
+VAR_OUTPUT
+	Act: PuckLnSwAction;
+END_VAR
+
+VAR
+	i: DINT;
+	j: DINT;
+	k: DINT;
+	//PrestopFIFO: ARRAY[0..2] OF cLaneSel; //Not a perfect FIFO, but should be good enough
+	WorkStopInFIFO: ARRAY[0..3] OF BOOL; //If TRUE then the index workstop is present in the fifo
+	PreSwitchPuckHeadingCount: ARRAY[0..3] OF DINT;
+	PrestopFIFO_0_Destination: cLaneSel;
+	//DestinationFIFO: ARRAY[0..2] OF cLaneSel;
+	DestinationNotInFIFO: ARRAY[0..3] OF BOOL; //IF TRUE then the index destination is not int he lilo
+	onsAddPrestopToFIFO: ARRAY[1..3] OF R_TRIG;
+	onsShiftFIFO: R_TRIG;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[IF TargetReq THEN
+	MEMSET(ADR(Act),0,SIZEOF(Act));
+END_IF
+
+//Reset counting and scan arrays if component is reset
+IF pCmp^.Framework.ResetStart THEN
+	MEMSET(ADR(pCmp^.PrestopFIFO),0,SIZEOF(pCmp^.PrestopFIFO));
+	MEMSET(ADR(PreSwitchPuckHeadingCount),0,SIZEOF(PreSwitchPuckHeadingCount));
+	MEMSET(ADR(WorkStopInFIFO),0,SIZEOF(WorkStopInFIFO));
+	MEMSET(ADR(pCmp^.Sim.DestinationFIFO),0,SIZEOF(pCmp^.Sim.DestinationFIFO));
+	MEMSET(ADR(DestinationNotInFIFO),0,SIZEOF(DestinationNotInFIFO));
+END_IF
+
+//Determine which workstops are in the FIFO 
+MEMSET(ADR(WorkStopInFIFO),0,SIZEOF(WorkStopInFIFO));
+FOR i:= 0 TO 2 DO
+	CASE pCmp^.PrestopFIFO[i] OF
+		cLaneSel.Green:
+			WorkStopInFIFO[cLaneSel.Green] := TRUE;
+		cLaneSel.Red:
+			WorkStopInFIFO[cLaneSel.Red] := TRUE;
+		cLaneSel.Blue:
+			WorkStopInFIFO[cLaneSel.Blue] := TRUE;
+	END_CASE 
+END_FOR
+
+//Determine which destinations are in the LILO
+MEMSET(ADR(DestinationNotInFIFO),1,SIZEOF(DestinationNotInFIFO));
+FOR i:= 0 TO 2 DO
+	//If the lane is disabled then assume it is in the FIFO
+	IF pCmp^.Sim.OutputLaneDisabled[i + 1] THEN
+		DestinationNotInFIFO[i + 1] := FALSE;
+	END_IF
+	CASE pCmp^.Sim.DestinationFIFO[i] OF
+		cLaneSel.None:
+			;
+		cLaneSel.Green:
+			DestinationNotInFIFO[cLaneSel.Green] := FALSE;
+		cLaneSel.Red:
+			DestinationNotInFIFO[cLaneSel.Red] := FALSE;
+		cLaneSel.Blue:
+			DestinationNotInFIFO[cLaneSel.Blue] := FALSE;
+	END_CASE
+END_FOR
+
+//If PrestopFIFO[0] is empty shift FIFO left
+FOR i := 0 TO 1 DO
+	IF pCmp^.PrestopFIFO[i] = cLaneSel.None THEN
+		pCmp^.PrestopFIFO[i] := pCmp^.PrestopFIFO[i + 1];
+		pCmp^.PrestopFIFO[i + 1] := cLaneSel.None;
+	END_IF
+END_FOR
+
+//If DestinationFIFO[0] is empty shift FIFO left
+FOR i := 0 TO 1 DO
+	IF pCmp^.Sim.DestinationFIFO[i] = cLaneSel.None THEN
+		pCmp^.Sim.DestinationFIFO[i] := pCmp^.Sim.DestinationFIFO[i + 1];
+		pCmp^.Sim.DestinationFIFO[i + 1] := cLaneSel.None;
+	END_IF
+END_FOR
+
+
+onsAddPrestopToFIFO[cLaneSel.Green](CLK := pWorkStop[cLaneSel.Green]^.WorkReq);
+onsAddPrestopToFIFO[cLaneSel.Red](CLK := pWorkStop[cLaneSel.Red]^.WorkReq);
+onsAddPrestopToFIFO[cLaneSel.Blue](CLK := pWorkStop[cLaneSel.Blue]^.WorkReq);
+
+//PrestopFIFO logic
+FOR i := 1 TO 3 DO
+	IF onsAddPrestopToFIFO[i].Q THEN
+		FOR j := 0 TO 2 DO
+			IF pCmp^.PrestopFIFO[j] = cLaneSel.None AND
+					NOT WorkStopInFIFO[i] THEN
+				WorkStopInFIFO[i] := TRUE;
+				pCmp^.PrestopFIFO[j] := FN_NumToLane(i);
+				EXIT;
+			END_IF
+		END_FOR
+	END_IF
+END_FOR
+
+//Count all the PreSwitch puck headings
+MEMSET(ADR(PreSwitchPuckHeadingCount),0,SIZEOF(PreSwitchPuckHeadingCount));
+FOR i := 1 TO 3 DO
+	FOR j := 1 TO cPreSwitchBufferSize DO
+		IF pCmp^.PreSwitchBuffer[j].OutfeedDivert = i THEN
+			PreSwitchPuckHeadingCount[i] := PreSwitchPuckHeadingCount[i] + 1;
+		END_IF
+	END_FOR
+END_FOR
+
+//Determine FIFO[0] information
+PrestopFIFO_0_Destination := FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane);
+
+//Determine if the output lane is valid
+IF pCmp^.PrestopFIFO[0] <> 0 AND
+		pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane <> '' AND
+		PrestopFIFO_0_Destination = cLaneSel.None AND
+		TargetReq THEN
+	Act.OkTo_Fault := TRUE;
+	Act.Target_FaultCode := 1;
+	RETURN;
+END_IF
+
+//Determine what the output lane should be
+//Only looks at the primary lane, assumes no lanes are disabled
+//Sim.RoundRobin is didabled
+IF (pCmp^.PrestopFIFO[0] = cLaneSel.Green OR //Preswitch FIFO lane exists
+		pCmp^.PrestopFIFO[0] = cLaneSel.Red OR
+		pCmp^.PrestopFIFO[0] = cLaneSel.Blue) AND
+		(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = TO_STRING(cLaneSel.Green) OR //Destination lane exists
+		pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = TO_STRING(cLaneSel.Red) OR
+		pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = TO_STRING(cLaneSel.Blue)) AND 
+		pCmp^.PreSwitchBuffer[cPreSwitchBufferSize].RFID = 0 AND // There is room in the preswitch buffer to add a puck
+		// And there is room in the output buffer lane for the puck  
+		(pCmp^.PostSwitchPuckCount[PrestopFIFO_0_Destination] + //destination lane current count
+			PreSwitchPuckHeadingCount[PrestopFIFO_0_Destination]) < cPostSwitchBufferSize AND //Preswitch destination lane count
+		NOT pCmp^.Sim.RoundRobinOutput THEN 
+	Act.OkTo_ReleasePuck := TRUE;
+	Act.Target_Workstop := pCmp^.PrestopFIFO[0];
+	Act.Target_Lane := PrestopFIFO_0_Destination;
+END_IF
+		
+//Determine what the output lane should be 
+//Simulation RoundRobin
+IF pCmp^.Sim.RoundRobinOutput THEN
+	IF pCmp^.Sim.ForceOutfeedLane = cLaneSel.None THEN
+		FOR i := 1 TO 3 DO
+			IF DestinationNotInFIFO[i] AND //If the destination is not in the LILO
+					NOT pCmp^.Sim.OutputLaneDisabled[i] THEN // AND//and the output lane is not disabled
+					//PrestopFIFO[0] <> i THEN  //And the output lane is not equal to the input lane
+				Act.Target_Lane := FN_NumToLane(i);
+				EXIT;
+			END_IF		
+		END_FOR
+	ELSIF pCmp^.Sim.ForceOutfeedLane <> cLaneSel.None AND
+			TargetReq THEN;
+		Act.Target_Lane := pCmp^.Sim.ForceOutfeedLane;
+	END_IF
+	
+	//For DB bypass, must force a primary lane into LnSw Workstop component
+	IF pCmp^.Sim.DBBypass AND
+			Act.Target_Lane <> 0 AND
+			PrestopFIFO_0_Destination = cLaneSel.None THEN
+		PrestopFIFO_0_Destination := Act.Target_Lane;
+	END_IF
+	
+	IF (pCmp^.PrestopFIFO[0] = cLaneSel.Green OR //Preswitch FIFO lane exists
+			pCmp^.PrestopFIFO[0] = cLaneSel.Red OR
+			pCmp^.PrestopFIFO[0] = cLaneSel.Blue) AND
+			(Act.Target_Lane = cLaneSel.Green OR //Destination lane exists
+			Act.Target_Lane = cLaneSel.Red OR
+			Act.Target_Lane = cLaneSel.Blue) AND
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.WorkReq AND //There is a work request from this stop
+			pCmp^.PreSwitchBuffer[cPreSwitchBufferSize].RFID = 0 AND // There is room in the preswitch buffer to add a puck
+			// And there is room in the output buffer lane for the puck  
+			(pCmp^.PostSwitchPuckCount[PrestopFIFO_0_Destination] + //destination lane current count
+				PreSwitchPuckHeadingCount[PrestopFIFO_0_Destination]) < cPostSwitchBufferSize AND //Preswitch destination lane count
+			TargetReq THEN 
+		Act.OkTo_ReleasePuck := TRUE;
+		Act.Target_Workstop := pCmp^.PrestopFIFO[0];
+	END_IF
+END_IF
+	
+
+onsShiftFIFO(CLK := NOT pWorkStop[pCmp^.PrestopFIFO[0]]^.WorkCmp);
+IF onsShiftFIFO.Q THEN
+	//Shift the FIFO
+	MEMCPY(ADR(pCmp^.PrestopFIFO[0]),
+		ADR(pCmp^.PrestopFIFO[1]),
+		(SIZEOF(pCmp^.PrestopFIFO) - SIZEOF(pCmp^.PrestopFIFO[0])));
+	MEMSET(ADR(pCmp^.PrestopFIFO[2]), 0, SIZEOF(pCmp^.PrestopFIFO[2]));
+	//Add to the Destination LILO if a target is set
+	MEMCPY(ADR(pCmp^.Sim.DestinationFIFO[0]),
+		ADR(pCmp^.Sim.DestinationFIFO[1]),
+		(SIZEOF(pCmp^.Sim.DestinationFIFO) - SIZEOF(pCmp^.Sim.DestinationFIFO[0])));
+	pCmp^.Sim.DestinationFIFO[2] := Act.Target_Lane;
+END_IF
+
+//Kick a destination out of the FIFO
+IF Act.Target_Lane = 0 AND//If there is no Act.Target_Lane
+		pWorkStop[pCmp^.PrestopFIFO[0]]^.WorkReq AND 
+		TargetReq THEN  //and a target is being requested
+	MEMCPY(ADR(pCmp^.Sim.DestinationFIFO[0]),
+		ADR(pCmp^.Sim.DestinationFIFO[1]),
+		(SIZEOF(pCmp^.Sim.DestinationFIFO) - SIZEOF(pCmp^.Sim.DestinationFIFO[0])));
+	MEMSET(ADR(pCmp^.Sim.DestinationFIFO[2]),0,SIZEOF(pCmp^.Sim.DestinationFIFO[2]));
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_3LnSw_02_RoundRobin_V00">
+      <LineId Id="3" Count="185" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

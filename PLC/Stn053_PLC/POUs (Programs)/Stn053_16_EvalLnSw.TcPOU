@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="Stn053_16_EvalLnSw" Id="{50d5d480-f4c5-44e0-b1a4-2518af870a72}" SpecialFunc="None">
+    <Declaration><![CDATA[PROGRAM Stn053_16_EvalLnSw
+VAR
+	{attribute 'TcLinkTo' := '.iInfeedSensor := TIIB[N30S08 (EL1008)]^Channel 7^Input;
+		.iMachineReady := TIIB[N30S08 (EL1008)]^Channel 8^Input;
+		.oBoschInfeedConvFltRst := TIIB[N30S09 (EL2008)]^Channel 4^Output;
+		.oIntraloxInfeedConvFltRst := TIIB[N30S09 (EL2008)]^Channel 5^Output;
+		.oIntraloxOutfeedConv1FltRst := TIIB[N30S09 (EL2008)]^Channel 6^Output;
+		.oIntraloxOutfeedConv2FltRst := TIIB[N30S09 (EL2008)]^Channel 7^Output;
+		.oDornerOutfeedConvFltRst := TIIB[N30S09 (EL2008)]^Channel 8^Output;
+		.oClearFault := TIIB[N30S10 (EL2008)]^Channel 1^Output;
+		.oMotorsRunning := TIIB[N30S10 (EL2008)]^Channel 2^Output;
+		.oOutfeedDivertBit[0] := TIIB[N30S10 (EL2008)]^Channel 3^Output;
+		.oOutfeedDivertBit[1] := TIIB[N30S10 (EL2008)]^Channel 4^Output;
+		.oInfeedBeltBit[0] := TIIB[N30S10 (EL2008)]^Channel 5^Output;
+		.oInfeedBeltBit[1] := TIIB[N30S10 (EL2008)]^Channel 6^Output;
+		.oBoschInfeedConvRun := TIIB[N30S13 (EL2008)]^Channel 4^Output;
+		.oIntraloxInfeedConvRun := TIIB[N30S13 (EL2008)]^Channel 5^Output;
+		.oIntraloxOutfeedConv1Run := TIIB[N30S13 (EL2008)]^Channel 6^Output;
+		.oIntraloxOutfeedConv2Run := TIIB[N30S13 (EL2008)]^Channel 7^Output;
+		.oDornerOutfeedConvRun := TIIB[N30S13 (EL2008)]^Channel 8^Output;
+		.iBoschInfeedVFDNotRunning := TIIB[N30S18 (EL1008)]^Channel 1^Input;
+		.iBoschInfeedVFDNotFaulted := TIIB[N30S18 (EL1008)]^Channel 2^Input;
+		.iIntraloxInfeedVFDNotRunning := TIIB[N30S18 (EL1008)]^Channel 3^Input;
+		.iIntraloxInfeedVFDNotFaulted := TIIB[N30S18 (EL1008)]^Channel 4^Input;
+		.iIntraloxOutfeedVFD1NotRunning := TIIB[N30S18 (EL1008)]^Channel 5^Input;
+		.iIntraloxOutfeedVFD1NotFaulted := TIIB[N30S18 (EL1008)]^Channel 6^Input;
+		.iIntraloxOutfeedVFD2NotRunning := TIIB[N30S18 (EL1008)]^Channel 7^Input;
+		.iIntraloxOutfeedVFD2NotFaulted := TIIB[N30S18 (EL1008)]^Channel 8^Input;
+		.iDornerOutfeedVFDNotRunning := TIIB[N30S19 (EL1008)]^Channel 1^Input;
+		.iDornerOutfeedVFDNotFaulted := TIIB[N30S19 (EL1008)]^Channel 2^Input'}
+	{attribute 'TcLinkToOSO' := '.iBoschInfeedMtrDiscOK := <0,1,4>TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 1;
+		.iIntraloxInfeedMtrDiscOK := <0,1,4>TIIB[N32S00 (AL1332)]^N32S01 (AL2341)^TxPDO^input byte 3;
+		.iIntraloxOutfeedMtr1DiscOK := <0,1,3>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 3;
+		.iIntraloxOutfeedMtr2DiscOK := <0,1,4>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 1;
+		.iDornerOutfeedMtrDiscOK := <0,1,4>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 3;		
+		.iBreakStop1PuckPresent[1] := <0,1,0>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0;
+		.iBreakStop1PuckPresent[2] := <0,1,2>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0;
+		.iBreakStop1PuckPresent[3] := <0,1,4>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0;
+		.iBreakStop2PuckPresent[1] := <0,1,1>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0;
+		.iBreakStop2PuckPresent[2] := <0,1,3>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 0;
+		.iBreakStop2PuckPresent[3] := <0,1,0>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 1;
+		.iBreakStop1BufferFull[1] := <0,1,0>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 2;
+		.iBreakStop1BufferFull[2] := <0,1,2>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 2;
+		.iBreakStop1BufferFull[3] := <0,1,4>TIIB[N32S00 (AL1332)]^N32S03 (AL2341)^TxPDO^input byte 2;
+		.oBreakStop1PuckRelease[1] := <0,1,4>TIIB[N32S00 (AL1332)]^N32S02 (EX260)^RxPDO^output byte 0;
+		.oBreakStop1PuckRelease[2] := <0,1,4>TIIB[N32S00 (AL1332)]^N32S02 (EX260)^RxPDO^output byte 1;
+		.oBreakStop1PuckRelease[3] := <0,1,4>TIIB[N32S00 (AL1332)]^N32S02 (EX260)^RxPDO^output byte 2'}
+	fb3LaneSwitchMain: FB_3LaneSwitchMain;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//  This code instantiates a component that is implimented as a common function block
+//    Note that I/O is linked directly to I/O variables inside the named instance
+
+fb3LaneSwitchMain.pWorkStopMain[1] := ADR(gStn053_11_EvalLnSwPrestopMainGrn);
+fb3LaneSwitchMain.pWorkStopMain[2] := ADR(gStn053_13_EvalLnSwPrestopMainRed);
+fb3LaneSwitchMain.pWorkStopMain[3] := ADR(gStn053_15_EvalLnSwPrestopMainBlu);
+
+fb3LaneSwitchMain(pStn := ADR(gStn053),
+	pCmp := ADR(gStn053_16_EvalLnSw),
+	pStateTraceBuffer := ADR(gStn053_StateTraceBuffer),
+	pStateTraceFIFO := ADR(gStn053_StateTraceFifo),
+	pStats := ADR(gStn053_02_Stats));
+	
+// Publish Bosch infeed motor running so other station breakstop can decide if ok to release	
+gProduced_Stn053ToSafetyInterface.Stn053PLCData[0].10 := gStn053_16_EvalLnSw.BoschInfeedConvRunning;]]></ST>
+    </Implementation>
+    <LineIds Name="Stn053_16_EvalLnSw">
+      <LineId Id="3" Count="10" />
+      <LineId Id="2" Count="0" />
+      <LineId Id="63" Count="2" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

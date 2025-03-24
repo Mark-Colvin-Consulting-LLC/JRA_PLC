@@ -1,0 +1,513 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_RFID" Id="{e6510089-7235-4acd-9cad-8cabd313a143}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_RFID
+
+VAR_INPUT
+
+	PLCFirstScan: BOOL;
+	WriteID: DINT;
+	WriteStart: BOOL;
+	ResetStart: BOOL;
+	ErrorClear: BOOL;
+	ErrorRetryLimit: DINT := 3;
+
+END_VAR
+
+VAR_OUTPUT
+	
+	ReadID: DINT;
+	ReadValid: BOOL;
+	WriteDone: BOOL;
+	ResetDone: BOOL;
+	Error: BOOL;
+	ErrorNumLocal: DINT;
+	ErrorNumFromHead: USINT;
+	
+END_VAR
+
+VAR
+	
+	State: DINT;
+	NextState: DINT;
+	OnEntry: BOOL;
+	onsResetStart: R_TRIG;
+	onsErrorClear: R_TRIG;
+	
+	ErrorRetryCount: DINT;
+	LastErrorNumberLocal: DINT;
+	LastErrorNumberFromHead: USINT;
+	memErrorNumLocal: DINT;
+	memErrorNumFromHead: USINT;
+	
+	tmrStatePreset: TIME;	
+	tmrState: TON;
+	tmrCmdNotDone: TON;
+	tmrReadValid: TON;
+		
+	iRawArray AT %I*: ARRAY [0..31] OF USINT;
+	oRawArray AT %Q*: ARRAY [0..31] OF USINT;
+	
+	iAntennaOff: BOOL;
+	iCmdEnd: BOOL;
+	iCmdStartAck: BOOL;
+	iCmdValueFeedback: USINT;
+	iErrorNumFromHead: USINT;
+	iTagPresent: BOOL;
+	iReadData: WORD;
+	
+	oCmdValue: USINT;
+	oCmdStart: BOOL;
+	oCmdAntennaOff: BOOL;
+	oWriteData: WORD;
+	
+END_VAR
+
+VAR CONSTANT
+	
+	cCmd_None: USINT := 0;
+	cCmd_AutoRead: USINT := 1;
+	cCmd_AutoWrite: USINT := 2;
+	
+	cError_FirstPLCScan: DINT := 1;
+	cError_Reset_ErrorNumFromHead: DINT := 2;
+	cError_Reset_CmdFeedbackMismatch: DINT := 3;
+	cError_Reset_AntennaNotOn: DINT := 4;
+	cError_Reset_CmdEndWithNoTagPresent: DINT := 5;
+	cError_Reset_CmdEndDidNotLowerAfterStart: DINT := 6;
+	cError_Reset_CmdEndNotOnAfterStart: DINT := 7;
+	cError_Run_TagPresentCmdNotDone: DINT := 8;
+	cError_Run_AntennaNotOn: DINT := 9;
+	cError_Run_ErrorNumFromHead: DINT := 10;
+	cError_Run_CmdFeedbackMismatch: DINT := 11;
+	cError_Write_NoTagPresent: DINT := 12;
+	cError_Write_CmdFeedbackMismatch: DINT := 13;
+	cError_Write_CmdDidNotComplete: DINT :=14;
+
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[
+// FB_RFID
+//
+// Supports communicaton over I/O Link as used by IFM DTI425 read head
+//
+// Caution:  This code is specifically written for reading/writing a data payload of exactly two bytes (DINT)
+//    Other data sizes would require evauation/update of code and is limited by the AutoRead/AutoWrite interface.
+// This code uses AutoRead and AutoWrite functionality of the RFID head for ease and speed and
+//    does not make use of the generic read and write functionality.
+// This code is written/optimized for tags used as a "license plate" where the tag is written with the desired number
+//    once and effectively used as a read only tag after that.  Code sits in state 100 reporting data that head auto
+//    populates as tags come and go.
+// The writing does no data verificaion as it is assumed the operator will check read value after manually requesting
+//    the write function.
+// The error retry limit is exposed to calling code so retry limit can be set depending on application.
+
+(* #################
+    Input mapping
+   #################*)
+   
+// Map inputs from raw input array to named variables.
+	iCmdValueFeedback := iRawArray[0];
+	iCmdStartAck := iRawArray[1].0;
+	iCmdEnd := iRawArray[1].1;
+	iTagPresent := iRawArray[1].2;
+	iAntennaOff := iRawArray[1].3;
+	MEMCPY(ADR(iReadData),ADR(iRawArray[2]),SIZEOF(iReadData));
+	iErrorNumFromHead := iRawArray[31];
+
+	
+(* #################
+    Housekeeping
+   #################*)
+
+IF PLCFirstScan THEN
+	State := 999;
+	oCmdStart := FALSE;
+	oCmdAntennaOff := FALSE;
+	oCmdValue := cCmd_AutoRead;
+	WriteDone := FALSE;
+	ResetDone := FALSE;
+	Error := TRUE;
+	ErrorNumLocal := cError_FirstPLCScan;
+END_IF
+
+// Type conversion of UINT data on tag to DINT interface to calling component
+ReadID := WORD_TO_DINT(iReadData);
+
+
+// Handle request from calling component to reset
+//   Which consists entirely of just setting state to 999 and letting code resume from there.
+onsResetStart(CLK:=ResetStart);
+IF onsResetStart.Q THEN
+	State := 999;
+END_IF
+
+IF ResetDone AND (NOT ResetStart OR ErrorClear) THEN
+	ResetDone := FALSE;
+END_IF
+
+// Repsond to clear error from calling component
+onsErrorClear(CLK:=ErrorClear);
+IF onsErrorClear.Q THEN
+	Error := FALSE;
+	ErrorNumLocal := 0;
+END_IF
+
+// Create on entry and state timer
+OnEntry := NextState <> State;
+tmrState(IN:=NOT OnEntry,PT:=tmrStatePreset);
+State := NextState;
+
+
+(* #################
+    Sequence
+   #################*)
+
+CASE State OF
+	0: (*Turn antenna off*)
+	
+		// Attempt to clear cerain faults that require tag to leave field and re-enter by turning off antenna
+		IF OnEntry THEN
+			oCmdStart := FALSE;
+			oCmdAntennaOff := TRUE;
+			oCmdValue := cCmd_None;
+			WriteDone := FALSE;
+			tmrStatePreset := T#300MS;
+		END_IF
+		
+		IF tmrState.Q THEN
+			NextState := 10;
+		END_IF
+		
+	10: (*Turn antenna on*)
+	
+		IF OnEntry THEN
+			oCmdAntennaOff := FALSE;
+			tmrStatePreset := T#200MS;
+		END_IF
+		
+		IF tmrState.Q THEN
+			NextState := 20;
+		END_IF
+
+	20: (*Turn antenna on / command to AutoRead*)
+	
+		// Verify RFID head is reflecting commanded value, other wise time out to error.
+		IF OnEntry THEN
+			WriteDone := FALSE;
+			oCmdValue := cCmd_AutoRead;
+			tmrStatePreset := T#500MS;
+		END_IF
+		
+		IF NOT iAntennaOff AND
+				iCmdValueFeedback = oCmdValue AND
+				iErrorNumFromHead = 0 THEN
+			NextState := 30;
+		END_IF
+		
+		IF tmrState.Q THEN
+			IF iAntennaOff THEN 
+				ErrorNumLocal := cError_Reset_AntennaNotOn;
+			ELSIF iCmdValueFeedback <> oCmdValue THEN
+				ErrorNumLocal := cError_Reset_CmdFeedbackMismatch;
+			ELSIF iErrorNumFromHead <> 0 THEN
+				ErrorNumLocal := cError_Reset_ErrorNumFromHead;
+			END_IF
+		END_IF
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+
+	30: (*Start AutoRead mode*)
+	
+		// Confirm interface reacts appropriately.  Otherwise time out to error.
+		//   If tag present then end should drop out momentarily. (go to other states to confirm this happens)
+		//   If no tag then should be no response even after waiting a litte.
+		IF OnEntry THEN
+			oCmdStart := TRUE;
+			tmrStatePreset := T#200MS;
+		END_IF
+		
+		IF NOT iAntennaOff AND
+				iCmdValueFeedback = oCmdValue AND
+				iErrorNumFromHead = 0 THEN
+			// Other feedback is good so evaluate tag present signal
+			IF iTagPresent THEN
+				IF iCmdEnd THEN
+					// Go to state to confirm end goes low
+					NextState := 40;
+				ELSE
+					// End already low so go to state to wait for it to turn back on
+					NextState := 50;
+				END_IF
+			ELSIF NOT iCmdEnd AND
+					NOT iCmdStartAck AND
+					tmrState.Q THEN
+				// No tag present so go on after short delay
+				NextState := 60;
+			END_IF
+		END_IF
+		
+		IF tmrState.Q THEN
+			IF iAntennaOff THEN 
+				ErrorNumLocal := cError_Reset_AntennaNotOn;
+			ELSIF iCmdValueFeedback <> oCmdValue THEN
+				ErrorNumLocal := cError_Reset_CmdFeedbackMismatch;
+			ELSIF iErrorNumFromHead <> 0 THEN
+				ErrorNumLocal := cError_Reset_ErrorNumFromHead;
+			ELSIF NOT iTagPresent AND (iCmdEnd OR iCmdStartAck) THEN
+				ErrorNumLocal := cError_Reset_CmdEndWithNoTagPresent;
+			END_IF
+		END_IF
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+		
+	40: (*Confirm CmdEnd drops out (momentarily)*)
+	
+		// Since tag was present at start, end should drop as tag is read.
+		IF OnEntry THEN
+			tmrStatePreset := T#500MS;
+		END_IF
+		
+		IF iCmdStartAck AND
+				NOT iCmdEnd AND
+				iErrorNumFromHead = 0 THEN
+			NextState := 50;
+		END_IF
+		
+		IF tmrState.Q THEN
+			ErrorNumLocal := cError_Reset_CmdEndDidNotLowerAfterStart;
+		END_IF		
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+		
+	50: (*Confirm iCmdEnd turns on*)
+	
+		// Since tag was present at start, iCmdEnd should eventually turn on.
+		IF OnEntry THEN
+			tmrStatePreset := T#500MS;
+		END_IF
+		
+		IF iCmdStartAck AND
+				iCmdEnd AND
+				iErrorNumFromHead = 0 THEN
+			NextState := 60;
+		END_IF
+		
+		IF tmrState.Q THEN
+			ErrorNumLocal := cError_Reset_CmdEndNotOnAfterStart;
+		END_IF		
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+		
+	60: (*Clear start command and report reset done*)
+	
+		// ResetDone is turned off by rules based logic in housekeeping
+		// Immediately continue to AutoRead active state regardless of state of reset start/done handshake
+		IF OnEntry THEN
+			oCmdStart := FALSE;
+			ResetDone := TRUE;
+		END_IF
+		
+		NextState := 100;
+
+	100: (*AutoRead mode active, monitor for any faults*)
+	
+		// Just sit here letting housekeeping report data/data valid as tags come and go.
+		// Stay here until error, reset request, or write request.
+		// Trigger error for any reader error or for data not being read even though tag is present.
+		// If error triggered then try to avoid direct fault by allowing a retry if allowed by calling code.
+		
+		IF OnEntry THEN
+			tmrCmdNotDone(IN:=FALSE);
+		END_IF
+		
+		// Run timer if tag present but command does not complete
+		tmrCmdNotDone(IN:=iTagPresent AND (NOT iCmdEnd OR NOT iCmdStartAck),PT:=T#500MS);
+
+		IF WriteStart AND 
+				NOT iAntennaOff AND
+				iCmdValueFeedback = oCmdValue AND
+				iErrorNumFromHead = 0 THEN
+			// Write requested so go take care of that
+			NextState := 200;
+		END_IF
+			
+		
+		IF iCmdValueFeedback <> oCmdValue THEN
+			ErrorNumLocal := cError_Run_CmdFeedbackMismatch;
+		ELSIF iErrorNumFromHead <> 0 THEN
+			ErrorNumLocal := cError_Run_ErrorNumFromHead;
+		ELSIF iAntennaOff THEN 
+			ErrorNumLocal := cError_Run_AntennaNotOn;
+		ELSIF tmrCmdNotDone.Q THEN
+			ErrorNumLocal := cError_Run_TagPresentCmdNotDone;			
+		END_IF
+				
+		IF ErrorNumLocal <> 0 THEN
+			ErrorRetryCount := ErrorRetryCount + 1;
+			IF ErrorRetryCount <= ErrorRetryLimit THEN
+				//If ok to retry the clear current error and go though reset  / get ready logic
+				NextState := 0;
+				ErrorNumLocal := 0;		
+			ELSE	
+				Error := TRUE;
+				NextState := 999;
+			END_IF
+		END_IF	
+		
+	200: (*Confirm tag present for write*)
+	
+		// Don't attempt write if no tag present
+		IF OnEntry THEN
+			// Type conversion of interface DINT ID to UINT written to tag
+			IF oWriteData <= 16#FFFF THEN
+				oWriteData := DINT_TO_WORD(WriteID);
+			ELSE 
+				oWriteData := 0;
+			END_IF 
+			tmrStatePreset := T#100MS;
+		END_IF
+		
+		IF iTagPresent THEN
+			NextState := 210;
+		END_IF
+		
+		IF tmrState.Q THEN
+			ErrorNumLocal := cError_Write_NoTagPresent;
+		END_IF		
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+		
+	210: (*Populate AutoWrite command, but don't start yet*)
+	
+		// Note that the write data is populated directly in the I/O mapping seciton
+		IF OnEntry THEN
+			oCmdValue := cCmd_AutoWrite;
+			tmrStatePreset := T#100MS;
+		END_IF
+		
+		IF iCmdValueFeedback = oCmdValue AND
+				NOT iCmdEnd THEN
+			// Confirmed that head has correct command number
+			NextState := 220;
+		END_IF
+		
+		IF tmrState.Q THEN
+			ErrorNumLocal := cError_Write_CmdFeedbackMismatch;
+		END_IF		
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+		
+	220: (*Issue start command for AutoWrite mode*)
+	
+		// Note that write is not verified, as this will normally be a rare manual function and code
+		//  will immediately go back to read mode and operator can verity read number.
+		IF OnEntry THEN
+			oCmdStart := TRUE;
+			tmrStatePreset := T#300MS;
+		END_IF
+		
+		IF iCmdStartAck AND
+				iErrorNumFromHead = 0 AND
+				iCmdEnd THEN
+			NextState := 230;
+		END_IF
+		
+		IF tmrState.Q THEN
+			ErrorNumLocal := cError_Write_CmdDidNotComplete;
+		END_IF		
+		
+		IF ErrorNumLocal <> 0 THEN
+			Error := TRUE;
+			NextState := 999;
+		END_IF
+
+230: (*Clear command and tell calling code write is done*)
+		
+		// Wait for calling code to lower write request
+		IF OnEntry THEN
+			oCmdStart := FALSE;
+			oCmdValue := cCmd_AutoRead;
+			WriteDone := TRUE;
+		END_IF
+		
+		IF NOT WriteStart THEN
+			NextState := 0;
+		END_IF
+		
+999: (*Stopped, Waiting for reset command*)
+		
+		// Clear various outputs and wait for calling component to request clear of any error then reset
+		IF OnEntry THEN
+			oCmdStart := FALSE;
+			oCmdAntennaOff := FALSE;
+			oCmdValue := cCmd_None;
+			WriteDone := FALSE;
+			ErrorRetryCount := 0;
+		END_IF
+		
+		IF ResetStart AND ErrorNumLocal = 0 THEN
+			NextState := 0;
+		END_IF		
+
+END_CASE
+   
+(* #################
+    Post Housekeeping
+   #################*)
+
+	// Publish live error number from head itself
+	ErrorNumFromHead := iErrorNumFromHead;
+   
+	// Publish that read data is valid
+	tmrReadValid(IN:=(State = 100) AND iTagPresent AND iCmdStartAck AND iCmdEnd,PT:=T#100MS);
+	ReadValid := tmrReadValid.Q;
+   
+	// Capture, rising edge of, last local error number for later debug purposes
+	IF ErrorNumLocal <> 0 AND memErrorNumLocal = 0 THEN
+		LastErrorNumberLocal := ErrorNumLocal;
+	END_IF
+	memErrorNumLocal := ErrorNumLocal;
+	
+	// Caputre, rising edge of, last head error number for later debug purposes
+	IF ErrorNumFromHead <> 0 AND memErrorNumFromHead = 0 THEN
+		LastErrorNumberFromHead := ErrorNumFromHead;
+	END_IF
+	memErrorNumFromHead := ErrorNumFromHead;
+	
+(* #################
+    Output mapping
+   #################*)
+   
+// Map outputs from named variables to raw output array.
+	MEMCPY(ADR(oRawArray[2]),ADR(oWriteData),SIZEOF(oWriteData));
+	oRawArray[0] := oCmdValue;
+	oRawArray[1].0 := oCmdStart;
+	oRawArray[1].3 := oCmdAntennaOff;
+	
+]]></ST>
+    </Implementation>
+    <LineIds Name="FB_RFID">
+      <LineId Id="3" Count="416" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

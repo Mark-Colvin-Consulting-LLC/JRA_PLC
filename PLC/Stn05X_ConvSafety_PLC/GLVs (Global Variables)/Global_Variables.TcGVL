@@ -1,0 +1,26 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <GVL Name="Global_Variables" Id="{56202fa9-4423-49ed-a3ae-b1f78b12e440}">
+    <Declaration><![CDATA[VAR_GLOBAL
+	
+	// 	Heartbeats from Stations OK
+	gConsumed_Stn051ToSafetyInterface_OK : BOOL;
+	gConsumed_Stn052ToSafetyInterface_OK : BOOL;
+	gConsumed_Stn053ToSafetyInterface_OK : BOOL;
+	gConsumed_Stn054ToSafetyInterface_OK : BOOL;	
+	gConsumed_Stn055ToSafetyInterface_OK : BOOL;
+
+	// PLC to PLC comms	
+	gProduced_SafetyInterfaceConv : Plc2PlcDataSafetyPuckConv;
+	gConsumed_Stn051ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_Stn052ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_Stn053ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_Stn054ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	gConsumed_Stn055ToSafetyInterface : Plc2PlcDataSafetyPuckConv;
+	
+	gInitialScanForce: BOOL := 0;
+			
+END_VAR
+]]></Declaration>
+  </GVL>
+</TcPlcObject>

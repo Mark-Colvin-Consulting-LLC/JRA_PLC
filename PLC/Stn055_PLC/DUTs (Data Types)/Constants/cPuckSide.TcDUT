@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="cPuckSide" Id="{5962e334-124b-4610-a7ae-1e5645321a53}">
+    <Declaration><![CDATA[{attribute 'qualified_only' := ''}
+{attribute 'strict' := ''}
+{attribute 'to_string' := ''}
+TYPE cPuckSide :
+(
+	None := 0,
+	Clean,
+	Dirty
+);
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

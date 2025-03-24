@@ -1,0 +1,296 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_BreakStopGroup" Id="{86c7018e-1706-4637-8d63-1477ed5f2f41}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_BreakStopGroup
+VAR_INPUT
+	pStn: POINTER TO Station;
+	pCmp: POINTER TO CmpConvBreakStopGroup;
+	pStateTraceBuffer: POINTER TO TraceFIFOBuffer;
+	pStateTraceFIFO: POINTER TO FIFO_StateTrace;
+	pStats: POINTER TO Component_Stats;
+END_VAR
+VAR
+	Local: FrameworkLocal;
+	Framework: FB_Framework;
+	///Setup up to cMaxBreakStopInstances 
+	fbBreakStop: ARRAY[1..cBreakStopGroupMaxInstance] OF FB_BreakStop;
+	FaultedStopIndex: DINT;
+	BreakStopFaultType: DINT;
+	onsBreakStopStart: R_TRIG;
+	BreakStopStarted: ARRAY[1..cBreakStopGroupMaxInstance] OF BOOL;
+	State: DINT;
+	NextState: DINT;
+	i: DINT;
+	j: DINT;
+END_VAR
+VAR CONSTANT
+	cErrorFaultPuckDidNotLeave: DINT := 1;
+	cErrorFaultPuckDidNotArriveBuffer: DINT := 2;
+END_VAR
+]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[Local.pStateTraceBuffer := pStateTraceBuffer;
+Local.pStateTraceFifo := pStateTraceFIFO;
+Local.pStats := pStats;
+
+IF gFirstScan THEN
+	Local.FaultTimeLong := T#10000ms;
+	Local.FaultTimeShort := T#6000ms;
+	Local.Name := pCmp^.Framework.ComponentIDRecord.Name;
+	Local.AltName := '';
+	
+	// keeping this call since it is auto-gen by flowchart export
+	DfnMessages();
+END_IF
+
+FrameWork(pFramework:=ADR(pCmp^.Framework), pLocal:=ADR(Local), pStation:=pStn);
+
+(* Housekeeping *)
+IF gFirstScan THEN
+	//create the fault msg array entries
+	Local.MsgArray[0].Id := 9991;
+	Local.MsgArray[0].Text :=  'Software error - Too many BreakStop instances.';
+	Local.MsgArray[0].AltText := 'No Alt Text';
+	j := 1;  // start with message index 1
+	FOR i := 1 to MIN( pCmp^.Config.NumberStops, cBreakStopGroupMaxInstance  ) DO
+		Local.MsgArray[j].Id := i*10+1;
+		Local.MsgArray[j].Text :=  CONCAT(CONCAT('Stop ',TO_STRING(i)),': Puck did not leave.');
+		Local.MsgArray[j].AltText := 'No Alt Text';
+		j := j + 1;
+		Local.MsgArray[j].Id := i*10+2;
+		Local.MsgArray[j].Text := CONCAT(CONCAT('Stop ',TO_STRING(i)),': Puck not arrive at buffer.');
+		Local.MsgArray[j].AltText := 'No Alt Text';
+		j := j + 1;
+		
+		//BreakStop[i] begin as not running
+		BreakStopStarted[i] := FALSE;
+	END_FOR
+
+END_IF
+
+onsBreakStopStart(CLK := pStn^.CycleAuto);
+FaultedStopIndex := 0;				// reset FaultedIndex and FaultType
+BreakStopFaultType := 0;
+
+FOR i := 1 TO MIN( pCmp^.Config.NumberStops, cBreakStopGroupMaxInstance  )  DO
+	//setup FB call
+
+	fbBreakStop[i].CycleStart :=  onsBreakStopStart.Q ;
+	fbBreakStop[i].CycleStop := FALSE;
+	fbBreakStop[i].UnlatchFaults := pStn^.UnlatchFaults OR (pCmp^.Framework.ResetStart AND NOT pCmp^.Framework.ResetDone);
+	fbBreakStop[i].OKForManual := pStn^.OKForManual;
+	fbBreakStop[i].ConvRunning :=  pCmp^.ConvRunning[i];
+	fbBreakStop[i].PLCFirstScan :=  gFirstScan;
+	fbBreakStop[i].pConfig := ADR(pCmp^.Config.BreakStops[i]);
+	
+	// FB call here to run break stop logic
+	//   and publish result of stop lower output
+	fbBreakStop[i](StopLowerReq=>pCmp^.LowerStopReq[i]);
+
+	// handle FB faults here
+	IF fbBreakStop[i].FaultPuckDidNotLeave THEN 
+		FaultedStopIndex := i;
+		BreakStopFaultType := cErrorFaultPuckDidNotLeave;
+		BreakStopStarted[i] := FALSE;
+	END_IF
+
+	IF fbBreakStop[i].FaultPuckDidNotArriveAtBuffer  THEN
+		FaultedStopIndex := i;
+		BreakStopFaultType := cErrorFaultPuckDidNotArriveBuffer;
+		BreakStopStarted[i] := FALSE;
+	END_IF
+	
+	//is this BreakStop[i] running?
+	BreakStopStarted[i] := fbBreakStop[i].Running;
+	
+	
+
+END_FOR
+
+(* #################
+    Sequence Logic
+   #################*)
+CASE Local.State OF
+	
+	0: (*Wait for action*)
+		IF Local.FirstEntry THEN
+			IF pCmp^.Config.NumberStops > cBreakStopGroupMaxInstance THEN
+ 				Local.NextState := 999; 
+  				Local.State := 999;
+  				Local.FaultNumber := 1;
+			END_IF
+		END_IF
+	
+		Local.OKToStop := TRUE;
+		
+		IF BreakStopFaultType > 0 THEN
+		  Local.NextState := FaultedStopIndex; 
+		  Local.State := FaultedStopIndex;
+		  Local.FaultNumber := BreakStopFaultType;
+		END_IF
+		
+		
+	
+	5000: (*Idle*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.ResetDone := FALSE;
+			
+			// Clear manual cycle requests here
+			Local.ManualCycleDone := FALSE;
+			
+			// Clear subordinate *.Framework.ResetStart signals here
+			
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		IF NOT Local.AsynchFault OR Local.AsynchFaultReactionComplete THEN
+			IF Local.CycleAuto THEN
+				Local.NextState := 5001;
+			ELSIF Local.CycleReset AND pCmp^.Framework.ResetStart AND
+					NOT Local.CycleAuto AND NOT Local.CycleManual THEN
+				IF pStn^.FullInitRequired OR pCmp^.Framework.FullInitRequired THEN
+					Local.NextState := 5010;
+				ELSIF NOT pStn^.FullInitRequired AND
+						NOT pCmp^.Framework.FullInitRequired THEN
+					IF NOT Local.AsynchFault THEN
+						Local.NextState := 6000;
+					ELSIF Local.AsynchFault THEN
+						Local.NextState := 7500;
+					END_IF
+				END_IF
+			ELSIF Local.CycleManual THEN
+				Local.NextState := 8000;
+			END_IF
+		ELSIF Local.AsynchFault AND NOT Local.AsynchFaultReactionComplete THEN
+			Local.NextState := 7000;
+		END_IF
+	
+	5001: (*Set ReEntryState and working event*)
+		
+		IF Local.FirstEntry THEN
+			Local.NextState := Local.ReEntryState;
+		END_IF
+		
+		;
+	
+	5010: (*Full Initialization*)
+		
+		IF Local.FirstEntry THEN
+			Local.ReEntryState := 0;
+		END_IF
+	
+		Local.NextState := 9000;
+	
+	6000: (*Fault reset - check LastAutoState*)
+		
+		//Note: always perform full init
+		Local.NextState := 5010;
+	
+	7000: (*Asynch fault reaction*)
+		
+		Local.NextState := 7499;
+	
+	7499: (*Asynch fault reaction complete*)
+		
+		IF Local.FirstEntry THEN
+			Local.AsynchFaultReactionComplete := TRUE;
+		END_IF
+		
+		Local.NextState := 5000;
+	
+	7500: (*Asynch fault recovery*)
+		
+		Local.NextState := 9000;
+	
+	8000: (*Manual cycle request*)
+		
+		Local.NextState := 9999;
+	
+	9000: (*Coordinated reset*)
+		
+		Local.NextState := 9998;
+	
+	9998: (*Reset done*)
+		
+		IF Local.FirstEntry THEN
+			pCmp^.Framework.FullInitRequired := FALSE;
+			Local.FaultedState := 0;
+			Local.AsynchFault := FALSE;
+			Local.AsynchFaultReactionComplete := FALSE;
+			pCmp^.Framework.ResetDone := TRUE;
+		END_IF
+		
+		Local.OKToStop := TRUE;
+		
+		;
+	
+	9999: (*Manual cycle done*)
+		
+		IF Local.FirstEntry THEN
+			Local.ManualCycleDone := TRUE;
+		END_IF
+		
+		;
+END_CASE
+
+//############################# END SEQUENCE LOGIC #############################
+
+// Set Attention Bit (if needed)
+Local.Attention := FALSE;
+
+// Summation of all manual cycle requests
+Local.ManualCycleRequested := FALSE;
+
+// *************************
+//   Custom Fault Logic 
+// *************************
+// Supply any application/component specific data to be used in building fault records or handling of asynchronous faults, etc.
+IF Local.tmrFault.Q AND Local.FaultNumber = 0 THEN
+	Local.FaultNumber := 1; (*default number is 1*)
+END_IF
+MEMSET(ADR(Local.FaultData), 0, SIZEOF(Local.FaultData));
+
+IF Local.LongFaultState THEN
+	Local.FaultTimePreset := Local.FaultTimeLong;
+ELSE
+	Local.FaultTimePreset := Local.FaultTimeShort;
+END_IF
+Local.LongFaultState := FALSE;
+
+IF NOT Local.AsynchFault AND Local.FaultNumber = 0 THEN
+	IF FALSE THEN
+		Local.AsynchFault := TRUE;
+		Local.FaultNumber := 1;
+	END_IF
+END_IF
+
+(*#### Manual operation ####*)
+(*#### Manual cycle ####*)
+IF pStn^.OKForManual AND NOT Local.CycleManual AND NOT pStn^.CycleFaulted THEN
+    ;
+END_IF
+
+(*#### Always turn off hi requests ####*)
+
+(*### Simulation Logic ###*)
+
+
+;
+]]></ST>
+    </Implementation>
+    <Action Name="DfnMessages" Id="{7d4b88e0-aa03-469c-8119-1a2a4d74ac16}">
+      <Implementation>
+        <ST><![CDATA[;]]></ST>
+      </Implementation>
+    </Action>
+    <LineIds Name="FB_BreakStopGroup">
+      <LineId Id="3" Count="248" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+    <LineIds Name="FB_BreakStopGroup.DfnMessages">
+      <LineId Id="1" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>

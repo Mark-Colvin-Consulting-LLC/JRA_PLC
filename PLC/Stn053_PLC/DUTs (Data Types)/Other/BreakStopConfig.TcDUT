@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="BreakStopConfig" Id="{db785e47-232d-4391-bb3f-d645ded3c313}">
+    <Declaration><![CDATA[TYPE BreakStopConfig :
+STRUCT
+	MaxTimeLeavingStop: TIME;
+	DebounceTimePuckPresentOn: TIME;
+	DebounceTimePuckPresentOff: TIME;
+	DebounceTimeBufferFullOn: TIME;
+	DebounceTimeBufferFullOff: TIME;
+	TimeSpacingMinimum: TIME;
+	EnableBufferArrivalFault: BOOL;
+	BufferArrivalFaultTime: TIME;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

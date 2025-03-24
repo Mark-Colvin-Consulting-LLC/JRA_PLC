@@ -1,0 +1,14 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <DUT Name="CmpWorkStopMainLnSwSim" Id="{a612dcaf-4621-4830-84cb-24b76ff39ada}">
+    <Declaration><![CDATA[TYPE CmpWorkStopMainLnSwSim :
+STRUCT
+	DBBypass: BOOL;
+	ForceRFID: BOOL;
+	TestRFIDData: DINT := 404;
+	TestPuckData: DBGetOutputLane;
+END_STRUCT
+END_TYPE
+]]></Declaration>
+  </DUT>
+</TcPlcObject>

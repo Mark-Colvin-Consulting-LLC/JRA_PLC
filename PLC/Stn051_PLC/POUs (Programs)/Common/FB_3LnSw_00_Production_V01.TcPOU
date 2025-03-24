@@ -1,0 +1,202 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<TcPlcObject Version="1.1.0.1" ProductVersion="3.1.4024.6">
+  <POU Name="FB_3LnSw_00_Production_V01" Id="{2e1f24f9-5286-4cd1-8394-0a9beead75ad}" SpecialFunc="None">
+    <Declaration><![CDATA[FUNCTION_BLOCK FB_3LnSw_00_Production_V01
+VAR_INPUT
+	pCmp: POINTER TO Cmp3LaneSwitchMain;
+	pWorkStop: ARRAY[0..3] OF POINTER TO CmpWorkStopMainLnSw;
+	pBreakStop2: ARRAY[0..3] OF POINTER TO CmpConvStop;
+	TargetReq: BOOL;
+END_VAR
+
+VAR_OUTPUT
+	Act: PuckLnSwAction;
+END_VAR
+
+VAR
+	i: DINT;
+	j: DINT;
+	k: DINT;
+	//PrestopFIFO: ARRAY[0..2] OF cLaneSel; //Not a perfect FIFO, but should be good enough
+	WorkStopInFIFO: ARRAY[0..3] OF BOOL; //If TRUE then the index workstop is present in the fifo
+	PreSwitchPuckHeadingCount: ARRAY[0..3] OF DINT;
+	PrestopFIFO_0_Destination: cLaneSel;
+	onsAddPrestopToFIFO: ARRAY[1..3] OF R_TRIG;
+	onsShiftFIFO: R_TRIG;
+END_VAR]]></Declaration>
+    <Implementation>
+      <ST><![CDATA[//Purpose of this TC is to integrate the ability for the user to disable output lanes, which previously existed in simulation.
+//This traffic control also implements the preffered database lanes, but only uses a round robin for the input.
+//TC will also service any infeed lane
+
+//Reset counting and scan arrays if component is reset
+IF pCmp^.Framework.ResetStart THEN
+	MEMSET(ADR(pCmp^.PrestopFIFO),0,SIZEOF(pCmp^.PrestopFIFO));
+	MEMSET(ADR(PreSwitchPuckHeadingCount),0,SIZEOF(PreSwitchPuckHeadingCount));
+	MEMSET(ADR(WorkStopInFIFO),0,SIZEOF(WorkStopInFIFO));
+END_IF
+
+//Determine which workstops are in the FIFO 
+MEMSET(ADR(WorkStopInFIFO),0,SIZEOF(WorkStopInFIFO));
+FOR i:= 0 TO 2 DO
+	CASE pCmp^.PrestopFIFO[i] OF
+		cLaneSel.Green:
+			WorkStopInFIFO[cLaneSel.Green] := TRUE;
+		cLaneSel.Red:
+			WorkStopInFIFO[cLaneSel.Red] := TRUE;
+		cLaneSel.Blue:
+			WorkStopInFIFO[cLaneSel.Blue] := TRUE;
+	END_CASE 
+END_FOR
+
+//If PrestopFIFO[0] is empty shift FIFO left
+FOR i := 0 TO 1 DO
+	IF pCmp^.PrestopFIFO[i] = cLaneSel.None THEN
+		pCmp^.PrestopFIFO[i] := pCmp^.PrestopFIFO[i + 1];
+		pCmp^.PrestopFIFO[i + 1] := cLaneSel.None;
+	END_IF
+END_FOR
+
+onsAddPrestopToFIFO[cLaneSel.Green](CLK := pWorkStop[cLaneSel.Green]^.WorkReq);
+onsAddPrestopToFIFO[cLaneSel.Red](CLK := pWorkStop[cLaneSel.Red]^.WorkReq);
+onsAddPrestopToFIFO[cLaneSel.Blue](CLK := pWorkStop[cLaneSel.Blue]^.WorkReq);
+
+//PrestopFIFO logic
+FOR i := 1 TO 3 DO // for each workstop
+	IF onsAddPrestopToFIFO[i].Q THEN //Did the work request go high
+		FOR j := 0 TO 2 DO //Populate the PrestopFIFO
+			IF pCmp^.PrestopFIFO[j] = cLaneSel.None AND //If the prestop is not already in FIFO
+					NOT WorkStopInFIFO[i] THEN
+				WorkStopInFIFO[i] := TRUE;
+				pCmp^.PrestopFIFO[j] := FN_NumToLane(i);
+				EXIT;
+			END_IF
+		END_FOR
+	END_IF
+END_FOR
+
+onsShiftFIFO(CLK := NOT pWorkStop[pCmp^.PrestopFIFO[0]]^.WorkCmp);
+IF onsShiftFIFO.Q THEN
+	//Shift the FIFO
+	MEMCPY(ADR(pCmp^.PrestopFIFO[0]),
+		ADR(pCmp^.PrestopFIFO[1]),
+		(SIZEOF(pCmp^.PrestopFIFO) - SIZEOF(pCmp^.PrestopFIFO[0])));
+	MEMSET(ADR(pCmp^.PrestopFIFO[2]), 0, SIZEOF(pCmp^.PrestopFIFO[2]));
+	
+END_IF
+
+//Reset the PrestopFIFO Destination
+IF pCmp^.PreSwitchBuffer[cPreSwitchBufferSize].RFID = 0 THEN
+	PrestopFIFO_0_Destination := cLaneSel.None;
+END_IF
+
+//Count all the PreSwitch puck headings
+MEMSET(ADR(PreSwitchPuckHeadingCount),0,SIZEOF(PreSwitchPuckHeadingCount));
+FOR i := 1 TO 3 DO
+	FOR j := 0 TO cPreSwitchBufferSize DO
+		IF FN_NumToLane(pCmp^.PreSwitchBuffer[j].OutfeedDivert) = pCmp^.Config.OutGreenLine THEN
+			PreSwitchPuckHeadingCount[1] := PreSwitchPuckHeadingCount[1] + 1;
+		ELSIF FN_NumToLane(pCmp^.PreSwitchBuffer[j].OutfeedDivert) = pCmp^.Config.OutRedLine THEN
+			PreSwitchPuckHeadingCount[2] := PreSwitchPuckHeadingCount[2] + 1;
+		ELSIF FN_NumToLane(pCmp^.PreSwitchBuffer[j].OutfeedDivert) = pCmp^.Config.OutBlueLine THEN
+			PreSwitchPuckHeadingCount[3] := PreSwitchPuckHeadingCount[3] + 1;
+		END_IF
+	END_FOR
+END_FOR
+
+
+
+IF TargetReq THEN
+	MEMSET(ADR(Act),0,SIZEOF(Act));
+	
+	//If the PrestopFIFO[0] puck does not have secondary or teriary lanes, then add them in.
+	//TODO - Lazy logic, because DB should return 3 lanes every time.
+	IF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane = '' THEN
+		//Check to see what the primary lane is
+		IF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = 'Blue' THEN
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane := 'Green';
+		ELSIF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = 'Green' THEN
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane := 'Red';
+		ELSIF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = 'Red' THEN
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane := 'Blue';
+		END_IF
+	END_IF
+		
+	IF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane = '' THEN
+		//Check to see what the secondary lane is
+		IF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = 'Blue' THEN
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane := 'Red';
+		ELSIF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = 'Green' THEN
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane := 'Blue';
+		ELSIF pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane = 'Red' THEN
+			pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane := 'Green';
+		END_IF
+	END_IF
+	
+	//Determine PrestopFIFO[0] Destination
+	IF PrestopFIFO_0_Destination = cLaneSel.None THEN //Only assign if one has not been assigned yet
+		//Will the selected primary lane fit into the corresponding post switch buffer?
+		//If No lane is selected then all the lanes are currently full
+		IF (PreSwitchPuckHeadingCount[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane)] + //The the preswitch headings to the primary lane
+					pCmp^.PostSwitchPuckCount[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane)]) //and the Postswitch pucks in buffer  
+					<= pCmp^.Config.PostSwitchLaneCapacity[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane)] AND //are less than the buffer size
+				pCmp^.LaneEnabled[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane)] AND // and the primary lane is enabled
+				NOT pCmp^.PurgeActive[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane)] THEN // and that lane is not actively purging
+			PrestopFIFO_0_Destination := FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.PrimaryLane); //Then the PrestopFIFO_0_Destination can be the primary lane
+		
+		//Will the selected secondary lane fit into the corresponding post switch buffer?
+		ELSIF (PreSwitchPuckHeadingCount[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane)] + //The the preswitch headings to the primary lane
+					pCmp^.PostSwitchPuckCount[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane)]) //and the Postswitch pucks in buffer  
+					<= pCmp^.Config.PostSwitchLaneCapacity[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane)] AND //are less than the buffer size
+				pCmp^.LaneEnabled[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane)] AND // and the secondary lane is enabled
+				NOT pCmp^.PurgeActive[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane)] THEN // and that lane is not actively purging
+			PrestopFIFO_0_Destination := FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.SecondaryLane); //Then the PrestopFIFO_0_Destination can be the primary lane
+		
+		//Will the selected tertiary lane fit into the corresponding post switch buffer?
+		ELSIF (PreSwitchPuckHeadingCount[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane)] + //The the preswitch headings to the primary lane
+					pCmp^.PostSwitchPuckCount[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane)]) //and the Postswitch pucks in buffer  
+					<= pCmp^.Config.PostSwitchLaneCapacity[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane)] AND //are less than the buffer size
+				pCmp^.LaneEnabled[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane)] AND // and the tertiary lane is enabled
+				NOT pCmp^.PurgeActive[FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane)] THEN // and that lane is not actively purging
+			PrestopFIFO_0_Destination := FN_StringToLane(pWorkStop[pCmp^.PrestopFIFO[0]]^.PuckLnSw.TertiaryLane); //Then the PrestopFIFO_0_Destination can be the primary lane
+		END_IF
+	END_IF
+	
+	//Determine if the output lane is not valid
+	IF (pCmp^.PrestopFIFO[0] < 0 OR
+			pCmp^.PrestopFIFO[0] > 3) AND
+			(PrestopFIFO_0_Destination < 0 OR
+			PrestopFIFO_0_Destination > 3) AND
+			TargetReq THEN
+		Act.OkTo_Fault := TRUE;
+		Act.Target_FaultCode := 1;
+		RETURN;
+	END_IF
+	
+	IF (pCmp^.PrestopFIFO[0] = cLaneSel.Green OR //Preswitch FIFO lane is valid
+			pCmp^.PrestopFIFO[0] = cLaneSel.Red OR
+			pCmp^.PrestopFIFO[0] = cLaneSel.Blue) AND
+			((PrestopFIFO_0_Destination = cLaneSel.Green AND //Destination lane is valid
+			pCmp^.LaneEnabled[cLaneSel.Green]) OR //Green lane is enabled
+			(PrestopFIFO_0_Destination = cLaneSel.Red AND
+			pCmp^.LaneEnabled[cLaneSel.Red]) OR //Red lane is enabled
+			(PrestopFIFO_0_Destination = cLaneSel.Blue AND
+			pCmp^.LaneEnabled[cLaneSel.Blue])) AND //Blue lane is enabled
+			pCmp^.PreSwitchBuffer[cPreSwitchBufferSize].RFID = 0 AND // There is room in the preswitch buffer to add a puck
+			pCmp^.PostSwitchBuffer[PrestopFIFO_0_Destination][pCmp^.Config.PostSwitchLaneCapacity[PrestopFIFO_0_Destination]].RFID = 0 AND //There is room in the correct post switch buffer lane 
+			(PreSwitchPuckHeadingCount[PrestopFIFO_0_Destination] + pCmp^.PostSwitchPuckCount[PrestopFIFO_0_Destination])
+				<= pCmp^.Config.PostSwitchLaneCapacity[PrestopFIFO_0_Destination] THEN // The pucks headed to selected land + the pucks in selected buffer lane do not exceed capacity
+		Act.OkTo_ReleasePuck := TRUE;
+		Act.Target_Workstop := pCmp^.PrestopFIFO[0];
+		Act.Target_Lane := PrestopFIFO_0_Destination;
+		Act.Target_PuckLnSw := pWorkStop[Act.Target_Workstop]^.PuckLnSw;
+	END_IF
+	
+END_IF]]></ST>
+    </Implementation>
+    <LineIds Name="FB_3LnSw_00_Production_V01">
+      <LineId Id="3" Count="166" />
+      <LineId Id="2" Count="0" />
+    </LineIds>
+  </POU>
+</TcPlcObject>
